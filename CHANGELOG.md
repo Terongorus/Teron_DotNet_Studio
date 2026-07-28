@@ -2,6 +2,12 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.0.3] - 2026-07-29
+
+* **Latest changes**:
+  * Added additional extenstion metadata
+  * Added a proper icon
+
 ## [1.0.1] - 2026-07-29
 
 * **Stable Release**:
