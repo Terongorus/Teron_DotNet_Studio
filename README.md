@@ -35,4 +35,4 @@ Kaloyan Kolev
 
 ## License
 
-This extension is licensed under the GPL 3.0 Public License.
+This extension is licensed under the GNU General Public License v3.0 (GPLv3).

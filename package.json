@@ -1,8 +1,9 @@
 {
   "name": "dotnet-project-creator",
-  "displayName": "dotnet-project-creator",
+  "displayName": ".NET Project Creation",
   "description": "An interactive extension with command pallet commands, made for the creation of new .NET projects using available templates, as well as downloading new templates.",
-  "version": "0.0.1",
+  "version": "1.0.1",
+  "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/Terongorus/dotnet-project-creator"
@@ -19,7 +20,7 @@
     "commands": [
       {
         "command": "dotnet-creator.newProject",
-        "title": ".NET: Create New Project",
+        "title": "Create New Project",
         "category": ".NET"
       }
     ]
