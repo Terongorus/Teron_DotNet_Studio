@@ -26,7 +26,14 @@
     "commands": [
       {
         "command": "dotnet-creator.newProject",
+        "icon": "resources/appicon.png",
         "title": "Create New Project",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.manageSolution",
+        "icon": "resources/appicon.png",
+        "title": "Manage Solution Files",
         "category": ".NET"
       }
     ]
