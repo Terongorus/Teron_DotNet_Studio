@@ -3,6 +3,10 @@
   "displayName": "dotnet-project-creator",
   "description": "An interactive extension with command pallet commands, made for the creation of new .NET projects using available templates, as well as downloading new templates.",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Terongorus/dotnet-project-creator"
+  },
   "engines": {
     "vscode": "^1.125.0"
   },
