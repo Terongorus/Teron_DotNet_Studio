@@ -1,8 +1,9 @@
 {
-  "name": "dotnet-project-creator",
-  "displayName": ".NET Project Creation",
+  "name": ".NET Project Creator",
+  "displayName": ".NET Project Creator",
   "description": "An interactive extension with command pallet commands, made for the creation of new .NET projects using available templates, as well as downloading new templates.",
   "author": "Terongorus",
+  "publisher": "Terongorus",
   "version": "1.0.1",
   "icon": "resources/appicon.png",
   "repository": {
@@ -13,6 +14,10 @@
     "vscode": "^1.125.0"
   },
   "categories": [
+    "Extension Packs",
+    "Programming Languages",
+    "Visualization",
+    "Snippets",
     "Other"
   ],
   "activationEvents": [],
