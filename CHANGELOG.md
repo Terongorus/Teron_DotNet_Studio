@@ -2,6 +2,27 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.1.0] - 2026-07-29
+
+* **Security fix**:
+  * Replaced shell-string `dotnet` invocations with `execFile`, eliminating a command
+    injection vector via project name, package ID, and template selection.
+* **New commands**:
+  * Added `.NET: Create Solution` for creating a standalone, empty solution.
+  * Implemented `.NET: Manage Solution Files`, which adds or permanently deletes
+    solution-level scaffold files (`.gitignore`, `.editorconfig`, `NuGet.Config`,
+    `global.json`, `.sln`/`.slnx`, etc.) in a chosen folder.
+* **Create New Project changes**:
+  * Filtered the template picker down to real project templates only
+    (`dotnet new list --type project`), removing scaffold-file entries.
+  * Replaced the old parent-folder-only `.sln` prompt with a choice to add the new project
+    to an existing solution or a newly created one, determining where the project lives.
+  * New solutions are created as `.slnx` by default.
+  * Fixed template/short-name parsing for entries with multiple comma-separated short names
+    (e.g. `webapp,razor`).
+  * Added input validation for project names and NuGet package IDs.
+  * Added a confirmation prompt before creating into a non-empty existing folder.
+
 ## [1.0.3] - 2026-07-29
 
 * **Latest changes**:
