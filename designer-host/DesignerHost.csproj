@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DesignerHost</AssemblyName>
+    <!-- Invariant Globalization is NOT usable here: WPF's Binding/Converter
+         engine needs real culture data (e.g. "en-US") to evaluate bindings,
+         and throws "Cannot find non-neutral culture" without it. -->
+  </PropertyGroup>
+
+</Project>

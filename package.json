@@ -55,6 +55,12 @@
         "icon": "resources/appicon.png",
         "title": "Show Start Page",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.previewXamlDesigner",
+        "icon": "resources/appicon.png",
+        "title": "Preview XAML (Live)",
+        "category": ".NET"
       }
     ],
     "configuration": {
@@ -66,13 +72,53 @@
           "description": "Automatically show the .NET Project Creator start page on launch when no folder or workspace is open."
         }
       }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "resourceExtname == .xaml",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "resourceExtname == .xaml",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "view == resharper.solutionExplorer && viewItem =~ /hasPath/",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "resourceExtname == .xaml",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "resourceExtname == .xaml",
+          "group": "navigation"
+        }
+      ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
+    "vscode:prepublish": "npm run package && npm run build:designer-host",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
+    "build:designer-host": "npm run build:designer-host:x64 && npm run build:designer-host:x86",
+    "build:designer-host:x64": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x64 --self-contained false -o dist/designer-host/win-x64",
+    "build:designer-host:x86": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x86 --self-contained false -o dist/designer-host/win-x86",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",

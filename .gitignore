@@ -4,3 +4,5 @@ node_modules
 .vscode-test/
 *.vsix
 Front_page_design.png
+designer-host/bin/
+designer-host/obj/
