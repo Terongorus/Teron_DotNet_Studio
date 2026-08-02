@@ -20,7 +20,9 @@
     "Snippets",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -41,8 +43,30 @@
         "icon": "resources/appicon.png",
         "title": "Manage Solution Files",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.openExisting",
+        "icon": "resources/appicon.png",
+        "title": "Open Existing Solution/Project",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.showStartPage",
+        "icon": "resources/appicon.png",
+        "title": "Show Start Page",
+        "category": ".NET"
       }
-    ]
+    ],
+    "configuration": {
+      "title": ".NET Project Creator",
+      "properties": {
+        "dotnet-creator.showStartPageOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show the .NET Project Creator start page on launch when no folder or workspace is open."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

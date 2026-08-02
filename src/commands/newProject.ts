@@ -6,6 +6,7 @@ import { isValidProjectName, isValidPackageId } from '../utils/validation';
 import { getProjectTemplates, firstShortName, DotnetTemplate } from '../utils/templates';
 import { pickExistingSolution } from '../utils/solutionPicker';
 import { promptCreateSolution } from './createSolution';
+import { addRecentItem } from '../startPage/recentItems';
 
 interface TemplatePickItem extends vscode.QuickPickItem {
     template?: DotnetTemplate;
@@ -132,6 +133,12 @@ export function registerNewProjectCommand(context: vscode.ExtensionContext) {
                 if (slnPath) {
                     await runDotnet(['sln', slnPath, 'add', fullProjectPath]);
                 }
+
+                await addRecentItem(context.globalState, {
+                    kind: 'project',
+                    name: projectName,
+                    folderPath: slnPath ? solutionFolder : fullProjectPath
+                });
 
                 vscode.window.showInformationMessage(`Successfully created ${projectName}!`, 'Open Project')
                     .then(choice => {

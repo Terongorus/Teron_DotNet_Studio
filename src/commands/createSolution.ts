@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { runDotnet } from '../utils/process';
 import { isValidProjectName } from '../utils/validation';
+import { addRecentItem } from '../startPage/recentItems';
 
 /**
  * Interactive core for creating an empty solution. Reused directly by the
@@ -66,6 +67,14 @@ export function registerCreateSolutionCommand(context: vscode.ExtensionContext) 
         }
 
         const folder = path.dirname(slnPath);
+
+        await addRecentItem(context.globalState, {
+            kind: 'solution',
+            name: path.basename(slnPath, path.extname(slnPath)),
+            folderPath: folder,
+            filePath: slnPath
+        });
+
         vscode.window.showInformationMessage(`Successfully created solution!`, 'Open Folder')
             .then(choice => {
                 if (choice === 'Open Folder') {
