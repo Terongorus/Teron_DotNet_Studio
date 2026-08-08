@@ -4,7 +4,7 @@
   "description": "A set of .NET utilities and tools, designed to work in unison with JetBrains' \"C# by ReSharper\" and Microsoft's \"C# Dev Kit\". It also acts as a replacement for the project creation utility of \"C# Dev Kit\" by creating its own command for creating .NET projects.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",

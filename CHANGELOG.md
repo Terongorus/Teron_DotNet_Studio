@@ -2,6 +2,16 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.2.1] - 2026-08-09
+
+* **`.csproj` picker**:
+  * Split `pickCsprojFile` (always prompts) from `getPickedCsprojFile` (silent, reuses the
+    last pick, only prompts the first time) - `launch.json`/`tasks.json` `"inputs"` should
+    reference the latter so debugging doesn't re-prompt for a project on every single run.
+  * Added `.NET: Change Debug Project` to the Command Palette (`pickCsprojFile`) as the
+    explicit way to switch projects, with a "Recently Used" section (persisted per workspace)
+    so switching in a larger solution doesn't mean scanning the full list every time.
+
 ## [1.2.0] - 2026-08-09
 
 * **Start Page**:
