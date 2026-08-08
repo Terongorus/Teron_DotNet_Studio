@@ -2,6 +2,35 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.2.0] - 2026-08-09
+
+* **Start Page**:
+  * Added a `.NET: Show Start Page` webview tab (modeled on VS Code's own Welcome page) with
+    quick actions for New Project, Create Solution, Manage Solution Files, and a new
+    `.NET: Open Existing Solution/Project` command.
+  * Recent Solutions/Projects list, persisted across sessions, with click-to-reopen and
+    per-item removal.
+  * Auto-shows on launch when no folder is open, controlled by the new
+    `dotnet-creator.showStartPageOnStartup` setting.
+* **XAML Live Preview** (read-only; interactive editing is planned for a future release):
+  * Added `.NET: Preview XAML (Live)`, rendering `.xaml` files inside a VS Code webview using
+    genuine WPF output (an out-of-process helper renders via `XamlReader` and streams a PNG
+    frame back over a named pipe) rather than an HTML/CSS approximation.
+  * Re-renders automatically on every save.
+  * Resolves the target project's built assembly so `clr-namespace:` references to its own
+    converters/controls resolve correctly, including bare same-assembly references.
+  * Merges the project's `App.xaml` `Application.Resources` so app-level styles/brushes/fonts
+    are available when previewing a single window in isolation.
+  * Supports both x86 and x64 target projects, auto-detected and launched accordingly.
+  * Gracefully degrades on code-behind-dependent constructs (event handlers, command
+    bindings) instead of failing the whole render.
+  * Exposed via an editor title-bar button and context menus in the native Explorer, the
+    editor, and (where installed) ReSharper's Solution Explorer.
+* **New commands**:
+  * `dotnet-creator.pickCsprojFile` — an internal-use command (not in the Command Palette)
+    for referencing from a `.vscode/tasks.json` or `launch.json` `"inputs"` entry to pick a
+    `.csproj` from the workspace, auto-accepting a single match.
+
 ## [1.1.0] - 2026-07-29
 
 * **Security fix**:

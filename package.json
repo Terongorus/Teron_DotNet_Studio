@@ -4,7 +4,7 @@
   "description": "An interactive extension with command pallet commands, made for the creation of new .NET projects using available templates, as well as downloading new templates.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",

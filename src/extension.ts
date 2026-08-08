@@ -6,6 +6,7 @@ import { registerOpenExistingCommand } from './commands/openExisting';
 import { registerStartPageCommand, maybeShowStartPageOnStartup } from './commands/startPage';
 import { registerXamlDesignerCommand } from './commands/xamlDesigner';
 import { disposeDesignerHost } from './xamlDesigner/xamlDesignerPanel';
+import { registerPickCsprojFileCommand } from './commands/pickCsprojFile';
 
 export function activate(context: vscode.ExtensionContext) {
     registerNewProjectCommand(context);
@@ -14,6 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerOpenExistingCommand(context);
     registerStartPageCommand(context);
     registerXamlDesignerCommand(context);
+    registerPickCsprojFileCommand(context);
 
     maybeShowStartPageOnStartup(context);
 }
