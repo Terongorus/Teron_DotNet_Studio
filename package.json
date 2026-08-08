@@ -61,6 +61,12 @@
         "icon": "resources/appicon.png",
         "title": "Preview XAML (Live)",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.pickCsprojFile",
+        "icon": "resources/appicon.png",
+        "title": "Change Debug Project",
+        "category": ".NET"
       }
     ],
     "configuration": {

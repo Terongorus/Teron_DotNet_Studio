@@ -7,6 +7,19 @@ export interface PickCsprojArgs {
 }
 
 const PICKED_CSPROJ_KEY = 'dotnetCreator.pickedCsprojFile';
+const RECENT_CSPROJ_KEY = 'dotnetCreator.recentCsprojFiles';
+const MAX_RECENT_CSPROJ = 5;
+
+function getRecentCsprojFiles(context: vscode.ExtensionContext): string[] {
+    return context.workspaceState.get<string[]>(RECENT_CSPROJ_KEY, []);
+}
+
+/** Newest-first, deduped case-insensitively, capped - same shape as startPage/recentItems.ts. */
+async function addRecentCsprojFile(context: vscode.ExtensionContext, filePath: string): Promise<void> {
+    const existing = getRecentCsprojFiles(context).filter(p => p.toLowerCase() !== filePath.toLowerCase());
+    const updated = [filePath, ...existing].slice(0, MAX_RECENT_CSPROJ);
+    await context.workspaceState.update(RECENT_CSPROJ_KEY, updated);
+}
 
 /**
  * Finds .csproj files in the workspace and lets the user pick one -
@@ -18,6 +31,12 @@ const PICKED_CSPROJ_KEY = 'dotnetCreator.pickedCsprojFile';
  * extension. Returns the picked file's fsPath, or undefined if cancelled/
  * nothing found - VS Code treats an undefined "command" input result as the
  * user cancelling the associated task/debug session.
+ *
+ * When there's a real choice to make, a "Recently Used" section is shown
+ * first - this picker runs on every single debug/run instance (it's the
+ * driving reason it exists at all), so re-scanning the full project list
+ * each time is real friction in a solution with more than a couple of
+ * projects.
  *
  * Also remembers the result in workspaceState (see getPickedCsprojFile) -
  * `${input:...}` only resolves against the `inputs` array declared in the
@@ -42,25 +61,47 @@ export async function pickCsprojFile(context: vscode.ExtensionContext, args?: Pi
     if (found.length === 1 && acceptIfOneFile) {
         picked = found[0].fsPath;
     } else {
-        const items = found.map(uri => ({
-            label: `$(file) ${path.basename(uri.fsPath)}`,
-            description: uri.fsPath,
-            uri
-        }));
-
-        const selection = await vscode.window.showQuickPick(items, {
-            placeHolder: 'Select a project file',
-            title: 'Select .csproj'
-        });
-
-        picked = selection?.uri.fsPath;
+        picked = await showCsprojQuickPick(context, found);
     }
 
     if (picked) {
         await context.workspaceState.update(PICKED_CSPROJ_KEY, picked);
+        await addRecentCsprojFile(context, picked);
     }
 
     return picked;
+}
+
+async function showCsprojQuickPick(context: vscode.ExtensionContext, found: vscode.Uri[]): Promise<string | undefined> {
+    type Item = vscode.QuickPickItem & { uri?: vscode.Uri };
+
+    const recentPaths = getRecentCsprojFiles(context)
+        .filter(recent => found.some(uri => uri.fsPath.toLowerCase() === recent.toLowerCase()));
+
+    const items: Item[] = [];
+
+    if (recentPaths.length > 0) {
+        items.push({ label: 'Recently Used', kind: vscode.QuickPickItemKind.Separator });
+        for (const recent of recentPaths) {
+            const uri = found.find(u => u.fsPath.toLowerCase() === recent.toLowerCase())!;
+            items.push({ label: `$(history) ${path.basename(uri.fsPath)}`, description: uri.fsPath, uri });
+        }
+        items.push({ label: 'All Projects', kind: vscode.QuickPickItemKind.Separator });
+    }
+
+    for (const uri of found) {
+        if (recentPaths.some(recent => recent.toLowerCase() === uri.fsPath.toLowerCase())) {
+            continue;
+        }
+        items.push({ label: `$(file) ${path.basename(uri.fsPath)}`, description: uri.fsPath, uri });
+    }
+
+    const selection = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select a project file',
+        title: 'Select .csproj'
+    });
+
+    return selection?.uri?.fsPath;
 }
 
 /**
