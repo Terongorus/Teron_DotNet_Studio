@@ -10,6 +10,15 @@ const PICKED_CSPROJ_KEY = 'dotnetCreator.pickedCsprojFile';
 const RECENT_CSPROJ_KEY = 'dotnetCreator.recentCsprojFiles';
 const MAX_RECENT_CSPROJ = 5;
 
+const _onDidChangePickedCsproj = new vscode.EventEmitter<string | undefined>();
+/** Fires whenever pickCsprojFile records a new selection - e.g. lets the status bar item stay in sync without polling. */
+export const onDidChangePickedCsproj = _onDidChangePickedCsproj.event;
+
+/** Reads the stored last pick with no UI and no fallback picker - unlike getPickedCsprojFile, never prompts. */
+export function peekPickedCsprojFile(context: vscode.ExtensionContext): string | undefined {
+    return context.workspaceState.get<string>(PICKED_CSPROJ_KEY);
+}
+
 function getRecentCsprojFiles(context: vscode.ExtensionContext): string[] {
     return context.workspaceState.get<string[]>(RECENT_CSPROJ_KEY, []);
 }
@@ -67,6 +76,7 @@ export async function pickCsprojFile(context: vscode.ExtensionContext, args?: Pi
     if (picked) {
         await context.workspaceState.update(PICKED_CSPROJ_KEY, picked);
         await addRecentCsprojFile(context, picked);
+        _onDidChangePickedCsproj.fire(picked);
     }
 
     return picked;
@@ -114,7 +124,7 @@ async function showCsprojQuickPick(context: vscode.ExtensionContext, found: vsco
  * part of an F5 debug session), so this never silently resolves to nothing.
  */
 export async function getPickedCsprojFile(context: vscode.ExtensionContext, args?: PickCsprojArgs): Promise<string | undefined> {
-    const stored = context.workspaceState.get<string>(PICKED_CSPROJ_KEY);
+    const stored = peekPickedCsprojFile(context);
     if (stored) {
         return stored;
     }
