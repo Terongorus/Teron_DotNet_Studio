@@ -1,7 +1,7 @@
 {
   "name": "dotnet-project-creator",
-  "displayName": ".NET Project Creator",
-  "description": "An interactive extension with command pallet commands, made for the creation of new .NET projects using available templates, as well as downloading new templates.",
+  "displayName": ".NET Utilities",
+  "description": "A set of .NET utilities and tools, designed to work in unison with JetBrains' \"C# by ReSharper\" and Microsoft's \"C# Dev Kit\". It also acts as a replacement for the project creation utility of \"C# Dev Kit\" by creating its own command for creating .NET projects.",
   "author": "Terongorus",
   "publisher": "Terongorus",
   "version": "1.2.0",
