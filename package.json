@@ -1,7 +1,7 @@
 {
   "name": "dotnet-project-creator",
   "displayName": ".NET Utilities",
-  "description": "A set of .NET utilities and tools, designed to work in unison with JetBrains' \"C# by ReSharper\" and Microsoft's \"C# Dev Kit\". It also acts as a replacement for the project creation utility of \"C# Dev Kit\" by creating its own command for creating .NET projects.",
+  "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Start Page for recent solutions and projects, live WPF XAML preview, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
   "version": "1.2.1",
@@ -73,6 +73,12 @@
         "icon": "resources/appicon.png",
         "title": "Change Build Configuration",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.setupDebugTasks",
+        "icon": "resources/appicon.png",
+        "title": "Set Up Debug/Build Tasks",
+        "category": ".NET"
       }
     ],
     "configuration": {
@@ -82,6 +88,11 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically show the .NET Project Creator start page on launch when no folder or workspace is open."
+        },
+        "dotnet-creator.offerDebugTaskSetup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
         }
       }
     },
@@ -138,20 +149,23 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.125.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
-    "eslint": "^10.5.0",
-    "typescript": "^6.0.3",
-    "ts-loader": "^9.6.2",
-    "webpack": "^5.107.2",
-    "webpack-cli": "^7.0.3",
+    "@types/vscode": "^1.125.0",
     "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "@vscode/test-electron": "^3.0.0",
+    "eslint": "^10.5.0",
+    "ts-loader": "^9.6.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
+    "webpack": "^5.107.2",
+    "webpack-cli": "^7.0.3"
   },
   "overrides": {
     "diff": "^8.0.4",
     "serialize-javascript": "^7.0.6"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
   }
 }

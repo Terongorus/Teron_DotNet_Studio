@@ -12,6 +12,7 @@ import { registerSolutionStatusBarItem } from './statusBar/solutionStatusBarItem
 import { registerConfigurationStatusBarItem } from './statusBar/configurationStatusBarItem';
 import { registerPickConfigurationCommand } from './commands/pickConfiguration';
 import { registerStatusBarMenuCommands } from './commands/statusBarMenus';
+import { registerSetupDebugTasksCommand, maybeShowSetupDebugTasksPrompt } from './commands/setupDebugTasks';
 
 export function activate(context: vscode.ExtensionContext) {
     registerNewProjectCommand(context);
@@ -23,11 +24,13 @@ export function activate(context: vscode.ExtensionContext) {
     registerPickCsprojFileCommand(context);
     registerPickConfigurationCommand(context);
     registerStatusBarMenuCommands(context);
+    registerSetupDebugTasksCommand(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
     registerConfigurationStatusBarItem(context);
 
     maybeShowStartPageOnStartup(context);
+    void maybeShowSetupDebugTasksPrompt(context);
 }
 
 export function deactivate() {
