@@ -12,6 +12,7 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 * **Standalone Solution Creation:** Create an empty `.slnx` solution on its own via **.NET: Create Solution**.
 * **Solution Scaffold File Management:** Add or permanently delete solution-level scaffold files (`.gitignore`, `.editorconfig`, `NuGet.Config`, `global.json`, `.sln`/`.slnx`, etc.) in any folder via **.NET: Manage Solution Files**.
 * **NuGet Package Manager:** A dedicated panel (**.NET: Manage NuGet Packages**, or from the Project status bar item) to browse NuGet.org, and install, update, or remove package references for a project — no typing exact package IDs required. Requires .NET SDK 7.0.200 or later.
+* **Solution Explorer:** A dedicated activity bar view (its own icon, separate from the native Explorer) showing your solution, its projects, each project's dependencies (NuGet packages, project references, detected analyzers/source generators), and its real file/folder structure — with full New File/Class/Folder, Add Existing File, Rename, Delete, Cut/Copy/Paste, Exclude/Include From Project, drag-and-drop move, Build/Rebuild/Clean/Run, Set as Startup Project, Remove from Solution, and sync-with-active-editor support. Stays in sync with the Solution status bar item, and shows one independent section per folder in a multi-root workspace. Does not show source generators' actual *generated* output files — that needs a real Roslyn/MSBuild hook, the same boundary as the language-server items below.
 * **Fast and Lightweight:** No heavy background language servers or telemetry; just pure UI to CLI bridging.
 
 ## Requirements
@@ -147,9 +148,6 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
 
 Planned, not yet started:
 
-* **Solution Explorer** — a project-grouped file tree (projects, referenced packages/
-  dependencies, source generators), the biggest remaining reason to keep a full C# extension
-  installed just for file/project browsing rather than this extension's own build/run tooling.
 * **Test Explorer** — discover and run `dotnet test` (NUnit/xUnit/MSTest) through VS Code's
   native Testing API, with results and failure navigation, no semantic C# analysis required.
 * **Deeper runtime diagnostics** — the .NET Resource Monitor panel currently polls OS-level

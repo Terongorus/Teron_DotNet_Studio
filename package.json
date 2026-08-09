@@ -97,6 +97,127 @@
         "icon": "resources/appicon.png",
         "title": "Manage NuGet Packages",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.refresh",
+        "icon": "$(refresh)",
+        "title": "Refresh",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.newFile",
+        "title": "New File...",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.newClass",
+        "title": "New Class...",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.newFolder",
+        "title": "New Folder...",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.addExistingFile",
+        "title": "Add Existing File...",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.rename",
+        "title": "Rename",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.delete",
+        "title": "Delete",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.copy",
+        "title": "Copy",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.cut",
+        "title": "Cut",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.paste",
+        "title": "Paste",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.copyPath",
+        "title": "Copy Path",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.copyRelativePath",
+        "title": "Copy Relative Path",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.exclude",
+        "title": "Exclude From Project",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.include",
+        "title": "Include In Project",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
+        "title": "Reveal in File Explorer",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
+        "title": "Open in Integrated Terminal",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.removeFromSolution",
+        "title": "Remove",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
+        "title": "Manage Project References",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
+        "title": "Set as Startup Project",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.build",
+        "title": "Build",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.rebuild",
+        "title": "Rebuild",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.clean",
+        "title": "Clean",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.run",
+        "title": "Run",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.openNugetManager",
+        "title": "Manage NuGet Packages...",
+        "category": ".NET Solution Explorer"
       }
     ],
     "configuration": {
@@ -129,13 +250,6 @@
           "group": "navigation"
         }
       ],
-      "view/item/context": [
-        {
-          "command": "dotnet-creator.previewXamlDesigner",
-          "when": "view == resharper.solutionExplorer && viewItem =~ /hasPath/",
-          "group": "navigation"
-        }
-      ],
       "editor/context": [
         {
           "command": "dotnet-creator.previewXamlDesigner",
@@ -148,6 +262,160 @@
           "command": "dotnet-creator.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        { "command": "dotnet-creator.solutionExplorer.newFile", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.newClass", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.newFolder", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.addExistingFile", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.rename", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.delete", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.copy", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.cut", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.paste", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.copyPath", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.copyRelativePath", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.exclude", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.include", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.revealInFileExplorer", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.removeFromSolution", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.manageProjectReferences", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.setAsStartupProject", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.build", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.rebuild", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.clean", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.run", "when": "false" },
+        { "command": "dotnet-creator.solutionExplorer.openNugetManager", "when": "false" }
+      ],
+      "view/title": [
+        {
+          "command": "dotnet-creator.solutionExplorer.refresh",
+          "when": "view == dotnet-creator.solutionExplorerView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dotnet-creator.previewXamlDesigner",
+          "when": "view == resharper.solutionExplorer && viewItem =~ /hasPath/",
+          "group": "navigation"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.newFile",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "group": "1_new@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.newClass",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "group": "1_new@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.newFolder",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "group": "1_new@3"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.addExistingFile",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "group": "1_new@4"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "group": "2_open@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "group": "2_open@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.openNugetManager",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
+          "group": "3_deps@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
+          "group": "3_deps@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.cut",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanCut\\b/",
+          "group": "4_clipboard@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copy",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanCopy\\b/",
+          "group": "4_clipboard@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.paste",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "group": "4_clipboard@3"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copyPath",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
+          "group": "5_copyPath@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copyRelativePath",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
+          "group": "5_copyPath@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.run",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "group": "6_build@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.build",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "group": "6_build@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.rebuild",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "group": "6_build@3"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.clean",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "group": "6_build@4"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "group": "7_startup@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.exclude",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanExclude\\b/",
+          "group": "8_modify@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.include",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanInclude\\b/",
+          "group": "8_modify@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.rename",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanRename\\b/",
+          "group": "8_modify@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.delete",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanDelete\\b/",
+          "group": "8_modify@3"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.removeFromSolution",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\binSolution\\b/",
+          "group": "9_remove@1"
         }
       ]
     },
@@ -170,6 +438,13 @@
           "title": ".NET Resource Monitor",
           "icon": "resources/debug-monitor-icon.svg"
         }
+      ],
+      "activitybar": [
+        {
+          "id": "dotnetSolutionExplorerContainer",
+          "title": ".NET Solution Explorer",
+          "icon": "resources/solution-explorer-icon.svg"
+        }
       ]
     },
     "views": {
@@ -179,6 +454,14 @@
           "name": "Resource Monitor",
           "type": "webview",
           "icon": "resources/debug-monitor-icon.svg"
+        }
+      ],
+      "dotnetSolutionExplorerContainer": [
+        {
+          "id": "dotnet-creator.solutionExplorerView",
+          "name": "Solution Explorer",
+          "icon": "resources/solution-explorer-icon.svg",
+          "when": "dotnet-creator.workspaceHasProject"
         }
       ]
     }

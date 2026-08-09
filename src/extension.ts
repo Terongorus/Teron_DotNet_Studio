@@ -19,6 +19,8 @@ import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorP
 import { registerManageNugetPackagesCommand } from './commands/manageNugetPackages';
 import { registerActiveWorkspaceFolderTracker } from './utils/activeWorkspaceFolder';
 import { warmFolderState, disposeFolderStateWatchers } from './utils/folderState';
+import { registerSolutionExplorerView } from './solutionExplorer/solutionExplorerProvider';
+import { registerSolutionExplorerCommands } from './solutionExplorer/solutionExplorerCommands';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 
@@ -50,6 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
     registerConfigurationStatusBarItem(context);
+
+    const solutionExplorerProvider = registerSolutionExplorerView(context);
+    registerSolutionExplorerCommands(context, solutionExplorerProvider);
 
     maybeShowStartPageOnStartup(context);
     void maybeShowSetupDebugTasksPrompt(context);
