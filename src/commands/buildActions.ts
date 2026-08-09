@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { runDotnet } from '../utils/process';
 import { BuildConfiguration } from '../utils/configurationPicker';
+import { findAssemblyForCsproj } from '../utils/projectAssemblyResolver';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
@@ -75,7 +77,12 @@ async function runLogged(channel: vscode.OutputChannel, args: string[]): Promise
  * was ever run. There's no supported VS Code API to set which entry is
  * "selected" in the native Run and Debug dropdown, so this is a second,
  * self-sufficient launch path through our own tracked project+configuration
- * state rather than an attempt to drive that UI.
+ * state rather than an attempt to drive that UI. Uses this extension's own
+ * `dotnet-creator-debug` type (netcoredbg) - not VS Code's built-in `dotnet`
+ * type, which is contributed by Microsoft's C# extension and isn't installed
+ * here at all (see debugTaskDefinitions.ts's own comment on this exact
+ * distinction). That debugger needs the built assembly path via `program`,
+ * not the `projectPath` convenience field the `dotnet` type understands.
  */
 export async function runProject(
     projectPath: string,
@@ -108,13 +115,20 @@ export async function runProject(
 
     if (!buildSucceeded) { return; }
 
+    const assemblyPath = findAssemblyForCsproj(projectPath);
+    if (!assemblyPath) {
+        vscode.window.showErrorMessage(`${projectName}: build succeeded, but no built assembly (.dll) could be found to launch.`);
+        return;
+    }
+
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectPath));
 
     const started = await vscode.debug.startDebugging(workspaceFolder, {
         name: configuration === 'Release' ? '.NET Release' : '.NET Debug',
-        type: 'dotnet',
+        type: 'dotnet-creator-debug',
         request: 'launch',
-        projectPath,
+        program: assemblyPath,
+        cwd: path.dirname(projectPath),
         args: [],
         internalConsoleOptions: 'neverOpen',
         noDebug

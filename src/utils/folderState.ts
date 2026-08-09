@@ -12,6 +12,19 @@ const STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-creator.state.json'];
 const cache = new Map<string, FolderState>();
 const watchers = new Map<string, vscode.Disposable>();
 
+/**
+ * Fires once the cache actually reflects what's on disk for a folder - both the initial
+ * warmFolderState() load (async - resolves after synchronous peekFolderState() readers, like a
+ * status bar item's own registration-time refresh, would have already seen an empty default) and
+ * any later watcher-triggered reload. Anything that reads folder state synchronously and needs
+ * to stay in sync should subscribe to this rather than assuming its own change events cover it -
+ * see currentSolution.ts/projectPicker.ts/configurationPicker.ts, which re-fire their own public
+ * change events from this so existing consumers (status bar items, Solution Explorer) don't need
+ * their own subscription.
+ */
+const _onDidLoadFolderState = new vscode.EventEmitter<vscode.WorkspaceFolder>();
+export const onDidLoadFolderState = _onDidLoadFolderState.event;
+
 function key(folder: vscode.WorkspaceFolder): string {
     return folder.uri.toString();
 }
@@ -29,6 +42,7 @@ async function loadIntoCache(folder: vscode.WorkspaceFolder): Promise<FolderStat
         // Missing or invalid file - start from an empty state rather than throwing.
     }
     cache.set(key(folder), state);
+    _onDidLoadFolderState.fire(folder);
     return state;
 }
 
@@ -70,6 +84,27 @@ export async function updateFolderState(folder: vscode.WorkspaceFolder, patch: P
 
     const uri = stateUri(folder);
     await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(folder.uri, '.vscode'));
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(updated, null, 2), 'utf8'));
+}
+
+/**
+ * Read-modify-write for a folder that isn't an open workspace folder (yet) - no WorkspaceFolder
+ * object exists for it to key the cache/watcher by, and none should be created here, since the
+ * caller is about to switch the real VS Code workspace to it (see currentSolution.ts's
+ * selectSolution) rather than track it alongside the current one. Bypasses the cache entirely -
+ * the target folder's own activation will warm it normally once it becomes the open workspace.
+ */
+export async function writeFolderStateAtUri(folderUri: vscode.Uri, patch: Partial<FolderState>): Promise<void> {
+    const uri = vscode.Uri.joinPath(folderUri, ...STATE_FILE_SEGMENTS);
+    let existing: FolderState = {};
+    try {
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        existing = JSON.parse(Buffer.from(bytes).toString('utf8'));
+    } catch {
+        // Missing or invalid file - start from an empty state rather than throwing.
+    }
+    const updated = { ...existing, ...patch };
+    await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(folderUri, '.vscode'));
     await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(updated, null, 2), 'utf8'));
 }
 

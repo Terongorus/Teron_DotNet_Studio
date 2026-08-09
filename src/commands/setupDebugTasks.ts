@@ -9,33 +9,32 @@ import {
     SETUP_MARKER_TASK_LABEL
 } from '../utils/debugTaskDefinitions';
 
-const GLOBAL_SETUP_DONE_KEY = 'dotnetCreator.globalDebugTasksSetupDone';
+/** Cached only so a repeat global setup/check doesn't need to reopen the User Tasks editor tab - see mergeIntoUserTasksFile. */
 const GLOBAL_USER_TASKS_URI_KEY = 'dotnetCreator.userTasksFileUri';
 
 const taskLabel = (entry: Record<string, unknown>) => entry.label as string;
 const inputId = (entry: Record<string, unknown>) => entry.id as string;
 const launchConfigName = (entry: Record<string, unknown>) => entry.name as string;
 
+function useGlobalDebugTasks(): boolean {
+    return vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('useGlobalDebugTasks', false);
+}
+
 export function registerSetupDebugTasksCommand(context: vscode.ExtensionContext) {
     const disposable = vscode.commands.registerCommand('dotnet-creator.setupDebugTasks', () => setupDebugTasks(context));
     context.subscriptions.push(disposable);
 }
 
+/**
+ * No more interactive "This Workspace Only / Global" prompt - which scope this uses is now
+ * driven entirely by the dotnet-creator.useGlobalDebugTasks setting, so both the manual command
+ * and the automatic one-time-per-workspace prompt (below) behave consistently without asking.
+ */
 async function setupDebugTasks(context: vscode.ExtensionContext): Promise<void> {
-    const choice = await vscode.window.showQuickPick(
-        [
-            { label: 'This Workspace Only', value: 'workspace' as const },
-            { label: 'Global (User Settings/Tasks)', value: 'global' as const }
-        ],
-        { title: 'Set Up .NET Debug/Build Tasks', placeHolder: 'Where should these be added?' }
-    );
-
-    if (!choice) { return; }
-
-    if (choice.value === 'workspace') {
-        await applyWorkspaceSetup();
-    } else {
+    if (useGlobalDebugTasks()) {
         await applyGlobalSetup(context);
+    } else {
+        await applyWorkspaceSetup();
     }
 }
 
@@ -98,6 +97,19 @@ async function applyWorkspaceSetup(): Promise<void> {
             ? '.NET debug/build tasks set up for this workspace.'
             : '.NET debug/build tasks were already set up for this workspace.'
     );
+}
+
+async function hasWorkspaceSetup(folder: vscode.WorkspaceFolder): Promise<boolean> {
+    try {
+        const uri = vscode.Uri.joinPath(folder.uri, '.vscode', 'tasks.json');
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        const text = Buffer.from(bytes).toString('utf8');
+        const parsed = text.trim().length === 0 ? {} : parse(text);
+        const tasks: unknown = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>).tasks : undefined;
+        return Array.isArray(tasks) && tasks.some(t => t && typeof t === 'object' && (t as Record<string, unknown>).label === SETUP_MARKER_TASK_LABEL);
+    } catch {
+        return false;
+    }
 }
 
 function isUserTasksUri(uri: vscode.Uri): boolean {
@@ -214,20 +226,25 @@ async function applyGlobalSetup(context: vscode.ExtensionContext): Promise<void>
     );
     const tasksAdded = await mergeIntoUserTasksFile(context);
 
-    await context.globalState.update(GLOBAL_SETUP_DONE_KEY, true);
-
     const anyAdded = launchConfigsResult.addedCount > 0 || launchInputsResult.addedCount > 0 || tasksAdded;
     vscode.window.showInformationMessage(
         anyAdded
-            ? '.NET debug/build tasks set up globally (User Settings/Tasks).'
+            ? '.NET debug/build tasks set up globally (User Settings/Tasks) - used for every workspace from now on.'
             : '.NET debug/build tasks were already set up globally.'
     );
 }
 
-async function hasWorkspaceSetup(folder: vscode.WorkspaceFolder): Promise<boolean> {
+function hasGlobalLaunchSetup(): boolean {
+    const existing = vscode.workspace.getConfiguration('launch').inspect<Record<string, unknown>[]>('configurations')?.globalValue ?? [];
+    return RECOMMENDED_LAUNCH_CONFIGS.every(candidate => existing.some(e => e && launchConfigName(e) === launchConfigName(candidate)));
+}
+
+async function hasGlobalTasksSetup(context: vscode.ExtensionContext): Promise<boolean> {
+    const cachedUriString = context.globalState.get<string>(GLOBAL_USER_TASKS_URI_KEY);
+    if (!cachedUriString) { return false; }
+
     try {
-        const uri = vscode.Uri.joinPath(folder.uri, '.vscode', 'tasks.json');
-        const bytes = await vscode.workspace.fs.readFile(uri);
+        const bytes = await vscode.workspace.fs.readFile(vscode.Uri.parse(cachedUriString));
         const text = Buffer.from(bytes).toString('utf8');
         const parsed = text.trim().length === 0 ? {} : parse(text);
         const tasks: unknown = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>).tasks : undefined;
@@ -238,17 +255,26 @@ async function hasWorkspaceSetup(folder: vscode.WorkspaceFolder): Promise<boolea
 }
 
 /**
- * One-time activation prompt, mirroring commands/startPage.ts's
- * maybeShowStartPageOnStartup precedent. Global-scope detection is a
- * globalState flag set only after this extension's own successful global
- * write - deliberately not a peek at the real User Tasks file, which would
- * mean an unwanted editor tab opening on every single activation.
+ * One-time-per-workspace activation prompt, mirroring commands/startPage.ts's
+ * maybeShowStartPageOnStartup precedent. "Already set up" is judged purely by
+ * hasWorkspaceSetup() (the marker task's presence in *this* workspace's own tasks.json) - there
+ * is no cross-workspace suppression flag anymore, since a completed or declined setup in one
+ * workspace must not silently skip the prompt in a different, unrelated one.
+ *
+ * When dotnet-creator.useGlobalDebugTasks is on, this whole per-workspace flow is skipped -
+ * global configs cover every workspace already, so there's nothing to prompt for. The global
+ * configs are created once (silently, no prompt) if they don't already exist yet.
  */
 export async function maybeShowSetupDebugTasksPrompt(context: vscode.ExtensionContext): Promise<void> {
     const offerSetup = vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('offerDebugTaskSetup', true);
     if (!offerSetup) { return; }
 
-    if (context.globalState.get<boolean>(GLOBAL_SETUP_DONE_KEY, false)) { return; }
+    if (useGlobalDebugTasks()) {
+        if (!hasGlobalLaunchSetup() || !(await hasGlobalTasksSetup(context))) {
+            await applyGlobalSetup(context);
+        }
+        return;
+    }
 
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) { return; }
@@ -265,7 +291,7 @@ export async function maybeShowSetupDebugTasksPrompt(context: vscode.ExtensionCo
     );
 
     if (choice === 'Set Up') {
-        await setupDebugTasks(context);
+        await applyWorkspaceSetup();
     } else if (choice === "Don't Ask Again") {
         await vscode.workspace.getConfiguration('dotnet-creator').update('offerDebugTaskSetup', false, vscode.ConfigurationTarget.Global);
     }

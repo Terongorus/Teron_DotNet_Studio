@@ -16,6 +16,7 @@ import { registerSetupDebugTasksCommand, maybeShowSetupDebugTasksPrompt } from '
 import { registerDebugKeybindingCommands } from './commands/debugKeybindingCommands';
 import { registerDebugSessionTracker } from './utils/debugSessionTracker';
 import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
+import { registerProfilerCommands } from './commands/profilerCommands';
 import { registerManageNugetPackagesCommand } from './commands/manageNugetPackages';
 import { registerActiveWorkspaceFolderTracker } from './utils/activeWorkspaceFolder';
 import { warmFolderState, disposeFolderStateWatchers } from './utils/folderState';
@@ -66,7 +67,6 @@ export function activate(context: vscode.ExtensionContext) {
     registerSetupDebugTasksCommand(context);
     registerDebugKeybindingCommands(context);
     registerDebugSessionTracker(context);
-    registerResourceMonitorPanel(context);
     registerManageNugetPackagesCommand(context);
     registerActiveWorkspaceFolderTracker(context);
     registerSolutionStatusBarItem(context);
@@ -79,6 +79,10 @@ export function activate(context: vscode.ExtensionContext) {
     sharpLsp = new SharpLspClientManager(context);
     registerSharpLspStatusBarItem(context, sharpLsp);
     registerLanguageServerCommands(context, sharpLsp);
+
+    const resourceMonitorProvider = registerResourceMonitorPanel(context, sharpLsp);
+    registerProfilerCommands(context, sharpLsp, resourceMonitorProvider);
+
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument(doc => void maybeStartSharpLsp(sharpLsp!, doc)),
         { dispose: () => sharpLsp?.dispose() }

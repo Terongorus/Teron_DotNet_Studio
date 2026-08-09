@@ -2,6 +2,45 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.7.0] - 2026-08-10
+
+Five real bugs found using the packaged (installed, not just Extension Development Host)
+extension in a live project, plus the "Deeper runtime diagnostics" roadmap item.
+
+* **Fixed: Run/F5 launched with an unsupported debug type.** The status bar's "Run" action and
+  the F5 keybinding both built an inline debug configuration that still hardcoded
+  `"type": "dotnet"` (Microsoft's C# extension's debug type, not installed) and a `projectPath`
+  field left over from before this extension's own `dotnet-creator-debug` type (netcoredbg)
+  existed - producing "Configured debug type 'dotnet' is not supported" instead of launching. Now
+  resolves the built assembly and launches with `dotnet-creator-debug`, matching what
+  **.NET: Set Up Debug/Build Tasks** already generated correctly.
+* **Fixed: per-workspace state didn't restore after "Reload Window."** The selected
+  solution/project/configuration are read from `.vscode/dotnet-creator.state.json` asynchronously
+  on activation; the status bar items and Solution Explorer read the in-memory cache
+  synchronously at registration time, before that load resolved, and nothing ever refreshed them
+  once it did - so restored state was on disk and in the cache, but never actually shown until an
+  unrelated action was taken. Fixed with a load-completion event that the existing
+  solution/project/configuration change notifications now relay.
+* **Fixed: switching to a different solution didn't switch the real VS Code workspace.** Picking
+  a solution living outside the currently open folder only updated this extension's own tracked
+  state - the real file Explorer, git, integrated terminal, and debug configuration resolution
+  all stayed scoped to the old folder. Now switches the actual workspace to the solution's own
+  folder when it isn't already open (skipped for a solution legitimately nested inside an
+  already-open folder, to avoid a disruptive switch).
+* **Changed: no more interactive "Workspace / Global" prompt for debug/build task setup.**
+  **.NET: Set Up Debug/Build Tasks** and the one-time-per-workspace setup prompt no longer ask
+  where to add the generated tasks/launch entries. A new setting,
+  `dotnet-creator.useGlobalDebugTasks` (off by default), decides instead: off keeps the existing
+  per-workspace behavior; on creates global (User Tasks/launch) configuration once and skips the
+  per-workspace prompt entirely, using the shared global configuration for every workspace from
+  then on.
+* **New: Resource Monitor runtime diagnostics**, closing the "Deeper runtime diagnostics" roadmap
+  item. When [SharpLsp](https://github.com/Nimblesite/SharpLsp) is running, the .NET Resource
+  Monitor panel now also shows live GC heap/ThreadPool runtime counters, and a title-bar
+  **Start/Stop Recording Trace** action records a CPU-sampling or Memory/GC EventPipe trace to a
+  file (via SharpLsp's own `dotnet-trace`/`dotnet-counters` integration) - the existing OS-level
+  CPU/memory charts are unaffected and still work with or without SharpLsp.
+
 ## [1.6.0] - 2026-08-09
 
 A live verification pass (actually running every recent feature in a real Extension Development

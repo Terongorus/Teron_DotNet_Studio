@@ -56,6 +56,10 @@ export class SharpLspClientManager implements vscode.Disposable {
     private disposed = false;
     private notInstalled = false;
     private status: SharpLspStatus = 'Stopped';
+    /** Re-applied to every freshly constructed client in spawnClient() - the client instance is
+     *  replaced wholesale on every restart, so a one-shot onNotification registration would
+     *  otherwise silently stop receiving notifications after any crash/manual restart. */
+    private readonly notificationHandlers = new Map<string, (params: unknown) => void>();
 
     constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -178,6 +182,10 @@ export class SharpLspClientManager implements vscode.Disposable {
         const client = new LanguageClient('dotnet-creator.sharpLsp', 'SharpLsp (C#/F#)', serverOptions, clientOptions);
         this.client = client;
 
+        for (const [method, handler] of this.notificationHandlers) {
+            client.onNotification(method, handler);
+        }
+
         client.onDidChangeState(event => {
             if (event.newState === State.Starting) {
                 this.setStatus('Starting');
@@ -244,6 +252,32 @@ export class SharpLspClientManager implements vscode.Disposable {
     /** The real server's own LSP log, for the "Show Language Server Output" command - falls back to undefined if never started. */
     getRealOutputChannel(): vscode.OutputChannel | undefined {
         return this.client?.outputChannel;
+    }
+
+    /**
+     * Sends a custom (non-standard) LSP request - e.g. the sharplsp/profiler/* methods - only
+     * once the client is actually Running. Rejects immediately rather than queuing or waiting,
+     * so a caller mid-flight when SharpLsp drops out of Running gets a clear, fast failure
+     * instead of hanging.
+     */
+    sendRequest<T>(method: string, params?: unknown, token?: vscode.CancellationToken): Promise<T> {
+        if (!this.client || this.status !== 'Running') {
+            return Promise.reject(new Error(`SharpLsp is not running (status: ${this.status}).`));
+        }
+        return this.client.sendRequest<T>(method, params, token);
+    }
+
+    /**
+     * Subscribes to a custom (non-standard) LSP notification - e.g. sharplsp/profiler/counterUpdate.
+     * Survives restarts: the handler is re-applied to every freshly constructed client (see
+     * spawnClient), not just the one live when this was called. One handler per method, matching
+     * LanguageClient's own semantics - this codebase has no need for more than one subscriber per
+     * custom method.
+     */
+    onNotification<T>(method: string, handler: (params: T) => void): vscode.Disposable {
+        this.notificationHandlers.set(method, handler as (params: unknown) => void);
+        this.client?.onNotification(method, handler);
+        return new vscode.Disposable(() => { this.notificationHandlers.delete(method); });
     }
 
     async dispose(): Promise<void> {

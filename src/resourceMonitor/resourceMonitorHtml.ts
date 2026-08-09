@@ -89,12 +89,55 @@ export function getResourceMonitorHtml(webview: vscode.Webview): string {
         .axis-bottom {
             bottom: 2px;
         }
+        .tracing-indicator {
+            display: none;
+            font-size: 12px;
+            color: var(--vscode-charts-red);
+            margin-bottom: 12px;
+        }
+        .counters-gate {
+            display: none;
+            font-size: 12px;
+        }
+        .counters-gate button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 4px 10px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-top: 4px;
+        }
+        .counters-gate button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        .counters-starting {
+            display: none;
+            opacity: 0.6;
+            font-size: 13px;
+        }
+        .counters-list {
+            display: none;
+            margin: 0;
+            grid-template-columns: 1fr auto;
+            gap: 3px 8px;
+            font-size: 12px;
+        }
+        .counters-list dt {
+            opacity: 0.8;
+        }
+        .counters-list dd {
+            margin: 0;
+            font-variant-numeric: tabular-nums;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
     <p class="idle" id="idle">No active .NET debug session.</p>
     <div class="content" id="content">
         <div class="session" id="session">Session: 0:00</div>
+        <div class="tracing-indicator" id="tracingIndicator"></div>
         <div class="chart-block">
             <div class="chart-header">
                 <span class="chart-label">Process Memory (MB)</span>
@@ -117,8 +160,20 @@ export function getResourceMonitorHtml(webview: vscode.Webview): string {
                 <span class="axis-label axis-bottom">0</span>
             </div>
         </div>
+        <div class="chart-block">
+            <div class="chart-header">
+                <span class="chart-label">Runtime Counters</span>
+            </div>
+            <div class="counters-gate" id="countersGate">
+                <p class="idle">SharpLsp language server is not running.</p>
+                <button id="startSharpLspBtn">Start SharpLsp</button>
+            </div>
+            <p class="counters-starting" id="countersStarting">Starting counters…</p>
+            <dl class="counters-list" id="countersList"></dl>
+        </div>
     </div>
     <script nonce="${nonce}">
+        const vscodeApi = acquireVsCodeApi();
         const MAX_SAMPLES = ${MAX_SAMPLES};
 
         const idleEl = document.getElementById('idle');
@@ -129,8 +184,39 @@ export function getResourceMonitorHtml(webview: vscode.Webview): string {
         const memCanvas = document.getElementById('memCanvas');
         const cpuValueEl = document.getElementById('cpuValue');
         const cpuCanvas = document.getElementById('cpuCanvas');
+        const tracingIndicatorEl = document.getElementById('tracingIndicator');
+        const countersGateEl = document.getElementById('countersGate');
+        const countersStartingEl = document.getElementById('countersStarting');
+        const countersListEl = document.getElementById('countersList');
+
+        document.getElementById('startSharpLspBtn').addEventListener('click', () => {
+            vscodeApi.postMessage({ command: 'startSharpLsp' });
+        });
 
         let samples = [];
+        let sharpLspStatus = 'Stopped';
+        let counters = [];
+
+        const PINNED_COUNTER_NAMES = ['gc-heap-size', 'gen-2-gc-count', 'threadpool-queue-length', 'threadpool-thread-count'];
+
+        function formatCounterValue(v) {
+            return Number.isInteger(v) ? String(v) : v.toFixed(2);
+        }
+
+        function renderCounters() {
+            const notRunning = sharpLspStatus !== 'Running';
+            countersGateEl.style.display = notRunning ? 'block' : 'none';
+            countersStartingEl.style.display = (!notRunning && counters.length === 0) ? 'block' : 'none';
+            countersListEl.style.display = (!notRunning && counters.length > 0) ? 'grid' : 'none';
+            if (notRunning || counters.length === 0) { return; }
+
+            const pinned = PINNED_COUNTER_NAMES.map(n => counters.find(c => c.name === n)).filter(Boolean);
+            const rest = counters.filter(c => !PINNED_COUNTER_NAMES.includes(c.name))
+                .sort((a, b) => a.display_name.localeCompare(b.display_name));
+            countersListEl.innerHTML = [...pinned, ...rest]
+                .map(c => '<dt>' + c.display_name + '</dt><dd>' + formatCounterValue(c.value) + ' ' + c.unit + '</dd>')
+                .join('');
+        }
 
         function formatUptime(ms) {
             const totalSeconds = Math.floor(ms / 1000);
@@ -217,6 +303,17 @@ export function getResourceMonitorHtml(webview: vscode.Webview): string {
             } else if (message.command === 'sample') {
                 samples = message.stats ? samples.concat([message.stats]).slice(-MAX_SAMPLES) : [];
                 render();
+            } else if (message.command === 'sharpLspStatus') {
+                sharpLspStatus = message.status;
+                renderCounters();
+            } else if (message.command === 'counters') {
+                counters = message.counters || [];
+                renderCounters();
+            } else if (message.command === 'tracing') {
+                tracingIndicatorEl.style.display = message.active ? 'block' : 'none';
+                tracingIndicatorEl.textContent = message.active
+                    ? ('● Recording trace' + (message.profile ? ' (' + message.profile + ')' : '') + '…')
+                    : '';
             }
         });
 

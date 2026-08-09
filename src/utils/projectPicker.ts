@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { peekCurrentSolution, setCurrentSolution } from './currentSolution';
 import { findNearestSolutionFile } from './solutionParser';
-import { peekFolderState, updateFolderState } from './folderState';
+import { peekFolderState, updateFolderState, onDidLoadFolderState } from './folderState';
 
 export interface PickCsprojArgs {
     include?: string;
@@ -24,6 +24,10 @@ export const onDidChangePickedCsproj = _onDidChangePickedCsproj.event;
 export function peekPickedCsprojFile(folder: vscode.WorkspaceFolder): string | undefined {
     return peekFolderState(folder).currentProject;
 }
+
+// See currentSolution.ts's identical subscription for why: folder state loads asynchronously,
+// so anything that already peeked an empty default needs a nudge once the real value is in.
+onDidLoadFolderState(folder => _onDidChangePickedCsproj.fire({ folder, projectPath: peekPickedCsprojFile(folder) }));
 
 /** Clears the stored pick and fires onDidChangePickedCsproj - used by currentSolution.ts when switching solutions, so a project from the old solution doesn't linger. */
 export async function clearPickedCsprojFile(folder: vscode.WorkspaceFolder): Promise<void> {

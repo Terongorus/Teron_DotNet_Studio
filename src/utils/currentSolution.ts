@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { getRecentItems } from '../startPage/recentItems';
 import { clearPickedCsprojFile } from './projectPicker';
-import { peekFolderState, updateFolderState } from './folderState';
+import { peekFolderState, updateFolderState, onDidLoadFolderState, writeFolderStateAtUri } from './folderState';
+import { openFolderUnlessAlreadyOpen, isPathInOpenWorkspace } from './openFolder';
 
 export interface SolutionChangeEvent {
     folder: vscode.WorkspaceFolder;
@@ -10,6 +12,13 @@ export interface SolutionChangeEvent {
 
 const _onDidChangeCurrentSolution = new vscode.EventEmitter<SolutionChangeEvent>();
 export const onDidChangeCurrentSolution = _onDidChangeCurrentSolution.event;
+
+// Folder state loads asynchronously (from a .vscode/dotnet-creator.state.json read) - anything
+// that already synchronously peeked an empty default before this resolves (e.g. a status bar
+// item's own registration-time refresh) needs a nudge once the real value is in. Re-firing here
+// means every existing onDidChangeCurrentSolution subscriber (status bar, Solution Explorer)
+// gets this for free.
+onDidLoadFolderState(folder => _onDidChangeCurrentSolution.fire({ folder, solutionPath: peekCurrentSolution(folder) }));
 
 export function peekCurrentSolution(folder: vscode.WorkspaceFolder): string | undefined {
     return peekFolderState(folder).currentSolution;
@@ -24,8 +33,23 @@ export async function setCurrentSolution(folder: vscode.WorkspaceFolder, solutio
  * Switching solutions clears the current project (confirmed behavior): a
  * project picked under a different solution shouldn't linger and look like
  * it belongs to the newly selected one.
+ *
+ * Most solutions live in their own folder (standard one-folder-per-solution convention), so a
+ * solution whose files aren't under any currently open workspace folder needs the real VS Code
+ * workspace switched to it - otherwise this extension's own state points at the new solution
+ * while the real Explorer, git, integrated terminal, and (critically) debug configuration
+ * resolution all stay scoped to the old folder. State is pre-seeded at the target folder (which
+ * isn't open yet, so it has no WorkspaceFolder/cache entry of its own) before switching, so the
+ * new window comes up already showing the right solution instead of an unresolved picker.
  */
 export async function selectSolution(folder: vscode.WorkspaceFolder, solutionPath: string): Promise<void> {
+    const solutionFolderPath = path.dirname(solutionPath);
+    if (!isPathInOpenWorkspace(solutionFolderPath)) {
+        await writeFolderStateAtUri(vscode.Uri.file(solutionFolderPath), { currentSolution: solutionPath });
+        openFolderUnlessAlreadyOpen(solutionFolderPath);
+        return;
+    }
+
     await setCurrentSolution(folder, solutionPath);
     await clearPickedCsprojFile(folder);
 }

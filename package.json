@@ -1,10 +1,10 @@
 {
   "name": "dotnet-project-creator",
   "displayName": ".NET Studio",
-  "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Start Page for recent solutions and projects, live WPF XAML preview, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
+  "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -139,6 +139,18 @@
         "icon": "$(refresh)",
         "title": "Refresh",
         "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.profiler.startTrace",
+        "icon": "$(record)",
+        "title": "Start Recording Trace",
+        "category": ".NET Resource Monitor"
+      },
+      {
+        "command": "dotnet-creator.profiler.stopTrace",
+        "icon": "$(debug-stop)",
+        "title": "Stop Recording Trace",
+        "category": ".NET Resource Monitor"
       },
       {
         "command": "dotnet-creator.solutionExplorer.newFile",
@@ -348,6 +360,11 @@
           "default": true,
           "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
         },
+        "dotnet-creator.useGlobalDebugTasks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use global (User Tasks/launch) .NET debug/build configurations shared across every workspace, instead of setting them up per-workspace. Created automatically the first time they're needed. When enabled, the per-workspace setup prompt is skipped entirely."
+        },
         "dotnet-creator.sharpLsp.enabled": {
           "type": "boolean",
           "default": true,
@@ -529,6 +546,16 @@
         {
           "command": "dotnet-creator.solutionExplorer.refresh",
           "when": "view == dotnet-creator.solutionExplorerView",
+          "group": "navigation"
+        },
+        {
+          "command": "dotnet-creator.profiler.startTrace",
+          "when": "view == dotnet-creator.resourceMonitorView && !dotnet-creator.resourceMonitor.tracing",
+          "group": "navigation"
+        },
+        {
+          "command": "dotnet-creator.profiler.stopTrace",
+          "when": "view == dotnet-creator.resourceMonitorView && dotnet-creator.resourceMonitor.tracing",
           "group": "navigation"
         }
       ],
