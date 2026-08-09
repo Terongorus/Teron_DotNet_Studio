@@ -10,7 +10,7 @@ import { peekPickedCsprojFile, onDidChangePickedCsproj } from '../utils/projectP
  * directly - see commands/statusBarMenus.ts.
  */
 export function registerProjectStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.projectStatus', vscode.StatusBarAlignment.Left, 101);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.projectStatus', vscode.StatusBarAlignment.Right, 100);
     item.name = '.NET: Project';
     item.command = 'dotnet-creator.showProjectMenu';
 
@@ -32,6 +32,6 @@ function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.Stat
     }
 
     const projectName = path.basename(picked, path.extname(picked));
-    item.text = `$(project) ${projectName}`;
+    item.text = `$(project) Project: ${projectName}`;
     item.tooltip = `Project: ${picked}\nClick for actions or to change.`;
 }

@@ -3,14 +3,14 @@ import * as path from 'path';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 
 /**
- * Leftmost of the three .NET status bar segments (Solution › Project ›
- * Configuration, priorities 102/101/100) - carries the ".NET:" prefix so the
- * group reads as one widget belonging to this extension rather than three
- * unrelated items (VS Code has no API to visually fuse multiple
- * StatusBarItems into one "pill").
+ * First (leftmost within the right-aligned group) of the three .NET status
+ * bar segments (Solution › Project › Configuration, priorities 101/100/99) -
+ * carries the ".NET:" prefix so the group reads as one widget belonging to
+ * this extension rather than three unrelated items (VS Code has no API to
+ * visually fuse multiple StatusBarItems into one "pill").
  */
 export function registerSolutionStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.solutionStatus', vscode.StatusBarAlignment.Left, 102);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.solutionStatus', vscode.StatusBarAlignment.Right, 101);
     item.name = '.NET: Solution';
     item.command = 'dotnet-creator.showSolutionMenu';
 
@@ -32,6 +32,6 @@ function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.Stat
     }
 
     const solutionName = path.basename(solutionPath, path.extname(solutionPath));
-    item.text = `$(folder-library) .NET: ${solutionName}`;
+    item.text = `$(folder-library) Solution: ${solutionName}`;
     item.tooltip = `Solution: ${solutionPath}\nClick for actions or to change.`;
 }

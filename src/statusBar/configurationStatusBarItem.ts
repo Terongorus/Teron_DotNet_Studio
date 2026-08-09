@@ -6,7 +6,7 @@ import { getCurrentConfiguration, onDidChangeConfiguration } from '../utils/conf
  * clicking goes directly to the Debug/Release QuickPick - no intermediate menu.
  */
 export function registerConfigurationStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.configurationStatus', vscode.StatusBarAlignment.Left, 100);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.configurationStatus', vscode.StatusBarAlignment.Right, 99);
     item.name = '.NET: Build Configuration';
     item.command = 'dotnet-creator.pickConfiguration';
 
@@ -20,6 +20,6 @@ export function registerConfigurationStatusBarItem(context: vscode.ExtensionCont
 
 function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.StatusBarItem): void {
     const configuration = getCurrentConfiguration(context);
-    item.text = `$(gear) ${configuration}`;
+    item.text = `$(gear) Configuration: ${configuration}`;
     item.tooltip = 'Click to change the build configuration (Debug/Release).';
 }
