@@ -2,6 +2,15 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.7.1] - 2026-08-10
+
+* **Fixed: build output was only visible as a notification toast and an easy-to-miss Output
+  channel.** **.NET: Build/Rebuild/Clean** and the pre-launch build behind **Run**/F5 now run as
+  a real VS Code Task (the same mechanism `tasks.json` entries use), so output shows in an
+  integrated Terminal tab that reveals itself automatically - matching how VS Code's own build
+  tasks behave. Errors and warnings are now also parsed by the `$msCompile` problem matcher into
+  the Problems panel, which the previous plain-text output channel never did at all.
+
 ## [1.7.0] - 2026-08-10
 
 Five real bugs found using the packaged (installed, not just Extension Development Host)

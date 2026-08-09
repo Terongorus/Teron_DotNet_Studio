@@ -1,25 +1,51 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { runDotnet } from '../utils/process';
 import { BuildConfiguration } from '../utils/configurationPicker';
 import { findAssemblyForCsproj } from '../utils/projectAssemblyResolver';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
-let outputChannel: vscode.OutputChannel | undefined;
-
-function getOutputChannel(): vscode.OutputChannel {
-    if (!outputChannel) {
-        outputChannel = vscode.window.createOutputChannel('.NET Build');
-    }
-    return outputChannel;
-}
+const TASK_SOURCE = '.NET Studio';
 
 const VERBS: Record<BuildAction, string> = {
     build: 'Building',
     rebuild: 'Rebuilding',
     clean: 'Cleaning'
 };
+
+/**
+ * Runs `dotnet <args>` as a real VS Code Task (ShellExecution) rather than a background
+ * child_process - shows live output in an integrated Terminal tab exactly like a task from
+ * tasks.json (matches the RECOMMENDED_TASKS this extension itself generates), with the same
+ * `$msCompile` problem matcher surfacing errors/warnings in the Problems panel, which the
+ * previous plain-output-channel approach never did at all. Resolves to whether the process
+ * exited 0.
+ */
+function runDotnetTask(targetPath: string, args: string[], taskName: string): Promise<boolean> {
+    const cwd = path.dirname(targetPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(targetPath)) ?? vscode.TaskScope.Workspace;
+
+    const execution = new vscode.ShellExecution('dotnet', args, { cwd });
+    const task = new vscode.Task({ type: 'shell' }, workspaceFolder, taskName, TASK_SOURCE, execution, ['$msCompile']);
+    task.group = vscode.TaskGroup.Build;
+    task.presentationOptions = {
+        reveal: vscode.TaskRevealKind.Always,
+        panel: vscode.TaskPanelKind.Shared,
+        clear: true,
+        focus: false
+    };
+
+    return new Promise<boolean>((resolve, reject) => {
+        vscode.tasks.executeTask(task).then(taskExecution => {
+            const disposable = vscode.tasks.onDidEndTaskProcess(event => {
+                if (event.execution === taskExecution) {
+                    disposable.dispose();
+                    resolve(event.exitCode === 0);
+                }
+            });
+        }, reject);
+    });
+}
 
 /**
  * Shared build/rebuild/clean executor, parameterized by *what* gets built (a
@@ -33,41 +59,23 @@ export async function runBuildAction(
     action: BuildAction,
     configuration: BuildConfiguration
 ): Promise<void> {
-    const channel = getOutputChannel();
-
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `${VERBS[action]} ${targetName} (${configuration})...`,
-        cancellable: false
-    }, async () => {
-        try {
-            if (action === 'clean' || action === 'rebuild') {
-                await runLogged(channel, ['clean', targetPath, '-c', configuration]);
-            }
-            if (action === 'build' || action === 'rebuild') {
-                await runLogged(channel, ['build', targetPath, '-c', configuration]);
-            }
-
-            vscode.window.showInformationMessage(`${targetName}: ${action} succeeded (${configuration}).`);
-        } catch (error: any) {
-            channel.appendLine(`ERROR: ${error.message}`);
-            const choice = await vscode.window.showErrorMessage(
-                `${targetName}: ${action} failed (${configuration}).`,
-                'Show Output'
-            );
-            if (choice === 'Show Output') {
-                channel.show();
-            }
+    if (action === 'clean' || action === 'rebuild') {
+        const ok = await runDotnetTask(targetPath, ['clean', targetPath, '-c', configuration], `.NET ${VERBS.clean}: ${targetName}`);
+        if (!ok) {
+            vscode.window.showErrorMessage(`${targetName}: ${action} failed (${configuration}).`);
+            return;
         }
-    });
-}
-
-async function runLogged(channel: vscode.OutputChannel, args: string[]): Promise<void> {
-    channel.appendLine(`> dotnet ${args.join(' ')}`);
-    const output = await runDotnet(args);
-    if (output.trim()) {
-        channel.appendLine(output);
     }
+
+    if (action === 'build' || action === 'rebuild') {
+        const ok = await runDotnetTask(targetPath, ['build', targetPath, '-c', configuration], `.NET ${VERBS.build}: ${targetName}`);
+        if (!ok) {
+            vscode.window.showErrorMessage(`${targetName}: ${action} failed (${configuration}).`);
+            return;
+        }
+    }
+
+    vscode.window.showInformationMessage(`${targetName}: ${action} succeeded (${configuration}).`);
 }
 
 /**
@@ -90,30 +98,11 @@ export async function runProject(
     configuration: BuildConfiguration,
     noDebug: boolean = false
 ): Promise<void> {
-    const channel = getOutputChannel();
-    let buildSucceeded = false;
-
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `Building ${projectName} (${configuration})...`,
-        cancellable: false
-    }, async () => {
-        try {
-            await runLogged(channel, ['build', projectPath, '-c', configuration]);
-            buildSucceeded = true;
-        } catch (error: any) {
-            channel.appendLine(`ERROR: ${error.message}`);
-            const choice = await vscode.window.showErrorMessage(
-                `${projectName}: build failed, not launching (${configuration}).`,
-                'Show Output'
-            );
-            if (choice === 'Show Output') {
-                channel.show();
-            }
-        }
-    });
-
-    if (!buildSucceeded) { return; }
+    const buildSucceeded = await runDotnetTask(projectPath, ['build', projectPath, '-c', configuration], `.NET Build: ${projectName}`);
+    if (!buildSucceeded) {
+        vscode.window.showErrorMessage(`${projectName}: build failed, not launching (${configuration}).`);
+        return;
+    }
 
     const assemblyPath = findAssemblyForCsproj(projectPath);
     if (!assemblyPath) {
