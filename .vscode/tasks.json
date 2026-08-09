@@ -35,6 +35,106 @@
 				"npm: watch-tests"
 			],
 			"problemMatcher": []
-		}
-	]
+        },
+        {
+            "label": ".NET Build Solution",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "-c",
+                "${input:currentConfiguration}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "hidden": false,
+                "group": ".NET",
+                "order": 3
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": ".NET Build Project Hidden (Debug)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${input:selectedCsproj}",
+                "-c",
+                "Debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "hidden": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": ".NET Build Project Hidden (Release)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${input:selectedCsproj}",
+                "-c",
+                "Release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "hidden": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": ".NET Build Project",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${input:pickCsproj}",
+                "-c",
+                "${input:currentConfiguration}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "hidden": false,
+                "group": ".NET",
+                "order": 1
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "pickCsproj",
+            "type": "command",
+            "command": "dotnet-creator.getPickedCsprojFile",
+            "args": {
+                "include": "**/*.csproj",
+                "acceptIfOneFile": true
+            }
+        },
+        {
+            "id": "selectedCsproj",
+            "type": "command",
+            "command": "dotnet-creator.getPickedCsprojFile"
+        },
+        {
+            "id": "currentConfiguration",
+            "type": "command",
+            "command": "dotnet-creator.getCurrentConfiguration"
+        }
+    ]
 }

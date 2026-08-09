@@ -16,6 +16,62 @@
 				"${workspaceFolder}/dist/**/*.js"
 			],
 			"preLaunchTask": "${defaultBuildTask}"
-		}
-	]
+        },
+        {
+            "name": ".NET Debug",
+            "type": "dotnet-creator-debug",
+            "request": "launch",
+            "preLaunchTask": ".NET Build Project Hidden (Debug)",
+            "program": "${input:pickAssemblyDebug}",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "presentation": {
+                "hidden": false,
+                "group": ".NET",
+                "order": 1
+            },
+            "args": [],
+            "internalConsoleOptions": "neverOpen"
+        },
+        {
+            "name": ".NET Release",
+            "type": "dotnet-creator-debug",
+            "request": "launch",
+            "preLaunchTask": ".NET Build Project Hidden (Release)",
+            "program": "${input:pickAssemblyRelease}",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "presentation": {
+                "hidden": false,
+                "group": ".NET",
+                "order": 2
+            },
+            "args": [],
+            "internalConsoleOptions": "neverOpen"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "pickAssemblyDebug",
+            "type": "command",
+            "command": "dotnet-creator.getPickedAssemblyPath",
+            "args": {
+                "include": "**/*.csproj",
+                "acceptIfOneFile": true,
+                "configuration": "Debug"
+            }
+        },
+        {
+            "id": "pickAssemblyRelease",
+            "type": "command",
+            "command": "dotnet-creator.getPickedAssemblyPath",
+            "args": {
+                "include": "**/*.csproj",
+                "acceptIfOneFile": true,
+                "configuration": "Release"
+            }
+        }
+    ]
 }
