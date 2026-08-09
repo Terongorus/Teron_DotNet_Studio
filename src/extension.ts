@@ -16,6 +16,7 @@ import { registerSetupDebugTasksCommand, maybeShowSetupDebugTasksPrompt } from '
 import { registerDebugKeybindingCommands } from './commands/debugKeybindingCommands';
 import { registerDebugSessionTracker } from './utils/debugSessionTracker';
 import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
+import { registerManageNugetPackagesCommand } from './commands/manageNugetPackages';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 
@@ -38,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerDebugKeybindingCommands(context);
     registerDebugSessionTracker(context);
     registerResourceMonitorPanel(context);
+    registerManageNugetPackagesCommand(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
     registerConfigurationStatusBarItem(context);

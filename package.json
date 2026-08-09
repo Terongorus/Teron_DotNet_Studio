@@ -91,6 +91,12 @@
         "icon": "resources/appicon.png",
         "title": "Run Without Debugging",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.manageNugetPackages",
+        "icon": "resources/appicon.png",
+        "title": "Manage NuGet Packages",
+        "category": ".NET"
       }
     ],
     "configuration": {

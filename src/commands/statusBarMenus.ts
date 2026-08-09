@@ -17,6 +17,7 @@ import {
 import { getCurrentConfiguration } from '../utils/configurationPicker';
 import { parseSolutionProjects } from '../utils/solutionParser';
 import { runBuildAction, runProject, BuildAction } from './buildActions';
+import { manageNugetPackages } from './manageNugetPackages';
 
 export function registerStatusBarMenuCommands(context: vscode.ExtensionContext) {
     context.subscriptions.push(
@@ -71,14 +72,15 @@ async function showSolutionMenu(context: vscode.ExtensionContext): Promise<void>
 }
 
 async function showProjectMenu(context: vscode.ExtensionContext): Promise<void> {
-    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string };
+    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string; manageNuget?: boolean };
 
     const items: Item[] = [
         { label: 'Actions', kind: vscode.QuickPickItemKind.Separator },
         { label: '$(play) Run', action: 'run' },
         { label: '$(tools) Build Project', action: 'build' },
         { label: '$(sync) Rebuild Project', action: 'rebuild' },
-        { label: '$(trash) Clean Project', action: 'clean' }
+        { label: '$(trash) Clean Project', action: 'clean' },
+        { label: '$(package) Manage NuGet Packages...', manageNuget: true }
     ];
 
     const recent = getRecentCsprojItems(context);
@@ -125,6 +127,13 @@ async function showProjectMenu(context: vscode.ExtensionContext): Promise<void> 
 
     if (selection.projectPath) {
         await recordPickedCsprojFile(context, selection.projectPath);
+        return;
+    }
+
+    if (selection.manageNuget) {
+        const projectPath = await getPickedCsprojFile(context);
+        if (!projectPath) { return; }
+        await manageNugetPackages(context, projectPath);
         return;
     }
 

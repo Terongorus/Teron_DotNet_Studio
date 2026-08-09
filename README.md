@@ -11,6 +11,7 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 * **Solution-Aware Project Creation:** Optionally add your new project to an existing solution, or create a brand new one on the spot, as part of the project creation flow.
 * **Standalone Solution Creation:** Create an empty `.slnx` solution on its own via **.NET: Create Solution**.
 * **Solution Scaffold File Management:** Add or permanently delete solution-level scaffold files (`.gitignore`, `.editorconfig`, `NuGet.Config`, `global.json`, `.sln`/`.slnx`, etc.) in any folder via **.NET: Manage Solution Files**.
+* **NuGet Package Manager:** A dedicated panel (**.NET: Manage NuGet Packages**, or from the Project status bar item) to browse NuGet.org, and install, update, or remove package references for a project — no typing exact package IDs required. Requires .NET SDK 7.0.200 or later.
 * **Fast and Lightweight:** No heavy background language servers or telemetry; just pure UI to CLI bridging.
 
 ## Requirements
@@ -141,6 +142,32 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
 `args` beyond `include`/`acceptIfOneFile` (e.g. a `fromWorkspace` flag carried over from other pickers) are accepted but ignored — this extension always searches the current workspace.
 
 **Switching projects:** run **.NET: Change Debug Project** from the Command Palette, or click the project name in the status bar — either updates the stored selection, and the next F5 or build picks it up automatically with no further prompting.
+
+## Roadmap
+
+Planned, not yet started:
+
+* **Solution Explorer** — a project-grouped file tree (projects, referenced packages/
+  dependencies, source generators), the biggest remaining reason to keep a full C# extension
+  installed just for file/project browsing rather than this extension's own build/run tooling.
+* **Test Explorer** — discover and run `dotnet test` (NUnit/xUnit/MSTest) through VS Code's
+  native Testing API, with results and failure navigation, no semantic C# analysis required.
+* **Deeper runtime diagnostics** — the .NET Resource Monitor panel currently polls OS-level
+  process stats (CPU%, memory) via PowerShell. GC Heap Size, ThreadPool Thread Count, and
+  Visual-Studio-style memory snapshots/CPU trace recording would need the .NET runtime's own
+  EventCounters/EventPipe diagnostics channel (the same mechanism `dotnet-counters`/
+  `dotnet-trace` use) — a materially different, larger feature than OS-level polling. Flagged
+  as a real boundary, not a silent omission, in case it's wanted as a future milestone.
+
+Also under consideration, but a different category of effort — each of these needs a real C#
+semantic engine (Roslyn or similar), not a CLI wrapper, so they're listed here rather than
+planned in detail yet:
+
+* **Code Analysis & Inspections** — real-time issue detection and quick fixes.
+* **Navigation & Search** — go to definition, find usages, symbol search.
+* **Code Refactoring** — Rename, Extract Method, Introduce Variable, and similar operations.
+* **Code Completion / IntelliSense** — context-aware completions, live templates, auto-imports.
+* **C#-aware Code Formatting** — semantic formatting beyond generic EditorConfig rules.
 
 ## Known Issues
 
