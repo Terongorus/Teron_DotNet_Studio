@@ -2,6 +2,32 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.8.0] - 2026-08-10
+
+* **Fixed: debug session launching didn't work with a custom build output path.** Resolving the
+  built assembly to launch (Run/F5, and the generated `launch.json`'s `program`) walked
+  `<projectDir>/bin` on disk looking for a matching `.dll` - which can't find a project whose
+  `OutputPath`/`BaseOutputPath`/`ArtifactsPath` is redirected elsewhere (a common
+  `Directory.Build.props` pattern), and could silently pick up a stale DLL left over from an
+  earlier default-path build. Now asks MSBuild directly for the project's real `TargetPath`
+  (`dotnet msbuild -getProperty:TargetPath`, .NET 8+ SDK) - correct for any custom output layout,
+  and for `AssemblyName`/output paths set conditionally or via `Directory.Build.props` rather
+  than a plain literal in the `.csproj` itself. Falls back to the previous filesystem walk only
+  if `-getProperty` itself isn't available (an SDK older than 8.0), so a standard-layout project
+  on an older SDK doesn't regress.
+* **Fixed: the generated build tasks ignored the Debug/Release configuration entirely.** `.NET:
+  Set Up Debug/Build Tasks`' generated `tasks.json` entries never passed `-c`/`--configuration` to
+  `dotnet build` at all, always building with whatever MSBuild's own default resolved to -
+  silently ignoring the status bar's Debug/Release picker, and meaning the generated `.NET
+  Release` launch config didn't actually build Release before launching it (both `.NET Debug` and
+  `.NET Release` shared the exact same untargeted preLaunchTask). Each launch config now has its
+  own hidden build task hardcoding its own configuration (`.NET Build Project Hidden (Debug)` /
+  `(Release)`), and the general-purpose visible build tasks now pass the status bar's current
+  configuration via a new silent `dotnet-creator.getCurrentConfiguration` command. **Workspaces
+  that already ran .NET: Set Up Debug/Build Tasks before this update should re-run it** to pick
+  up the new tasks/inputs - the old ones are left in place (nothing is removed automatically) and
+  keep working exactly as before, just without this fix, until re-run.
+
 ## [1.7.1] - 2026-08-10
 
 * **Fixed: build output was only visible as a notification toast and an easy-to-miss Output

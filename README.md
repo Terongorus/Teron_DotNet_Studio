@@ -22,7 +22,7 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 
 ## Requirements
 
-You must have the official [.NET SDK](https://dotnet.microsoft.com/download) installed on your system and accessible in your system's `PATH`.
+You must have the official [.NET SDK](https://dotnet.microsoft.com/download) installed on your system and accessible in your system's `PATH`. .NET SDK 8.0 or later is recommended: debug session launching resolves the built assembly to run by asking MSBuild for the project's real output path, which correctly handles a custom `OutputPath`/`Directory.Build.props` setup on SDK 8+, and falls back to a best-effort `bin/` folder search (standard layouts only) on older SDKs.
 
 ## Looks Great With
 
@@ -78,7 +78,7 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
 }
 ```
 
-**After** — `launch.json`, using this extension's own `"dotnet-creator-debug"` type (backed by netcoredbg — see **Standalone Debugging** above) instead of a hardcoded `program` path. Unlike VS Code's built-in-looking `"dotnet"` type (actually contributed by Microsoft's C# extension, and non-functional without it), `dotnet-creator-debug` resolves the built assembly itself via `getPickedAssemblyPath`:
+**After** — `launch.json`, using this extension's own `"dotnet-creator-debug"` type (backed by netcoredbg — see **Standalone Debugging** above) instead of a hardcoded `program` path. Unlike VS Code's built-in-looking `"dotnet"` type (actually contributed by Microsoft's C# extension, and non-functional without it), `dotnet-creator-debug` resolves the built assembly itself via `getPickedAssemblyPath` — which asks MSBuild directly for the project's real `TargetPath` (`dotnet msbuild -getProperty:TargetPath`) rather than guessing a filesystem location, so it's correct even for a custom `OutputPath`/`Directory.Build.props` build layout. `.NET Debug` and `.NET Release` each get their own input/preLaunchTask pair with a literal, hardcoded configuration, rather than sharing one — so picking "Release" always actually builds and launches Release regardless of whatever the status bar's configuration picker currently says:
 
 ```jsonc
 {
@@ -88,8 +88,8 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
             "name": ".NET Debug",
             "type": "dotnet-creator-debug",
             "request": "launch",
-            "preLaunchTask": ".NET Build Project Hidden",
-            "program": "${input:pickAssembly}",
+            "preLaunchTask": ".NET Build Project Hidden (Debug)",
+            "program": "${input:pickAssemblyDebug}",
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
             "stopAtEntry": false,
@@ -101,8 +101,8 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
             "name": ".NET Release",
             "type": "dotnet-creator-debug",
             "request": "launch",
-            "preLaunchTask": ".NET Build Project Hidden",
-            "program": "${input:pickAssembly}",
+            "preLaunchTask": ".NET Build Project Hidden (Release)",
+            "program": "${input:pickAssemblyRelease}",
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
             "stopAtEntry": false,
@@ -113,26 +113,50 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
     ],
     "inputs": [
         {
-            "id": "pickAssembly",
+            "id": "pickAssemblyDebug",
             "type": "command",
             "command": "dotnet-creator.getPickedAssemblyPath",
-            "args": { "include": "**/*.csproj", "acceptIfOneFile": true }
+            "args": { "include": "**/*.csproj", "acceptIfOneFile": true, "configuration": "Debug" }
+        },
+        {
+            "id": "pickAssemblyRelease",
+            "type": "command",
+            "command": "dotnet-creator.getPickedAssemblyPath",
+            "args": { "include": "**/*.csproj", "acceptIfOneFile": true, "configuration": "Release" }
         }
     ]
 }
 ```
 
-`tasks.json` needs its own `"inputs"` entry for the same reason — a hidden build task that runs as the `preLaunchTask` above, and (optionally) a visible one for running a build on demand via **Tasks: Run Build Task**:
+`tasks.json` needs its own `"inputs"` entry for the same reason — a hidden build task per launch config above (each hardcoding its own `-c Debug`/`-c Release`, for the same reason as the split inputs), and general-purpose visible tasks for running a build on demand via **Tasks: Run Build Task**, which build whatever the status bar's configuration picker currently says via the silent `getCurrentConfiguration` command:
 
 ```jsonc
 {
     "version": "2.0.0",
     "tasks": [
         {
-            "label": ".NET Build Project Hidden",
+            "label": ".NET Build Solution",
             "type": "shell",
             "command": "dotnet",
-            "args": ["build", "${input:selectedCsproj}"],
+            "args": ["build", "-c", "${input:currentConfiguration}"],
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "hidden": false, "group": ".NET", "order": 3 },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": ".NET Build Project Hidden (Debug)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["build", "${input:selectedCsproj}", "-c", "Debug"],
+            "group": { "kind": "build", "isDefault": true },
+            "presentation": { "hidden": true },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": ".NET Build Project Hidden (Release)",
+            "type": "shell",
+            "command": "dotnet",
+            "args": ["build", "${input:selectedCsproj}", "-c", "Release"],
             "group": { "kind": "build", "isDefault": true },
             "presentation": { "hidden": true },
             "problemMatcher": "$msCompile"
@@ -141,7 +165,7 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
             "label": ".NET Build Project",
             "type": "shell",
             "command": "dotnet",
-            "args": ["build", "${input:pickCsproj}"],
+            "args": ["build", "${input:pickCsproj}", "-c", "${input:currentConfiguration}"],
             "group": { "kind": "build", "isDefault": true },
             "presentation": { "hidden": false, "group": ".NET", "order": 1 },
             "problemMatcher": "$msCompile"
@@ -154,7 +178,8 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
             "command": "dotnet-creator.getPickedCsprojFile",
             "args": { "include": "**/*.csproj", "acceptIfOneFile": true }
         },
-        { "id": "selectedCsproj", "type": "command", "command": "dotnet-creator.getPickedCsprojFile" }
+        { "id": "selectedCsproj", "type": "command", "command": "dotnet-creator.getPickedCsprojFile" },
+        { "id": "currentConfiguration", "type": "command", "command": "dotnet-creator.getCurrentConfiguration" }
     ]
 }
 ```

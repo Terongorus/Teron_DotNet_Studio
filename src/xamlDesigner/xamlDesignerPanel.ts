@@ -4,6 +4,7 @@ import { DesignerHostClient } from './designerHostClient';
 import { getXamlDesignerHtml } from './xamlDesignerHtml';
 import { Bounds, TransformKind } from './designerHostProtocol';
 import { findProjectAssembly, findAppXamlText, detectAssemblyPlatform, HelperPlatform } from '../utils/projectAssemblyResolver';
+import { getCurrentConfiguration } from '../utils/configurationPicker';
 
 // One helper process per bitness - a helper process can only load assemblies
 // matching its own architecture, and different open projects may target
@@ -26,6 +27,13 @@ function getClient(context: vscode.ExtensionContext, platform: HelperPlatform): 
 
 function resolvePlatformForAssembly(assemblyPath: string | undefined): HelperPlatform {
     return assemblyPath ? detectAssemblyPlatform(assemblyPath) : 'x64';
+}
+
+/** Resolves against the status bar's current Debug/Release configuration - falls back to Debug for a file outside any open workspace folder (shouldn't normally happen for a real .xaml file). */
+function resolveAssemblyForXaml(xamlFilePath: string): Promise<string | undefined> {
+    const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(xamlFilePath));
+    const configuration = folder ? getCurrentConfiguration(folder) : 'Debug';
+    return findProjectAssembly(xamlFilePath, configuration);
 }
 
 /**
@@ -99,7 +107,7 @@ async function renderInto(context: vscode.ExtensionContext, panel: vscode.Webvie
 
     try {
         const document = await vscode.workspace.openTextDocument(uri);
-        const assemblyPath = findProjectAssembly(uri.fsPath);
+        const assemblyPath = await resolveAssemblyForXaml(uri.fsPath);
         const appXamlText = findAppXamlText(uri.fsPath);
         const platform = resolvePlatformForAssembly(assemblyPath);
         const frame = await getClient(context, platform).loadXaml(document.getText(), uri.fsPath, assemblyPath, appXamlText);
@@ -131,7 +139,7 @@ async function handleWebviewMessage(context: vscode.ExtensionContext, panel: vsc
 
 async function handleSelectAt(context: vscode.ExtensionContext, panel: vscode.WebviewPanel, uri: vscode.Uri, x: number, y: number): Promise<void> {
     try {
-        const platform = resolvePlatformForAssembly(findProjectAssembly(uri.fsPath));
+        const platform = resolvePlatformForAssembly(await resolveAssemblyForXaml(uri.fsPath));
         const selection = await getClient(context, platform).selectAt(uri.fsPath, x, y);
         panel.webview.postMessage({ command: 'selection', path: selection?.path, bounds: selection?.bounds });
     } catch {
@@ -157,7 +165,7 @@ async function handleCommitTransform(context: vscode.ExtensionContext, panel: vs
     }
 
     try {
-        const platform = resolvePlatformForAssembly(findProjectAssembly(uri.fsPath));
+        const platform = resolvePlatformForAssembly(await resolveAssemblyForXaml(uri.fsPath));
         const result = await getClient(context, platform).commitTransform(uri.fsPath, elementPath, kind, bounds);
 
         // The helper only ever computed the new text in its own memory - never touched the

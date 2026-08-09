@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { BuildConfiguration } from '../utils/configurationPicker';
-import { findAssemblyForCsproj } from '../utils/projectAssemblyResolver';
+import { resolveTargetPath } from '../utils/projectAssemblyResolver';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
@@ -104,9 +104,9 @@ export async function runProject(
         return;
     }
 
-    const assemblyPath = findAssemblyForCsproj(projectPath);
+    const assemblyPath = await resolveTargetPath(projectPath, configuration);
     if (!assemblyPath) {
-        vscode.window.showErrorMessage(`${projectName}: build succeeded, but no built assembly (.dll) could be found to launch.`);
+        vscode.window.showErrorMessage(`${projectName}: build succeeded, but MSBuild couldn't resolve a TargetPath for it (${configuration}).`);
         return;
     }
 

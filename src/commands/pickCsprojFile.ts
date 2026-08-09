@@ -1,7 +1,13 @@
 import * as vscode from 'vscode';
 import { pickCsprojFile, getPickedCsprojFile, PickCsprojArgs } from '../utils/projectPicker';
 import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
-import { findAssemblyForCsproj } from '../utils/projectAssemblyResolver';
+import { resolveTargetPath } from '../utils/projectAssemblyResolver';
+import { getCurrentConfiguration, BuildConfiguration } from '../utils/configurationPicker';
+
+interface PickAssemblyArgs extends PickCsprojArgs {
+    /** Which configuration to resolve the TargetPath for - the generated .NET Debug/.NET Release launch configs each pass their own literal value, so picking "Release" always resolves a Release build regardless of the status bar's current pick. Defaults to the status bar's current configuration when omitted. */
+    configuration?: BuildConfiguration;
+}
 
 /**
  * `getPickedCsprojFile` is the one both launch.json and tasks.json should
@@ -47,11 +53,12 @@ export function registerPickCsprojFileCommand(context: vscode.ExtensionContext) 
         // .csproj path itself, unlike VS Code's own "dotnet" debug type which resolved that
         // internally - see utils/projectAssemblyResolver.ts (already proven by the XAML
         // Designer's own "find the built DLL for a project" need).
-        vscode.commands.registerCommand('dotnet-creator.getPickedAssemblyPath', async (args?: PickCsprojArgs) => {
+        vscode.commands.registerCommand('dotnet-creator.getPickedAssemblyPath', async (args?: PickAssemblyArgs) => {
             const folder = getActiveWorkspaceFolder();
             if (!folder) { return undefined; }
             const csprojPath = await getPickedCsprojFile(folder, args);
-            return csprojPath ? findAssemblyForCsproj(csprojPath) : undefined;
+            if (!csprojPath) { return undefined; }
+            return resolveTargetPath(csprojPath, args?.configuration ?? getCurrentConfiguration(folder));
         })
     );
 }
