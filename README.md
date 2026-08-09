@@ -158,8 +158,16 @@ Planned, not yet started:
   as a real boundary, not a silent omission, in case it's wanted as a future milestone.
 
 Also under consideration, but a different category of effort — each of these needs a real C#
-semantic engine (Roslyn or similar), not a CLI wrapper, so they're listed here rather than
-planned in detail yet:
+semantic engine (Roslyn or similar), not a CLI wrapper, so they're not planned in detail here.
+This extension isn't going to build its own Roslyn-hosting language server, but a real,
+free option now exists worth knowing about: **[SharpLsp](https://github.com/Nimblesite/SharpLsp)**
+(MIT licensed, editor-agnostic, Roslyn for C# + FSharp.Compiler.Service for F#), installable
+separately from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Nimblesite.sharplsp)
+the same way ReSharper or C# Dev Kit would be. It's early (v0.18.0 as of writing, ~150
+installs, requires .NET SDK 10+) but actively developed, so it's not a mature drop-in yet -
+worth revisiting as it matures. Note it also ships its own Solution Explorer and a profiler,
+which will overlap with this extension's own Solution Explorer and the "Deeper runtime
+diagnostics" item above if both are installed at once.
 
 * **Code Analysis & Inspections** — real-time issue detection and quick fixes.
 * **Navigation & Search** — go to definition, find usages, symbol search.
