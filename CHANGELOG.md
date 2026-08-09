@@ -2,6 +2,35 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.4.0] - 2026-08-09
+
+* **Standalone Debugging**: a new debug type, `dotnet-creator-debug` (`.NET (netcoredbg)`),
+  backed by [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT-licensed, Samsung) - real
+  breakpoints, stepping, call stacks, and variable inspection via the Debug Adapter Protocol,
+  without needing Microsoft's C# extension (whose `vsdbg` debugger is proprietary and
+  license-locked to official Microsoft VS Code builds). `.NET: Set Up Debug/Build Tasks` now
+  generates `launch.json` entries using this type by default instead of VS Code's `"dotnet"`
+  type (which does nothing without that extension installed). Entirely opt-in: if netcoredbg
+  isn't found, pressing F5 offers **Download netcoredbg** (checksum-verified against GitHub's
+  own published digest for the release asset) or **Install Instructions** - nothing is ever
+  installed automatically. Reachable via the Project status bar menu's new **Debugger
+  Options...** entry.
+* **Update Notifications**: both SharpLsp and netcoredbg now check once per day (after being
+  resolved) for a newer release, showing a quiet, dismissible notice - never auto-switching.
+  Addresses a bundled or previously-downloaded copy otherwise going stale with no signal to the
+  user that a newer version exists.
+* **Fixed**: "Download SharpLsp" previously only extracted the host binary from the release
+  asset, never the C#/F# sidecar processes it depends on at runtime (they live in a separate
+  `bin/all/` folder inside the release) - C#/F# analysis could silently fail to fully start for
+  anyone who had already used the download path. The extension now extracts that folder too and
+  points the sidecars at it explicitly via environment variables, matching what SharpLsp's own
+  official extension does internally.
+* **Changed**: SharpLsp is no longer built from a vendored copy of its source at packaging time
+  - `tools/build-sharplsp.js` and the new `tools/build-netcoredbg.js` both now fetch each tool's
+  official, checksum-verified release binary directly, matching exactly what the in-extension
+  "Download" action already did. No local Rust/CMake/MSVC toolchain is required to package this
+  extension, and no third-party source tree is vendored in this repository.
+
 ## [1.3.0] - 2026-08-09
 
 * **NuGet Package Manager**: a dedicated panel (`.NET: Manage NuGet Packages`, or from the

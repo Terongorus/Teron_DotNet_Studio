@@ -14,7 +14,9 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 * **NuGet Package Manager:** A dedicated panel (**.NET: Manage NuGet Packages**, or from the Project status bar item) to browse NuGet.org, and install, update, or remove package references for a project — no typing exact package IDs required. Requires .NET SDK 7.0.200 or later.
 * **Solution Explorer:** A dedicated activity bar view (its own icon, separate from the native Explorer) showing your solution, its projects, each project's dependencies (NuGet packages, project references, detected analyzers/source generators), and its real file/folder structure — with full New File/Class/Folder, Add Existing File, Rename, Delete, Cut/Copy/Paste, Exclude/Include From Project, drag-and-drop move, Build/Rebuild/Clean/Run, Set as Startup Project, Remove from Solution, and sync-with-active-editor support. Stays in sync with the Solution status bar item, and shows one independent section per folder in a multi-root workspace. Does not show source generators' actual *generated* output files — that needs a real Roslyn/MSBuild hook, the same boundary as the language-server items below.
 * **Optional C#/F# Language Server:** drives [SharpLsp](https://github.com/Nimblesite/SharpLsp) (MIT-licensed, Roslyn for C# + FSharp.Compiler.Service for F#) directly as a standard language server — diagnostics, completions, hover, go-to-definition, the Outline panel/breadcrumbs, and code folding — without installing SharpLsp's own VS Code extension (which ships its own Solution Explorer/NuGet browser/profiler that would duplicate this extension's own). Entirely opt-in: if SharpLsp isn't found, opening a C#/F# file offers a one-click **Download SharpLsp** (fetches the official release, checksum-verified against SharpLsp's own published hashes before anything is extracted or run) or **Install Instructions** (`cargo install sharplsp` / build it yourself) — nothing is ever installed automatically. A status bar item shows its state, with Restart/Show Output actions.
-* **Fast and Lightweight by Default:** every feature above is pure UI-to-CLI/filesystem bridging — no background processes unless you explicitly opt into the language server integration.
+* **Standalone Debugging (netcoredbg):** this extension's own debug type, **`.NET (netcoredbg)`**, backed by [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT-licensed, Samsung) — real breakpoints, stepping, call stacks, and variable inspection via the Debug Adapter Protocol, without installing Microsoft's C# extension (whose `vsdbg` debugger is proprietary and license-locked to official Microsoft VS Code builds). **.NET: Set Up Debug/Build Tasks** generates `launch.json` entries using this type by default. Entirely opt-in, same pattern as the language server: if netcoredbg isn't found, pressing F5 offers **Download netcoredbg** (checksum-verified against GitHub's own published digest for the release asset) or **Install Instructions** — nothing is ever installed automatically.
+* **Update Notifications:** both SharpLsp and netcoredbg periodically (once per day) check for a newer release once resolved, and show a quiet, dismissible notice — never auto-switching — so a bundled or previously-downloaded copy doesn't silently go stale.
+* **Fast and Lightweight by Default:** every feature above is pure UI-to-CLI/filesystem bridging — no background processes unless you explicitly opt into the language server or debug adapter integrations.
 
 ## Requirements
 
@@ -74,7 +76,7 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
 }
 ```
 
-**After** — `launch.json`, using the `"dotnet"` debug type's `projectPath` instead of a hardcoded `program` path:
+**After** — `launch.json`, using this extension's own `"dotnet-creator-debug"` type (backed by netcoredbg — see **Standalone Debugging** above) instead of a hardcoded `program` path. Unlike VS Code's built-in-looking `"dotnet"` type (actually contributed by Microsoft's C# extension, and non-functional without it), `dotnet-creator-debug` resolves the built assembly itself via `getPickedAssemblyPath`:
 
 ```jsonc
 {
@@ -82,20 +84,26 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
     "configurations": [
         {
             "name": ".NET Debug",
-            "type": "dotnet",
+            "type": "dotnet-creator-debug",
             "request": "launch",
             "preLaunchTask": ".NET Build Project Hidden",
-            "projectPath": "${input:pickCsproj}",
+            "program": "${input:pickAssembly}",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
             "presentation": { "hidden": false, "group": ".NET", "order": 1 },
             "args": [],
             "internalConsoleOptions": "neverOpen"
         },
         {
             "name": ".NET Release",
-            "type": "dotnet",
+            "type": "dotnet-creator-debug",
             "request": "launch",
             "preLaunchTask": ".NET Build Project Hidden",
-            "projectPath": "${input:pickCsproj}",
+            "program": "${input:pickAssembly}",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
             "presentation": { "hidden": false, "group": ".NET", "order": 2 },
             "args": [],
             "internalConsoleOptions": "neverOpen"
@@ -103,9 +111,9 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
     ],
     "inputs": [
         {
-            "id": "pickCsproj",
+            "id": "pickAssembly",
             "type": "command",
-            "command": "dotnet-creator.getPickedCsprojFile",
+            "command": "dotnet-creator.getPickedAssemblyPath",
             "args": { "include": "**/*.csproj", "acceptIfOneFile": true }
         }
     ]
@@ -187,9 +195,12 @@ than building a Roslyn-hosting language server of its own:
 
 ## Credits
 
-The optional C#/F# Language Server feature builds and bundles
+The optional C#/F# Language Server feature downloads and bundles
 **[SharpLsp](https://github.com/Nimblesite/SharpLsp)** by **Christian Findlay** (MIT licensed).
-See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the full license text and attribution.
+The standalone debug adapter downloads and bundles
+**[netcoredbg](https://github.com/Samsung/netcoredbg)** by **Samsung Electronics Co., LTD** (MIT
+licensed). See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the full license text and
+attribution for both.
 
 ## Author
 
