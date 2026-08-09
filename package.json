@@ -24,6 +24,16 @@
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "restrictedConfigurations": [
+        "dotnet-creator.sharpLsp.path",
+        "dotnet-creator.sharpLsp.extraArgs",
+        "dotnet-creator.sharpLsp.dotnetPath"
+      ]
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -96,6 +106,18 @@
         "command": "dotnet-creator.manageNugetPackages",
         "icon": "resources/appicon.png",
         "title": "Manage NuGet Packages",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.sharpLsp.restart",
+        "icon": "resources/appicon.png",
+        "title": "Restart Language Server",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.sharpLsp.showOutput",
+        "icon": "resources/appicon.png",
+        "title": "Show Language Server Output",
         "category": ".NET"
       },
       {
@@ -232,6 +254,33 @@
           "type": "boolean",
           "default": true,
           "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
+        },
+        "dotnet-creator.sharpLsp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable C# and F# language features (diagnostics, completion, hover, go-to-definition) via a SharpLsp binary already installed on PATH. Disable if you're using another C# language extension."
+        },
+        "dotnet-creator.sharpLsp.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the SharpLsp executable. Leave empty to resolve 'sharplsp' from PATH, or to use a copy downloaded via the \"Download SharpLsp\" action."
+        },
+        "dotnet-creator.sharpLsp.extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Extra command-line arguments passed to the SharpLsp server process."
+        },
+        "dotnet-creator.sharpLsp.dotnetPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a specific dotnet executable (e.g. a portable/user-local .NET SDK install not on PATH) for the SharpLsp language server to use."
+        },
+        "dotnet-creator.sharpLsp.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Trace communication between .NET Studio and the SharpLsp language server (for troubleshooting)."
         }
       }
     },
@@ -265,29 +314,98 @@
         }
       ],
       "commandPalette": [
-        { "command": "dotnet-creator.solutionExplorer.newFile", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.newClass", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.newFolder", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.addExistingFile", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.rename", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.delete", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.copy", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.cut", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.paste", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.copyPath", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.copyRelativePath", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.exclude", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.include", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.revealInFileExplorer", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.removeFromSolution", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.manageProjectReferences", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.setAsStartupProject", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.build", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.rebuild", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.clean", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.run", "when": "false" },
-        { "command": "dotnet-creator.solutionExplorer.openNugetManager", "when": "false" }
+        {
+          "command": "dotnet-creator.solutionExplorer.newFile",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.newClass",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.addExistingFile",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.rename",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.delete",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copy",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.cut",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.paste",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.copyRelativePath",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.exclude",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.include",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.removeFromSolution",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.build",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.rebuild",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.clean",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.run",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.openNugetManager",
+          "when": "false"
+        }
       ],
       "view/title": [
         {
@@ -484,6 +602,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
     "@types/vscode": "^1.125.0",
+    "@types/yauzl": "^3.4.0",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0",
     "eslint": "^10.5.0",
@@ -498,6 +617,8 @@
     "serialize-javascript": "^7.0.6"
   },
   "dependencies": {
-    "jsonc-parser": "^3.3.1"
+    "jsonc-parser": "^3.3.1",
+    "vscode-languageclient": "^10.1.0",
+    "yauzl": "^3.4.0"
   }
 }
