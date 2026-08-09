@@ -5,6 +5,8 @@ import * as cp from 'child_process';
 
 /** context.globalState key holding the path to a binary either previously fetched via sharpLspInstaller.ts, or chosen via "Use Bundled SharpLsp". */
 export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedPath';
+/** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
+export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedVersion';
 
 const BUNDLED_BINARY_NAME = process.platform === 'win32' ? 'sharplsp.exe' : 'sharplsp';
 
@@ -74,6 +76,38 @@ export function resolveSharpLspCommand(context: vscode.ExtensionContext): Resolv
 export function getBundledCommand(context: vscode.ExtensionContext): string | undefined {
     const bundledPath = context.asAbsolutePath(path.join('dist', 'sharplsp', detectPlatform(), BUNDLED_BINARY_NAME));
     return fs.existsSync(bundledPath) ? bundledPath : undefined;
+}
+
+/** Reads the version.txt tools/build-sharplsp.js writes alongside the staged binary, for update-awareness comparisons. */
+export function getBundledVersion(context: vscode.ExtensionContext): string | undefined {
+    const versionPath = context.asAbsolutePath(path.join('dist', 'sharplsp', detectPlatform(), 'version.txt'));
+    try {
+        return fs.readFileSync(versionPath, 'utf8').trim();
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * SharpLsp's own official extension explicitly points its Rust host at its sidecars via these
+ * exact env vars (confirmed in their client.ts) rather than relying on the host's own
+ * relative-path autodiscovery - our downloaded/bundled copies use the identical vsix-derived
+ * layout (a sibling "all/" folder next to the host binary), so the same approach applies here.
+ * Best-effort: if no "all/" folder exists next to the resolved command (e.g. a PATH/configured
+ * install with some other layout we don't control), this contributes nothing, leaving
+ * SharpLsp's own fallback discovery to try on its own.
+ */
+export function resolveSidecarEnv(command: string): Record<string, string> {
+    const sidecarDir = path.join(path.dirname(command), 'all');
+    const csharpExe = process.platform === 'win32' ? 'sharplsp-sidecar-csharp.exe' : 'sharplsp-sidecar-csharp';
+    const fsharpExe = process.platform === 'win32' ? 'sharplsp-sidecar-fsharp.exe' : 'sharplsp-sidecar-fsharp';
+
+    const env: Record<string, string> = {};
+    const csharpPath = path.join(sidecarDir, csharpExe);
+    const fsharpPath = path.join(sidecarDir, fsharpExe);
+    if (fs.existsSync(csharpPath)) { env.SHARPLSP_CSHARP_SIDECAR_PATH = csharpPath; }
+    if (fs.existsSync(fsharpPath)) { env.SHARPLSP_FSHARP_SIDECAR_PATH = fsharpPath; }
+    return env;
 }
 
 /** Path to a specific `dotnet` executable for the SharpLsp sidecar (portable/user-local SDK installs not on PATH). Same trust gate as resolveSharpLspCommand. */

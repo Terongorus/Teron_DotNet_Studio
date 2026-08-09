@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DesignerHostClient } from './designerHostClient';
 import { getXamlDesignerHtml } from './xamlDesignerHtml';
-import { findProjectAssembly, findAppXamlText, detectAssemblyPlatform, HelperPlatform } from './projectAssemblyResolver';
+import { findProjectAssembly, findAppXamlText, detectAssemblyPlatform, HelperPlatform } from '../utils/projectAssemblyResolver';
 
 // One helper process per bitness - a helper process can only load assemblies
 // matching its own architecture, and different open projects may target

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { pickCsprojFile, getPickedCsprojFile, PickCsprojArgs } from '../utils/projectPicker';
 import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
+import { findAssemblyForCsproj } from '../utils/projectAssemblyResolver';
 
 /**
  * `getPickedCsprojFile` is the one both launch.json and tasks.json should
@@ -41,6 +42,16 @@ export function registerPickCsprojFileCommand(context: vscode.ExtensionContext) 
         vscode.commands.registerCommand('dotnet-creator.getPickedCsprojFile', (args?: PickCsprojArgs) => {
             const folder = getActiveWorkspaceFolder();
             return folder ? getPickedCsprojFile(folder, args) : undefined;
+        }),
+        // The netcoredbg-backed debug type needs the built assembly path (`program`), not the
+        // .csproj path itself, unlike VS Code's own "dotnet" debug type which resolved that
+        // internally - see utils/projectAssemblyResolver.ts (already proven by the XAML
+        // Designer's own "find the built DLL for a project" need).
+        vscode.commands.registerCommand('dotnet-creator.getPickedAssemblyPath', async (args?: PickCsprojArgs) => {
+            const folder = getActiveWorkspaceFolder();
+            if (!folder) { return undefined; }
+            const csprojPath = await getPickedCsprojFile(folder, args);
+            return csprojPath ? findAssemblyForCsproj(csprojPath) : undefined;
         })
     );
 }

@@ -25,6 +25,8 @@ import { hasAnyDotnetProject } from './utils/workspaceHasProject';
 import { SharpLspClientManager } from './languageServer/sharpLspClient';
 import { registerSharpLspStatusBarItem } from './languageServer/sharpLspStatusBarItem';
 import { registerLanguageServerCommands } from './commands/languageServerCommands';
+import { NetcoredbgAdapterFactory } from './debugAdapter/netcoredbgAdapterFactory';
+import { registerDebugAdapterCommands } from './commands/debugAdapterCommands';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
@@ -55,7 +57,12 @@ export function activate(context: vscode.ExtensionContext) {
     registerXamlDesignerCommand(context);
     registerPickCsprojFileCommand(context);
     registerPickConfigurationCommand(context);
-    registerStatusBarMenuCommands(context);
+
+    const debugAdapterFactory = new NetcoredbgAdapterFactory(context);
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('dotnet-creator-debug', debugAdapterFactory));
+    registerDebugAdapterCommands(context, debugAdapterFactory);
+
+    registerStatusBarMenuCommands(context, debugAdapterFactory);
     registerSetupDebugTasksCommand(context);
     registerDebugKeybindingCommands(context);
     registerDebugSessionTracker(context);

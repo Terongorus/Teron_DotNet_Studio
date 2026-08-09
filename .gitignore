@@ -6,8 +6,3 @@ node_modules
 Front_page_design.png
 designer-host/bin/
 designer-host/obj/
-third-party/SharpLsp/target/
-third-party/SharpLsp/**/bin/
-third-party/SharpLsp/**/obj/
-third-party/SharpLsp/**/node_modules/
-third-party/SharpLsp/dist/

@@ -19,11 +19,13 @@ import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { parseSolutionProjects } from '../utils/solutionParser';
 import { runBuildAction, runProject, BuildAction } from './buildActions';
 import { manageNugetPackages } from './manageNugetPackages';
+import { showMenu as showDebugAdapterMenu } from './debugAdapterCommands';
+import { NetcoredbgAdapterFactory } from '../debugAdapter/netcoredbgAdapterFactory';
 
-export function registerStatusBarMenuCommands(context: vscode.ExtensionContext) {
+export function registerStatusBarMenuCommands(context: vscode.ExtensionContext, debugAdapterFactory: NetcoredbgAdapterFactory) {
     context.subscriptions.push(
         vscode.commands.registerCommand('dotnet-creator.showSolutionMenu', () => showSolutionMenu(context)),
-        vscode.commands.registerCommand('dotnet-creator.showProjectMenu', () => showProjectMenu(context))
+        vscode.commands.registerCommand('dotnet-creator.showProjectMenu', () => showProjectMenu(context, debugAdapterFactory))
     );
 }
 
@@ -75,11 +77,11 @@ async function showSolutionMenu(context: vscode.ExtensionContext): Promise<void>
     }
 }
 
-async function showProjectMenu(context: vscode.ExtensionContext): Promise<void> {
+async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFactory: NetcoredbgAdapterFactory): Promise<void> {
     const folder = getActiveWorkspaceFolder();
     if (!folder) { return; }
 
-    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string; manageNuget?: boolean };
+    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string; manageNuget?: boolean; debuggerOptions?: boolean };
 
     const items: Item[] = [
         { label: 'Actions', kind: vscode.QuickPickItemKind.Separator },
@@ -87,7 +89,8 @@ async function showProjectMenu(context: vscode.ExtensionContext): Promise<void> 
         { label: '$(tools) Build Project', action: 'build' },
         { label: '$(sync) Rebuild Project', action: 'rebuild' },
         { label: '$(trash) Clean Project', action: 'clean' },
-        { label: '$(package) Manage NuGet Packages...', manageNuget: true }
+        { label: '$(package) Manage NuGet Packages...', manageNuget: true },
+        { label: '$(debug-alt) Debugger Options...', debuggerOptions: true }
     ];
 
     const recent = getRecentCsprojItems(folder);
@@ -141,6 +144,11 @@ async function showProjectMenu(context: vscode.ExtensionContext): Promise<void> 
         const projectPath = await getPickedCsprojFile(folder);
         if (!projectPath) { return; }
         await manageNugetPackages(context, projectPath);
+        return;
+    }
+
+    if (selection.debuggerOptions) {
+        await showDebugAdapterMenu(context, debugAdapterFactory);
         return;
     }
 

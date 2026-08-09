@@ -3,88 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import * as yauzl from 'yauzl';
+import { fetchLatestRelease, downloadToBuffer, downloadText, parseShaSums, extractFileFromZip, extractFolderFromZip } from '../utils/githubReleaseInstaller';
 import { detectPlatform } from './sharpLspLocator';
 
 const RELEASES_API_URL = 'https://api.github.com/repos/Nimblesite/SharpLsp/releases/latest';
-const GITHUB_HEADERS = { 'User-Agent': 'dotnet-project-creator-vscode-extension', 'Accept': 'application/vnd.github+json' };
 
 export type InstallResult =
     | { ok: true; path: string; version: string }
     | { ok: false; detail: string };
-
-interface ReleaseAsset {
-    name: string;
-    browser_download_url: string;
-}
-
-interface Release {
-    tag_name: string;
-    assets: ReleaseAsset[];
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-    const response = await fetch(url, { headers: GITHUB_HEADERS });
-    if (!response.ok) { throw new Error(`GitHub API request failed: ${response.status} ${response.statusText}`); }
-    return response.json() as Promise<T>;
-}
-
-async function downloadToBuffer(url: string, token: vscode.CancellationToken): Promise<Buffer> {
-    const controller = new AbortController();
-    const subscription = token.onCancellationRequested(() => controller.abort());
-    try {
-        const response = await fetch(url, { headers: GITHUB_HEADERS, signal: controller.signal });
-        if (!response.ok) { throw new Error(`Download failed: ${response.status} ${response.statusText}`); }
-        return Buffer.from(await response.arrayBuffer());
-    } finally {
-        subscription.dispose();
-    }
-}
-
-async function downloadText(url: string): Promise<string> {
-    const response = await fetch(url, { headers: GITHUB_HEADERS });
-    if (!response.ok) { throw new Error(`Download failed: ${response.status} ${response.statusText}`); }
-    return response.text();
-}
-
-/** Standard `sha256sum`-style output: "<64-hex-hash>  <filename>" (or "*<filename>" for binary mode). */
-function parseShaSums(text: string, filename: string): string | undefined {
-    for (const line of text.split(/\r?\n/)) {
-        const match = line.trim().match(/^([0-9a-fA-F]{64})\s+\*?(.+)$/);
-        if (match && match[2] === filename) { return match[1]; }
-    }
-    return undefined;
-}
-
-function extractFileFromZip(zipPath: string, internalPath: string, destPath: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        yauzl.open(zipPath, { lazyEntries: true }, (openErr, zipfile) => {
-            if (openErr || !zipfile) { reject(openErr ?? new Error('Failed to open SharpLsp .vsix archive.')); return; }
-
-            let found = false;
-            zipfile.on('entry', entry => {
-                if (entry.fileName !== internalPath) {
-                    zipfile.readEntry();
-                    return;
-                }
-                found = true;
-                zipfile.openReadStream(entry, (streamErr, readStream) => {
-                    if (streamErr || !readStream) { reject(streamErr ?? new Error('Failed to read the SharpLsp binary entry.')); return; }
-                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-                    const writeStream = fs.createWriteStream(destPath);
-                    readStream.pipe(writeStream);
-                    writeStream.on('finish', () => { zipfile.close(); resolve(); });
-                    writeStream.on('error', reject);
-                });
-            });
-            zipfile.on('end', () => {
-                if (!found) { reject(new Error(`"${internalPath}" was not found inside the SharpLsp .vsix archive.`)); }
-            });
-            zipfile.on('error', reject);
-            zipfile.readEntry();
-        });
-    });
-}
 
 /**
  * Downloads, checksum-verifies, and extracts the SharpLsp binary from the current platform's
@@ -99,7 +25,7 @@ export async function downloadLatestRelease(
 ): Promise<InstallResult> {
     try {
         progress.report({ message: 'Checking latest SharpLsp release...' });
-        const release = await fetchJson<Release>(RELEASES_API_URL);
+        const release = await fetchLatestRelease(RELEASES_API_URL);
         const version = release.tag_name.replace(/^v/, '');
         const platform = detectPlatform();
         const assetName = `sharplsp-${platform}.vsix`;
@@ -127,18 +53,27 @@ export async function downloadLatestRelease(
 
         progress.report({ message: 'Extracting...' });
         const binaryName = process.platform === 'win32' ? 'sharplsp.exe' : 'sharplsp';
-        const destPath = vscode.Uri.joinPath(context.globalStorageUri, 'sharplsp', version, binaryName).fsPath;
+        const destDir = vscode.Uri.joinPath(context.globalStorageUri, 'sharplsp', version).fsPath;
+        const destPath = path.join(destDir, binaryName);
         const tempVsixPath = path.join(os.tmpdir(), `sharplsp-download-${Date.now()}.vsix`);
 
         await fs.promises.writeFile(tempVsixPath, vsixBuffer);
         try {
             await extractFileFromZip(tempVsixPath, `extension/bin/${platform}/${binaryName}`, destPath);
+            // Both sidecars (C# and F#) live in a shared, platform-independent "bin/all/"
+            // folder in the real .vsix, separate from the per-platform host binary - confirmed
+            // by inspecting a real release directly, not assumed. The original implementation
+            // only extracted the host binary, leaving the sidecars unresolved for anyone using
+            // this download path without also having a local from-source build.
+            await extractFolderFromZip(tempVsixPath, 'extension/bin/all', path.join(destDir, 'all'));
         } finally {
             await fs.promises.unlink(tempVsixPath).catch(() => { /* best-effort cleanup */ });
         }
 
         if (process.platform !== 'win32') {
             await fs.promises.chmod(destPath, 0o755);
+            await fs.promises.chmod(path.join(destDir, 'all', 'sharplsp-sidecar-csharp'), 0o755).catch(() => { /* platform-specific file, may not exist */ });
+            await fs.promises.chmod(path.join(destDir, 'all', 'sharplsp-sidecar-fsharp'), 0o755).catch(() => { /* platform-specific file, may not exist */ });
         }
 
         return { ok: true, path: destPath, version };

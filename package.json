@@ -15,6 +15,12 @@
   },
   "categories": [
     "Extension Packs",
+    "Linters",
+    "Formatters",
+    "Debuggers",
+    "Language Packs",
+    "Testing",
+    "Themes",
     "Programming Languages",
     "Visualization",
     "Snippets",
@@ -30,7 +36,9 @@
       "restrictedConfigurations": [
         "dotnet-creator.sharpLsp.path",
         "dotnet-creator.sharpLsp.extraArgs",
-        "dotnet-creator.sharpLsp.dotnetPath"
+        "dotnet-creator.sharpLsp.dotnetPath",
+        "dotnet-creator.debugAdapter.path",
+        "dotnet-creator.debugAdapter.extraArgs"
       ]
     }
   },
@@ -118,6 +126,12 @@
         "command": "dotnet-creator.sharpLsp.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Language Server Output",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.debugAdapter.showOutput",
+        "icon": "resources/appicon.png",
+        "title": "Show Debugger Output",
         "category": ".NET"
       },
       {
@@ -242,6 +256,75 @@
         "category": ".NET Solution Explorer"
       }
     ],
+    "debuggers": [
+      {
+        "type": "dotnet-creator-debug",
+        "label": ".NET (netcoredbg)",
+        "languages": ["csharp"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the built .dll to debug.",
+                "default": "${input:pickAssembly}"
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory for the launched program.",
+                "default": "${workspaceFolder}"
+              },
+              "args": {
+                "type": "array",
+                "description": "Command line arguments passed to the program.",
+                "default": []
+              },
+              "stopAtEntry": {
+                "type": "boolean",
+                "description": "Break immediately when the program starts.",
+                "default": false
+              },
+              "console": {
+                "type": "string",
+                "enum": ["internalConsole", "integratedTerminal", "externalTerminal"],
+                "description": "Where to launch the debug target's console output.",
+                "default": "internalConsole"
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables for the launched program.",
+                "default": {}
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "name": ".NET Debug",
+            "type": "dotnet-creator-debug",
+            "request": "launch",
+            "program": "${input:pickAssembly}",
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": ".NET: Launch (netcoredbg)",
+            "description": "Launch a .NET project with netcoredbg.",
+            "body": {
+              "name": ".NET Debug",
+              "type": "dotnet-creator-debug",
+              "request": "launch",
+              "program": "^\"\\${input:pickAssembly}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "stopAtEntry": false
+            }
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": ".NET Project Creator",
       "properties": {
@@ -267,7 +350,9 @@
         },
         "dotnet-creator.sharpLsp.extraArgs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Extra command-line arguments passed to the SharpLsp server process."
         },
@@ -278,9 +363,24 @@
         },
         "dotnet-creator.sharpLsp.trace.server": {
           "type": "string",
-          "enum": ["off", "messages", "verbose"],
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
           "default": "off",
           "description": "Trace communication between .NET Studio and the SharpLsp language server (for troubleshooting)."
+        },
+        "dotnet-creator.debugAdapter.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the netcoredbg executable. Leave empty to resolve 'netcoredbg' from PATH, or to use a copy downloaded via the \"Download netcoredbg\" action."
+        },
+        "dotnet-creator.debugAdapter.extraArgs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Extra command-line arguments passed to the netcoredbg process."
         }
       }
     },
@@ -585,7 +685,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package && npm run build:designer-host && npm run build:sharplsp",
+    "vscode:prepublish": "npm run package && npm run build:designer-host && npm run build:sharplsp && npm run build:netcoredbg",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
@@ -593,6 +693,7 @@
     "build:designer-host:x64": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x64 --self-contained false -o dist/designer-host/win-x64",
     "build:designer-host:x86": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x86 --self-contained false -o dist/designer-host/win-x86",
     "build:sharplsp": "node tools/build-sharplsp.js",
+    "build:netcoredbg": "node tools/build-netcoredbg.js",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -602,6 +703,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
+    "@types/tar-stream": "^3.1.4",
     "@types/vscode": "^1.125.0",
     "@types/yauzl": "^3.4.0",
     "@vscode/test-cli": "^0.0.15",
@@ -619,6 +721,7 @@
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
+    "tar-stream": "^3.2.0",
     "vscode-languageclient": "^10.1.0",
     "yauzl": "^3.4.0"
   }

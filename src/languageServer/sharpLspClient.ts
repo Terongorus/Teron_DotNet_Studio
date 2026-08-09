@@ -14,7 +14,17 @@ import {
     State,
     RevealOutputChannelOn
 } from 'vscode-languageclient/node';
-import { resolveSharpLspCommand, resolveDotnetPath, getExtraArgs, probeSharpLsp, getBundledCommand, RESOLVED_PATH_STATE_KEY } from './sharpLspLocator';
+import {
+    resolveSharpLspCommand,
+    resolveDotnetPath,
+    resolveSidecarEnv,
+    getExtraArgs,
+    probeSharpLsp,
+    getBundledCommand,
+    getBundledVersion,
+    RESOLVED_PATH_STATE_KEY,
+    RESOLVED_VERSION_STATE_KEY
+} from './sharpLspLocator';
 import { downloadLatestRelease } from './sharpLspInstaller';
 import {
     showNotInstalledNotice,
@@ -23,6 +33,10 @@ import {
     showDownloadFailedNotice,
     showDownloadSucceededNotice
 } from './sharpLspNotifications';
+import { maybeNotifyUpdate } from '../utils/toolUpdateCheck';
+
+const SHARPLSP_GITHUB_OWNER = 'Nimblesite';
+const SHARPLSP_GITHUB_REPO = 'SharpLsp';
 
 export type SharpLspStatus = 'NotInstalled' | 'Starting' | 'Running' | 'Restarting' | 'Stopped' | 'Failed';
 
@@ -83,7 +97,7 @@ export class SharpLspClientManager implements vscode.Disposable {
                 if (choice === 'download') {
                     await this.downloadAndStart();
                 } else if (choice === 'bundled' && bundledPath) {
-                    await this.useResolvedPath(bundledPath);
+                    await this.useResolvedPath(bundledPath, getBundledVersion(this.context));
                 }
             } else {
                 this.setStatus('Failed');
@@ -92,6 +106,11 @@ export class SharpLspClientManager implements vscode.Disposable {
         }
 
         await this.spawnClient(resolved.command);
+
+        if (resolved.source === 'cached') {
+            const knownVersion = this.context.globalState.get<string>(RESOLVED_VERSION_STATE_KEY);
+            if (knownVersion) { void this.checkForUpdate(knownVersion); }
+        }
     }
 
     /** Invoked by the not-installed notice's "Download" action and by the status bar menu's "Download/Update SharpLsp" entry. */
@@ -107,26 +126,31 @@ export class SharpLspClientManager implements vscode.Disposable {
         }
 
         showDownloadSucceededNotice(result.version);
-        await this.useResolvedPath(result.path);
+        await this.useResolvedPath(result.path, result.version);
     }
 
     /** Invoked by the not-installed notice's "Use Bundled SharpLsp" action and by the status bar menu's equivalent entry. */
     async useBundled(): Promise<void> {
         const bundledPath = getBundledCommand(this.context);
-        if (bundledPath) { await this.useResolvedPath(bundledPath); }
+        if (bundledPath) { await this.useResolvedPath(bundledPath, getBundledVersion(this.context)); }
     }
 
-    /** Shared tail for both "Download" and "Use Bundled": persist the resolved path so future sessions skip straight to it (see resolveSharpLspCommand's cached tier), clear latches, and spawn. */
-    private async useResolvedPath(resolvedPath: string): Promise<void> {
+    /** Shared tail for both "Download" and "Use Bundled": persist the resolved path (and version, for update-awareness) so future sessions skip straight to it via resolveSharpLspCommand's cached tier, clear latches, and spawn. */
+    private async useResolvedPath(resolvedPath: string, version: string | undefined): Promise<void> {
         await this.context.globalState.update(RESOLVED_PATH_STATE_KEY, resolvedPath);
+        await this.context.globalState.update(RESOLVED_VERSION_STATE_KEY, version);
         this.notInstalled = false;
         this.restartAttempts = 0;
         await this.spawnClient(resolvedPath);
     }
 
+    private async checkForUpdate(currentVersion: string): Promise<void> {
+        await maybeNotifyUpdate(this.context, 'sharpLsp', 'SharpLsp', SHARPLSP_GITHUB_OWNER, SHARPLSP_GITHUB_REPO, currentVersion, () => this.downloadAndStart());
+    }
+
     private async spawnClient(command: string): Promise<void> {
         const dotnetPath = resolveDotnetPath();
-        const env: NodeJS.ProcessEnv = { ...process.env };
+        const env: NodeJS.ProcessEnv = { ...process.env, ...resolveSidecarEnv(command) };
         if (dotnetPath) {
             const dotnetDir = path.dirname(dotnetPath);
             env.DOTNET_ROOT = dotnetDir;

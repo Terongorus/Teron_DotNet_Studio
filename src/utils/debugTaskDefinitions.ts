@@ -50,23 +50,37 @@ export const RECOMMENDED_TASK_INPUTS: Record<string, unknown>[] = [
     }
 ];
 
+/**
+ * `type: 'dotnet-creator-debug'` is this extension's own debug adapter (backed by netcoredbg,
+ * see src/debugAdapter/) - not VS Code's built-in "dotnet" type, which is actually contributed
+ * by Microsoft's C# extension and does nothing at all without it installed. Unlike that type's
+ * convenience `projectPath` field (which it resolves to a built DLL internally), a
+ * coreclr-compatible debugger needs the actual built assembly path via `program` - resolved
+ * here through `getPickedAssemblyPath` (utils/projectAssemblyResolver.ts).
+ */
 export const RECOMMENDED_LAUNCH_CONFIGS: Record<string, unknown>[] = [
     {
         name: '.NET Debug',
-        type: 'dotnet',
+        type: 'dotnet-creator-debug',
         request: 'launch',
         preLaunchTask: '.NET Build Project Hidden',
-        projectPath: '${input:pickCsproj}',
+        program: '${input:pickAssembly}',
+        cwd: '${workspaceFolder}',
+        console: 'internalConsole',
+        stopAtEntry: false,
         presentation: { hidden: false, group: '.NET', order: 1 },
         args: [],
         internalConsoleOptions: 'neverOpen'
     },
     {
         name: '.NET Release',
-        type: 'dotnet',
+        type: 'dotnet-creator-debug',
         request: 'launch',
         preLaunchTask: '.NET Build Project Hidden',
-        projectPath: '${input:pickCsproj}',
+        program: '${input:pickAssembly}',
+        cwd: '${workspaceFolder}',
+        console: 'internalConsole',
+        stopAtEntry: false,
         presentation: { hidden: false, group: '.NET', order: 2 },
         args: [],
         internalConsoleOptions: 'neverOpen'
@@ -75,9 +89,9 @@ export const RECOMMENDED_LAUNCH_CONFIGS: Record<string, unknown>[] = [
 
 export const RECOMMENDED_LAUNCH_INPUTS: Record<string, unknown>[] = [
     {
-        id: 'pickCsproj',
+        id: 'pickAssembly',
         type: 'command',
-        command: 'dotnet-creator.getPickedCsprojFile',
+        command: 'dotnet-creator.getPickedAssemblyPath',
         args: { include: '**/*.csproj', acceptIfOneFile: true }
     }
 ];

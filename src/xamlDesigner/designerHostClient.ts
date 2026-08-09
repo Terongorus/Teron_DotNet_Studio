@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { runDotnet } from '../utils/process';
 import { OutboundMessage, InboundMessage, FrameMessage } from './designerHostProtocol';
-import { HelperPlatform } from './projectAssemblyResolver';
+import { HelperPlatform } from '../utils/projectAssemblyResolver';
 
 const MAX_RESTART_ATTEMPTS = 3;
 const CONNECT_MAX_ATTEMPTS = 30;

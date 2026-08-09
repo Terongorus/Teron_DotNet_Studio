@@ -1,5 +1,0 @@
-<Solution>
-    <Project Path="TestFixtures.csproj" />
-    <Project Path="fsharp/FSharpFixtures.fsproj" />
-    <Project Path="crosslanguage/CSharpConsumer.csproj" />
-</Solution>
