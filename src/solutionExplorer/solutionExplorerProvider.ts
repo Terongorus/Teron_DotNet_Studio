@@ -24,8 +24,45 @@ import {
 } from './solutionExplorerNodes';
 
 const IGNORED_DIR_NAMES = new Set(['bin', 'obj']);
+const HIDDEN_DIR_NAMES = new Set(['.git', '.vs', '.vscode', '.idea']);
 const DEBOUNCE_MS = 250;
 export const DRAG_MIME_TYPE = 'application/vnd.dotnet-creator.solutionexplorer';
+
+/**
+ * Filename-convention approximation of VS/ReSharper's "dependent file" nesting (e.g.
+ * MainWindow.xaml.cs under MainWindow.xaml, Form1.Designer.cs under Form1.resx or Form1.cs) -
+ * not a real <DependentUpon> MSBuild-item read, the same "lightweight approximation over a
+ * full parser" philosophy as solutionParser.ts. Returns primary filename -> dependent filenames
+ * (both within the same directory).
+ */
+function computeDependentGroups(fileNames: string[]): Map<string, string[]> {
+    const nameSet = new Set(fileNames);
+    const parentOf = new Map<string, string>();
+
+    for (const name of fileNames) {
+        const designerMatch = name.match(/^(.+)\.Designer\.cs$/i);
+        if (designerMatch) {
+            const base = designerMatch[1];
+            if (nameSet.has(`${base}.resx`)) { parentOf.set(name, `${base}.resx`); continue; }
+            if (nameSet.has(`${base}.cs`)) { parentOf.set(name, `${base}.cs`); continue; }
+        }
+
+        const lastDot = name.lastIndexOf('.');
+        if (lastDot > 0) {
+            const withoutLastExt = name.slice(0, lastDot);
+            if (withoutLastExt.includes('.') && nameSet.has(withoutLastExt)) {
+                parentOf.set(name, withoutLastExt);
+            }
+        }
+    }
+
+    const groups = new Map<string, string[]>();
+    for (const [child, primary] of parentOf) {
+        if (!groups.has(primary)) { groups.set(primary, []); }
+        groups.get(primary)!.push(child);
+    }
+    return groups;
+}
 
 /**
  * TreeDataProvider + TreeDragAndDropController for the .NET Solution Explorer view.
@@ -91,6 +128,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             case 'dependencies': return this.getDependenciesChildren(element);
             case 'analyzers': return this.getAnalyzersChildren(element);
             case 'folder': return this.readFsChildren(element.projectNode, element.uri.fsPath, element);
+            case 'file': return this.getFileDependents(element);
             default: return [];
         }
     }
@@ -220,26 +258,61 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             return [];
         }
 
-        entries = entries
-            .filter(entry => !entry.name.startsWith('.'))
-            .filter(entry => !(entry.isDirectory() && IGNORED_DIR_NAMES.has(entry.name.toLowerCase())))
+        entries = entries.filter(entry => !(entry.isDirectory() &&
+            (IGNORED_DIR_NAMES.has(entry.name.toLowerCase()) || HIDDEN_DIR_NAMES.has(entry.name.toLowerCase()))));
+
+        const fileNames = entries.filter(entry => !entry.isDirectory()).map(entry => entry.name);
+        const dependentGroups = computeDependentGroups(fileNames);
+        const nestedNames = new Set([...dependentGroups.values()].flat());
+
+        const topLevel = entries
+            .filter(entry => entry.isDirectory() || !nestedNames.has(entry.name))
             .sort((a, b) => {
                 if (a.isDirectory() !== b.isDirectory()) { return a.isDirectory() ? -1 : 1; }
                 return a.name.localeCompare(b.name);
             });
 
         const nodes: SolutionExplorerNode[] = [];
-        for (const entry of entries) {
+        for (const entry of topLevel) {
             const fullPath = path.join(dirPath, entry.name);
-            const uri = vscode.Uri.file(fullPath);
 
             if (entry.isDirectory()) {
-                nodes.push(this.cacheNode<FolderNode>({ kind: 'folder', id: `folder::${fullPath}`, parent, projectNode, uri }));
+                nodes.push(this.cacheNode<FolderNode>({ kind: 'folder', id: `folder::${fullPath}`, parent, projectNode, uri: vscode.Uri.file(fullPath) }));
             } else {
-                const isProjectFile = fullPath.toLowerCase() === projectNode.projectPath.toLowerCase();
-                const excluded = await isExcluded(projectNode.projectPath, fullPath);
-                nodes.push(this.cacheNode<FileNode>({ kind: 'file', id: `file::${fullPath}`, parent, projectNode, uri, isProjectFile, excluded }));
+                const fileNode = await this.buildFileNode(projectNode, parent, fullPath);
+                const dependents = dependentGroups.get(entry.name);
+                if (dependents && dependents.length > 0) { fileNode.dependentNames = dependents; }
+                nodes.push(this.cacheNode(fileNode));
             }
+        }
+
+        // Properties is a special pinned node (matches VS/ReSharper) only at the project root -
+        // it doesn't sort alphabetically with the rest of the folders.
+        if (parent.kind === 'project') {
+            const propertiesIndex = nodes.findIndex(n => n.kind === 'folder' && path.basename(n.uri.fsPath) === 'Properties');
+            if (propertiesIndex > 0) {
+                const [properties] = nodes.splice(propertiesIndex, 1);
+                nodes.unshift(properties);
+            }
+        }
+
+        return nodes;
+    }
+
+    private async buildFileNode(projectNode: ProjectNode, parent: ProjectNode | FolderNode | FileNode, fullPath: string): Promise<FileNode> {
+        const isProjectFile = fullPath.toLowerCase() === projectNode.projectPath.toLowerCase();
+        const excluded = await isExcluded(projectNode.projectPath, fullPath);
+        return { kind: 'file', id: `file::${fullPath}`, parent, projectNode, uri: vscode.Uri.file(fullPath), isProjectFile, excluded };
+    }
+
+    private async getFileDependents(element: FileNode): Promise<SolutionExplorerNode[]> {
+        if (!element.dependentNames || element.dependentNames.length === 0) { return []; }
+
+        const dirPath = path.dirname(element.uri.fsPath);
+        const nodes: FileNode[] = [];
+        for (const name of element.dependentNames) {
+            const node = await this.buildFileNode(element.projectNode, element, path.join(dirPath, name));
+            nodes.push(this.cacheNode(node));
         }
         return nodes;
     }
@@ -320,11 +393,15 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             case 'folder': {
                 const item = new vscode.TreeItem(element.uri, vscode.TreeItemCollapsibleState.Collapsed);
                 item.id = element.id;
+                if (element.parent.kind === 'project' && path.basename(element.uri.fsPath) === 'Properties') {
+                    item.iconPath = new vscode.ThemeIcon('settings-gear');
+                }
                 item.contextValue = 'dotnetFolder canRename canDelete canNew canCopy canCut';
                 return item;
             }
             case 'file': {
-                const item = new vscode.TreeItem(element.uri, vscode.TreeItemCollapsibleState.None);
+                const hasDependents = !!element.dependentNames && element.dependentNames.length > 0;
+                const item = new vscode.TreeItem(element.uri, hasDependents ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
                 item.id = element.id;
                 item.command = { command: 'vscode.open', title: 'Open', arguments: [element.uri] };
                 item.description = element.excluded ? '(excluded)' : undefined;
@@ -441,7 +518,8 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             parent: solutionParent ?? wsParent
         };
 
-        const relativeDir = path.relative(projectDir, path.dirname(uri.fsPath));
+        const fileDir = path.dirname(uri.fsPath);
+        const relativeDir = path.relative(projectDir, fileDir);
         const segments = relativeDir ? relativeDir.split(path.sep) : [];
 
         let parent: ProjectNode | FolderNode = projectNode;
@@ -451,16 +529,28 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             parent = { kind: 'folder', id: `folder::${currentDir}`, parent, projectNode, uri: vscode.Uri.file(currentDir) };
         }
 
-        const excluded = await isExcluded(projectPath, uri.fsPath);
-        return {
-            kind: 'file',
-            id: `file::${uri.fsPath}`,
-            parent,
-            projectNode,
-            uri,
-            isProjectFile: uri.fsPath.toLowerCase() === projectPath.toLowerCase(),
-            excluded
-        };
+        // If this file is a nested "dependent" file (e.g. MainWindow.xaml.cs under
+        // MainWindow.xaml), reveal needs to walk through its primary file's node first -
+        // mirrors readFsChildren's grouping.
+        let finalParent: ProjectNode | FolderNode | FileNode = parent;
+        try {
+            const siblingNames = (await fs.promises.readdir(fileDir, { withFileTypes: true }))
+                .filter(entry => !entry.isDirectory())
+                .map(entry => entry.name);
+            const fileName = path.basename(uri.fsPath);
+            for (const [primaryName, children] of computeDependentGroups(siblingNames)) {
+                if (children.includes(fileName)) {
+                    const primaryNode = await this.buildFileNode(projectNode, parent, path.join(fileDir, primaryName));
+                    primaryNode.dependentNames = children;
+                    finalParent = primaryNode;
+                    break;
+                }
+            }
+        } catch {
+            // Best-effort - falls back to the folder/project parent computed above.
+        }
+
+        return this.buildFileNode(projectNode, finalParent, uri.fsPath);
     }
 
     private async findOwningProject(folder: vscode.WorkspaceFolder, filePath: string): Promise<string | undefined> {

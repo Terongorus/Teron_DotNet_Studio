@@ -71,11 +71,13 @@ export interface FolderNode {
 export interface FileNode {
     kind: 'file';
     id: string;
-    parent: ProjectNode | FolderNode;
+    parent: ProjectNode | FolderNode | FileNode;
     projectNode: ProjectNode;
     uri: vscode.Uri;
     isProjectFile: boolean;
     excluded: boolean;
+    /** Filenames (not full paths, same directory) of code-behind/designer files nested under this one - e.g. "MainWindow.xaml.cs" under "MainWindow.xaml". Matches VS/ReSharper's dependent-file grouping. */
+    dependentNames?: string[];
 }
 
 export type SolutionExplorerNode =
