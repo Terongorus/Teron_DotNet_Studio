@@ -80,7 +80,8 @@ async function runLogged(channel: vscode.OutputChannel, args: string[]): Promise
 export async function runProject(
     projectPath: string,
     projectName: string,
-    configuration: BuildConfiguration
+    configuration: BuildConfiguration,
+    noDebug: boolean = false
 ): Promise<void> {
     const channel = getOutputChannel();
     let buildSucceeded = false;
@@ -115,7 +116,8 @@ export async function runProject(
         request: 'launch',
         projectPath,
         args: [],
-        internalConsoleOptions: 'neverOpen'
+        internalConsoleOptions: 'neverOpen',
+        noDebug
     });
 
     if (!started) {

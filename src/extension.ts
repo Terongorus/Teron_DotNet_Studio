@@ -13,6 +13,16 @@ import { registerConfigurationStatusBarItem } from './statusBar/configurationSta
 import { registerPickConfigurationCommand } from './commands/pickConfiguration';
 import { registerStatusBarMenuCommands } from './commands/statusBarMenus';
 import { registerSetupDebugTasksCommand, maybeShowSetupDebugTasksPrompt } from './commands/setupDebugTasks';
+import { registerDebugKeybindingCommands } from './commands/debugKeybindingCommands';
+import { registerDebugSessionTracker } from './utils/debugSessionTracker';
+import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
+
+const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
+
+async function updateWorkspaceHasProjectContext(): Promise<void> {
+    const hasCsproj = (await vscode.workspace.findFiles('**/*.csproj', '**/{bin,obj,node_modules}/**', 1)).length > 0;
+    await vscode.commands.executeCommand('setContext', WORKSPACE_HAS_PROJECT_CONTEXT, hasCsproj);
+}
 
 export function activate(context: vscode.ExtensionContext) {
     registerNewProjectCommand(context);
@@ -25,12 +35,20 @@ export function activate(context: vscode.ExtensionContext) {
     registerPickConfigurationCommand(context);
     registerStatusBarMenuCommands(context);
     registerSetupDebugTasksCommand(context);
+    registerDebugKeybindingCommands(context);
+    registerDebugSessionTracker(context);
+    registerResourceMonitorPanel(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
     registerConfigurationStatusBarItem(context);
 
     maybeShowStartPageOnStartup(context);
     void maybeShowSetupDebugTasksPrompt(context);
+
+    void updateWorkspaceHasProjectContext();
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        void updateWorkspaceHasProjectContext();
+    }));
 }
 
 export function deactivate() {

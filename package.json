@@ -1,6 +1,6 @@
 {
   "name": "dotnet-project-creator",
-  "displayName": ".NET Utilities",
+  "displayName": ".NET Studio",
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Start Page for recent solutions and projects, live WPF XAML preview, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
@@ -79,6 +79,18 @@
         "icon": "resources/appicon.png",
         "title": "Set Up Debug/Build Tasks",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.debugStart",
+        "icon": "resources/appicon.png",
+        "title": "Start Debugging",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.runWithoutDebugging",
+        "icon": "resources/appicon.png",
+        "title": "Run Without Debugging",
+        "category": ".NET"
       }
     ],
     "configuration": {
@@ -130,6 +142,37 @@
           "command": "dotnet-creator.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "key": "f5",
+        "command": "dotnet-creator.debugStart",
+        "when": "dotnet-creator.workspaceHasProject && !inDebugMode"
+      },
+      {
+        "key": "ctrl+f5",
+        "command": "dotnet-creator.runWithoutDebugging",
+        "when": "dotnet-creator.workspaceHasProject && !inDebugMode"
+      }
+    ],
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "dotnetResourceMonitor",
+          "title": ".NET Resource Monitor",
+          "icon": "resources/debug-monitor-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "dotnetResourceMonitor": [
+        {
+          "id": "dotnet-creator.resourceMonitorView",
+          "name": "Resource Monitor",
+          "type": "webview",
+          "icon": "resources/debug-monitor-icon.svg"
         }
       ]
     }
