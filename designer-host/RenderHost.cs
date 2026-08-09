@@ -11,10 +11,10 @@ using System.Xml.Linq;
 namespace DesignerHost;
 
 /// <summary>
-/// Owns a single hidden WPF Window used purely as a render target. Parked off
-/// any monitor's virtual-screen bounds (rather than never-shown) so it has a
-/// real PresentationSource - correct DPI/layout/animation behavior today, and
-/// the same foundation a future AdornerLayer-based interactive designer needs.
+/// Renders XAML documents into hidden, off-screen WPF Windows purely as render targets
+/// (see DocumentState.ContainerWindow) - parked off any monitor's virtual-screen bounds
+/// (rather than never-shown) so each has a real PresentationSource, for correct
+/// DPI/layout/animation behavior.
 /// </summary>
 internal sealed class RenderHost
 {
@@ -22,19 +22,32 @@ internal sealed class RenderHost
     private const int DefaultHeight = 768;
 
     /// <summary>
-    /// Persistent off-screen container reused for non-Window roots (the
-    /// common case: Grid/StackPanel/UserControl/... fragments). A parsed
-    /// &lt;Window&gt; root is a one-shot render target of its own instead -
-    /// see Render() - since a Window can't be reparented into another
-    /// Window's Content.
+    /// Everything SelectAt/CommitTransform need to operate against a specific document,
+    /// keyed by file path (see DocumentKey) - NOT a single shared "last render" slot.
+    /// One host process is shared across every open preview panel of a given platform
+    /// (see designerHostClient.ts), so a single slot would let rendering document B
+    /// silently redirect a drag already in progress against document A's panel onto B's
+    /// document instead - wrong-file corruption, not just a stale preview. ContainerWindow
+    /// is either a dedicated off-screen host (element roots) or the parsed root itself
+    /// (window roots) - either way it's this document's own, never shared with another.
     /// </summary>
-    private readonly Window _container;
-
-    public RenderHost()
+    private sealed class DocumentState
     {
-        _container = CreateOffscreenWindow();
-        _container.Show();
+        public required XDocument PristineDocument { get; init; }
+        public required Visual RootVisual { get; init; }
+        public required Window ContainerWindow { get; init; }
+        public string? AssemblyPath { get; init; }
+        public string? AppXamlText { get; init; }
     }
+
+    // Entries are never removed when a panel closes (matching 1a, which never notified this
+    // process of panel lifetime either) - an accepted, minor per-process resource leak rather
+    // than a correctness issue, bounded by however many distinct files get previewed in one
+    // session.
+    private readonly Dictionary<string, DocumentState> _documents = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Empty-string fallback only matters for a hypothetical caller with no file path at all - this extension's own panel always provides a real one.</summary>
+    private static string DocumentKey(string? filePath) => filePath ?? "";
 
     /// <summary>
     /// Must be called on the WPF dispatcher thread. Throws on parse/layout
@@ -43,7 +56,72 @@ internal sealed class RenderHost
     /// </summary>
     public (int Width, int Height, string PngBase64) Render(string xamlText, string? filePath, string? assemblyPath, string? appXamlText)
     {
-        var (strippedXaml, rootLocalName) = PrepareXaml(xamlText, assemblyPath);
+        // Parsed from the raw, unmodified text - never mutated - and kept as the source
+        // of truth for CommitTransform's write-back. The clr-namespace qualification and
+        // x:Class/event-handler stripping below apply only to a separate render copy
+        // (see RenderFromPristineDocument), so a save-back can never leak those into the
+        // real file.
+        var pristineDocument = XDocument.Parse(xamlText);
+        return RenderFromPristineDocument(DocumentKey(filePath), pristineDocument, filePath, assemblyPath, appXamlText);
+    }
+
+    /// <summary>
+    /// Must be called on the WPF dispatcher thread, against a point in filePath's most
+    /// recently rendered document (device pixels, same units the captured PNG uses -
+    /// RenderTargetBitmap at 96 DPI makes that a 1:1 mapping). Returns null if the point
+    /// hit nothing trackable (e.g. empty canvas background) or filePath was never rendered.
+    /// </summary>
+    public (string Path, Rect Bounds)? SelectAt(string? filePath, double x, double y)
+    {
+        if (!_documents.TryGetValue(DocumentKey(filePath), out var state)) { return null; }
+
+        var hit = SelectionService.HitTest(state.RootVisual, new Point(x, y));
+        if (hit is null) { return null; }
+
+        var (element, path) = hit.Value;
+        return (path, SelectionService.GetBounds(element, state.RootVisual));
+    }
+
+    /// <summary>
+    /// Must be called on the WPF dispatcher thread. Applies one committed drag/resize to
+    /// filePath's pristine document and re-renders from it - the returned frame reflects
+    /// the edited state immediately, without waiting for the save-triggered render cycle,
+    /// and XamlText is the real file content the extension should write back through
+    /// VS Code's document API (this process never touches the file on disk itself).
+    /// </summary>
+    public (int Width, int Height, string PngBase64, string XamlText) CommitTransform(string? filePath, string path, TransformKind kind, Rect newBounds)
+    {
+        var key = DocumentKey(filePath);
+        if (!_documents.TryGetValue(key, out var state))
+        {
+            throw new InvalidOperationException("No active render of this file to commit against - try re-opening the preview.");
+        }
+
+        var pristineElement = SourcePathTracker.Find(state.PristineDocument, path)
+            ?? throw new InvalidOperationException($"Could not locate the selected element (path \"{path}\") in the current document.");
+
+        // Recomputed fresh against the current render rather than trusting a
+        // client-echoed original - the client only ever reports the *new* bounds.
+        var renderElement = SelectionService.FindByPath(state.RootVisual, path)
+            ?? throw new InvalidOperationException($"Could not locate the selected element (path \"{path}\") in the current render.");
+        var originalBounds = SelectionService.GetBounds(renderElement, state.RootVisual);
+        var mode = SelectionService.DeterminePositioningMode(renderElement);
+
+        TransformApplier.Apply(pristineElement, mode, kind, originalBounds, newBounds);
+
+        var (width, height, pngBase64) = RenderFromPristineDocument(key, state.PristineDocument, filePath, state.AssemblyPath, state.AppXamlText);
+        return (width, height, pngBase64, state.PristineDocument.ToString());
+    }
+
+    /// <summary>
+    /// Reusable by both a normal render (from freshly parsed text) and a post-commit
+    /// re-render (from the same pristine document, now mutated in place by
+    /// TransformApplier) - either way, a fresh render copy is derived from whatever the
+    /// pristine document currently contains.
+    /// </summary>
+    private (int Width, int Height, string PngBase64) RenderFromPristineDocument(string key, XDocument pristineDocument, string? filePath, string? assemblyPath, string? appXamlText)
+    {
+        var (renderDocument, rootLocalName) = PrepareXaml(pristineDocument.ToString(), assemblyPath);
 
         if (rootLocalName is "Application" or "ResourceDictionary")
         {
@@ -62,14 +140,21 @@ internal sealed class RenderHost
             AssemblyLoader.EnsureLoaded(assemblyPath);
         }
 
-        // Re-applied on every render (not just once) so editing App.xaml's
-        // resources and re-saving the previewed file picks up the change,
-        // consistent with the rest of the preview being "reload from source
-        // on every save".
+        // Re-applied on every render (not just once) so editing App.xaml's resources and
+        // re-saving the previewed file picks up the change, consistent with the rest of
+        // the preview being "reload from source on every save". Application.Current.Resources
+        // is process-global (one Application instance per host), so this remains a
+        // pre-existing 1a limitation shared across every open document in this process,
+        // not something 1b introduces or fixes: rendering document B can transiently
+        // change what document A's *next* render sees as app-level resources.
         if (!string.IsNullOrEmpty(appXamlText))
         {
             ApplyApplicationResources(appXamlText, assemblyPath);
         }
+
+        // Only on the render copy - never on the pristine document, which must stay
+        // exactly what a write-back should reproduce.
+        SourcePathTracker.AssignPaths(renderDocument);
 
         var parserContext = new ParserContext();
         if (!string.IsNullOrEmpty(filePath))
@@ -77,34 +162,60 @@ internal sealed class RenderHost
             parserContext.BaseUri = new Uri(filePath);
         }
 
-        var parsed = XamlReader.Parse(strippedXaml, parserContext);
+        var parsed = XamlReader.Parse(renderDocument.ToString(), parserContext);
 
-        return parsed switch
+        // This document's own previous container (whatever kind it was) is only closed
+        // now, once its replacement is about to take over - never another document's, and
+        // never in a `finally` right after capture, which would leave nothing left to
+        // hit-test afterward for a Window-rooted file.
+        if (_documents.TryGetValue(key, out var previous))
+        {
+            previous.ContainerWindow.Close();
+        }
+
+        var (width, height, pngBase64, rootVisual, containerWindow) = parsed switch
         {
             Window window => RenderWindowRoot(window),
             FrameworkElement element => RenderElementRoot(element),
             _ => throw new NotSupportedException($"Unsupported XAML root: {parsed?.GetType().FullName ?? "null"}")
         };
+
+        _documents[key] = new DocumentState
+        {
+            PristineDocument = pristineDocument,
+            RootVisual = rootVisual,
+            ContainerWindow = containerWindow,
+            AssemblyPath = assemblyPath,
+            AppXamlText = appXamlText
+        };
+
+        return (width, height, pngBase64);
     }
 
-    private (int Width, int Height, string PngBase64) RenderElementRoot(FrameworkElement content)
+    private static (int Width, int Height, string PngBase64, Visual RootVisual, Window ContainerWindow) RenderElementRoot(FrameworkElement content)
     {
-        _container.Content = content;
+        // A fresh, dedicated off-screen host per render (not one shared instance) - so an
+        // older render's container (and the document state pointing at it) never gets its
+        // Content silently swapped out from under it by a different document's render.
+        var container = CreateOffscreenWindow();
+        container.Content = content;
 
         var width = double.IsNaN(content.Width) || content.Width <= 0 ? DefaultWidth : (int)Math.Ceiling(content.Width);
         var height = double.IsNaN(content.Height) || content.Height <= 0 ? DefaultHeight : (int)Math.Ceiling(content.Height);
-        _container.Width = width;
-        _container.Height = height;
+        container.Width = width;
+        container.Height = height;
 
-        _container.UpdateLayout();
+        container.Show();
+        container.UpdateLayout();
 
-        return CaptureFrame(_container, width, height);
+        var (capturedWidth, capturedHeight, pngBase64) = CaptureFrame(container, width, height);
+        return (capturedWidth, capturedHeight, pngBase64, container, container);
     }
 
-    private static (int Width, int Height, string PngBase64) RenderWindowRoot(Window window)
+    private static (int Width, int Height, string PngBase64, Visual RootVisual, Window ContainerWindow) RenderWindowRoot(Window window)
     {
-        // A parsed root <Window> can't be reparented as another Window's
-        // Content, so it becomes its own one-shot off-screen render target.
+        // A parsed root <Window> can't be reparented as another Window's Content, so it's
+        // already its own off-screen render target - no separate container needed.
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.Left = -32000;
         window.Top = -32000;
@@ -115,16 +226,11 @@ internal sealed class RenderHost
         window.Width = width;
         window.Height = height;
 
-        try
-        {
-            window.Show();
-            window.UpdateLayout();
-            return CaptureFrame(window, width, height);
-        }
-        finally
-        {
-            window.Close();
-        }
+        window.Show();
+        window.UpdateLayout();
+        var (capturedWidth, capturedHeight, pngBase64) = CaptureFrame(window, width, height);
+
+        return (capturedWidth, capturedHeight, pngBase64, window, window);
     }
 
     private static (int Width, int Height, string PngBase64) CaptureFrame(Visual visual, int width, int height)
@@ -164,7 +270,7 @@ internal sealed class RenderHost
     /// caller can reject non-visual roots (Application/ResourceDictionary)
     /// before handing them to XamlReader.
     /// </summary>
-    private static (string StrippedXaml, string RootLocalName) PrepareXaml(string xamlText, string? assemblyPath)
+    private static (XDocument RenderDocument, string RootLocalName) PrepareXaml(string xamlText, string? assemblyPath)
     {
         // Qualify bare clr-namespace: xmlns declarations BEFORE parsing into
         // an XDocument, not after - an XDocument element's resolved XName is
@@ -181,7 +287,7 @@ internal sealed class RenderHost
         var root = doc.Root;
         if (root is null)
         {
-            return (xamlText, "");
+            return (doc, "");
         }
 
         XNamespace xNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -189,7 +295,7 @@ internal sealed class RenderHost
 
         StripLikelyEventHandlers(doc);
 
-        return (doc.ToString(), root.Name.LocalName);
+        return (doc, root.Name.LocalName);
     }
 
     private static readonly HashSet<string> LikelyEventAttributeNames = new(StringComparer.Ordinal)

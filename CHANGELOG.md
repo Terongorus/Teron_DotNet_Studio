@@ -2,6 +2,31 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.5.0] - 2026-08-09
+
+* **XAML Live Preview: interactive editing** - the read-only preview added in 1.2.0 ("interactive
+  editing is planned for a future release") now supports it:
+  * Click an element in the preview to select it - a real, server-side hit-test against the
+    live WPF visual tree (correct z-order/opacity/hit-test-visibility handling for free), not
+    an approximation.
+  * Drag the selected element to move it, or drag one of its 8 resize handles to resize it -
+    both are a zero-network-round-trip client-side overlay while dragging, with the actual
+    change applied to the real `.xaml` file (through VS Code's document API, never a raw
+    filesystem write, so other extensions watching the file see the edit) on release.
+  * Canvas-parented elements get true absolute positioning (`Canvas.Left`/`Canvas.Top`);
+    anything else gets an approximate `Margin` nudge on its own top/left, since XAML layout has
+    no universal absolute-positioning concept outside a `Canvas`.
+  * Refuses to commit a drag while the file has unsaved edits, rather than silently discarding
+    them - save first, then drag.
+* **Fixed**: previewing two different `.xaml` files of the same target platform (the common
+  case, since most projects are AnyCPU) shares one underlying render process - selection/commit
+  state is now tracked per file rather than as a single shared slot, so interacting with one
+  preview panel can no longer be silently redirected onto whichever file was rendered most
+  recently in another panel.
+* **Fixed**: a `<Window>`-rooted `.xaml` file's render target was closed immediately after
+  capturing its preview frame, leaving nothing left to hit-test - selection/dragging now works
+  for `<Window>`-rooted files, not just `<Grid>`/`<UserControl>`/etc. fragments.
+
 ## [1.4.0] - 2026-08-09
 
 * **Standalone Debugging**: a new debug type, `dotnet-creator-debug` (`.NET (netcoredbg)`),

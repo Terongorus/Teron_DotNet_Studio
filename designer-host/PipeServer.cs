@@ -59,6 +59,12 @@ internal sealed class PipeServer
                     case LoadXamlMessage load:
                         await HandleLoadXamlAsync(pipe, load);
                         break;
+                    case SelectAtMessage selectAt:
+                        await HandleSelectAtAsync(pipe, selectAt);
+                        break;
+                    case CommitTransformMessage commit:
+                        await HandleCommitTransformAsync(pipe, commit);
+                        break;
                     case ShutdownMessage:
                         shuttingDown = true;
                         break;
@@ -83,6 +89,38 @@ internal sealed class PipeServer
         catch (Exception ex)
         {
             await SendAsync(pipe, new ErrorMessage { RequestId = load.RequestId, Message = DescribeException(ex), Stack = ex.StackTrace });
+        }
+    }
+
+    private async Task HandleSelectAtAsync(NamedPipeServerStream pipe, SelectAtMessage selectAt)
+    {
+        try
+        {
+            var hit = await _dispatcher.InvokeAsync(() => _renderHost.SelectAt(selectAt.FilePath, selectAt.X, selectAt.Y)).Task;
+            await SendAsync(pipe, new SelectionMessage
+            {
+                RequestId = selectAt.RequestId,
+                Path = hit?.Path,
+                Bounds = hit is null ? null : BoundsDto.FromRect(hit.Value.Bounds)
+            });
+        }
+        catch (Exception ex)
+        {
+            await SendAsync(pipe, new ErrorMessage { RequestId = selectAt.RequestId, Message = DescribeException(ex), Stack = ex.StackTrace });
+        }
+    }
+
+    private async Task HandleCommitTransformAsync(NamedPipeServerStream pipe, CommitTransformMessage commit)
+    {
+        try
+        {
+            var (width, height, pngBase64, xamlText) = await _dispatcher.InvokeAsync(
+                () => _renderHost.CommitTransform(commit.FilePath, commit.Path, commit.Kind, commit.Bounds.ToRect())).Task;
+            await SendAsync(pipe, new TransformResultMessage { RequestId = commit.RequestId, Width = width, Height = height, PngBase64 = pngBase64, XamlText = xamlText });
+        }
+        catch (Exception ex)
+        {
+            await SendAsync(pipe, new ErrorMessage { RequestId = commit.RequestId, Message = DescribeException(ex), Stack = ex.StackTrace });
         }
     }
 

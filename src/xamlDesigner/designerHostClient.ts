@@ -4,7 +4,7 @@ import * as net from 'net';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { runDotnet } from '../utils/process';
-import { OutboundMessage, InboundMessage, FrameMessage } from './designerHostProtocol';
+import { OutboundMessage, InboundMessage, TransformKind, Bounds } from './designerHostProtocol';
 import { HelperPlatform } from '../utils/projectAssemblyResolver';
 
 const MAX_RESTART_ATTEMPTS = 3;
@@ -12,7 +12,7 @@ const CONNECT_MAX_ATTEMPTS = 30;
 const CONNECT_RETRY_DELAY_MS = 100;
 
 interface PendingRequest {
-    resolve: (frame: FrameMessage) => void;
+    resolve: (message: InboundMessage) => void;
     reject: (error: Error) => void;
 }
 
@@ -20,6 +20,15 @@ export interface RenderedFrame {
     width: number;
     height: number;
     pngBase64: string;
+}
+
+export interface CommitResult extends RenderedFrame {
+    xamlText: string;
+}
+
+export interface Selection {
+    path: string;
+    bounds: Bounds;
 }
 
 /**
@@ -43,6 +52,34 @@ export class DesignerHostClient {
     constructor(private readonly context: vscode.ExtensionContext, private readonly platform: HelperPlatform) {}
 
     async loadXaml(xamlText: string, filePath?: string, assemblyPath?: string, appXamlText?: string): Promise<RenderedFrame> {
+        const frame = await this.request<Extract<InboundMessage, { type: 'frame' }>>(
+            requestId => ({ type: 'loadXaml', requestId, xamlText, filePath, assemblyPath, appXamlText })
+        );
+        return { width: frame.width, height: frame.height, pngBase64: frame.pngBase64 };
+    }
+
+    /**
+     * x/y are device pixels in filePath's last-rendered frame coordinate space (same units
+     * the webview maps its own CSS pixels into via the image's naturalWidth/rendered-width
+     * ratio). filePath disambiguates which document to hit-test against, since one helper
+     * process is shared across every open preview panel of this platform - resolves to
+     * undefined when the point hit nothing trackable, or filePath was never rendered.
+     */
+    async selectAt(filePath: string, x: number, y: number): Promise<Selection | undefined> {
+        const selection = await this.request<Extract<InboundMessage, { type: 'selection' }>>(
+            requestId => ({ type: 'selectAt', requestId, filePath, x, y })
+        );
+        return selection.path && selection.bounds ? { path: selection.path, bounds: selection.bounds } : undefined;
+    }
+
+    async commitTransform(filePath: string, path: string, kind: TransformKind, bounds: Bounds): Promise<CommitResult> {
+        const result = await this.request<Extract<InboundMessage, { type: 'transformResult' }>>(
+            requestId => ({ type: 'commitTransform', requestId, filePath, path, kind, bounds })
+        );
+        return { width: result.width, height: result.height, pngBase64: result.pngBase64, xamlText: result.xamlText };
+    }
+
+    private async request<T extends InboundMessage>(buildMessage: (requestId: string) => OutboundMessage): Promise<T> {
         if (this.permanentFailure) {
             throw this.permanentFailure;
         }
@@ -50,14 +87,13 @@ export class DesignerHostClient {
         await this.ensureStarted();
 
         const requestId = crypto.randomUUID();
-        const responsePromise = new Promise<FrameMessage>((resolve, reject) => {
+        const responsePromise = new Promise<InboundMessage>((resolve, reject) => {
             this.pending.set(requestId, { resolve, reject });
         });
 
-        this.send({ type: 'loadXaml', requestId, xamlText, filePath, assemblyPath, appXamlText });
+        this.send(buildMessage(requestId));
 
-        const frame = await responsePromise;
-        return { width: frame.width, height: frame.height, pngBase64: frame.pngBase64 };
+        return (await responsePromise) as T;
     }
 
     dispose(): void {
@@ -184,7 +220,9 @@ export class DesignerHostClient {
             case 'ready':
                 this.readyResolve?.();
                 break;
-            case 'frame': {
+            case 'frame':
+            case 'selection':
+            case 'transformResult': {
                 this.pending.get(message.requestId)?.resolve(message);
                 this.pending.delete(message.requestId);
                 break;

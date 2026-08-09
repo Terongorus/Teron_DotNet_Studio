@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Start Page for recent solutions and projects, live WPF XAML preview, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
