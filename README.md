@@ -19,6 +19,14 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 
 You must have the official [.NET SDK](https://dotnet.microsoft.com/download) installed on your system and accessible in your system's `PATH`.
 
+## Looks Great With
+
+This extension's UI (status bar, Solution Explorer, NuGet Manager, Start Page) is built
+entirely on VS Code's own theme color variables, so it adapts automatically to whatever color
+theme you're running — no configuration needed. Given the Visual Studio/Rider-inspired workflow
+this extension goes for, the [JetBrains Rider Dark Theme](https://marketplace.visualstudio.com/items?itemName=EdwinSulaiman.jetbrains-rider-dark-theme)
+is a fitting, purely cosmetic pairing if you want the look to match.
+
 ## Usage
 
 ### Create New Project
