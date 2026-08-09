@@ -2,57 +2,62 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { peekCurrentSolution, setCurrentSolution } from './currentSolution';
 import { findNearestSolutionFile } from './solutionParser';
+import { peekFolderState, updateFolderState } from './folderState';
 
 export interface PickCsprojArgs {
     include?: string;
     acceptIfOneFile?: boolean;
 }
 
-const PICKED_CSPROJ_KEY = 'dotnetCreator.pickedCsprojFile';
-const RECENT_CSPROJ_KEY = 'dotnetCreator.recentCsprojFiles';
 const MAX_RECENT_CSPROJ = 5;
 
-const _onDidChangePickedCsproj = new vscode.EventEmitter<string | undefined>();
+export interface ProjectChangeEvent {
+    folder: vscode.WorkspaceFolder;
+    projectPath: string | undefined;
+}
+
+const _onDidChangePickedCsproj = new vscode.EventEmitter<ProjectChangeEvent>();
 /** Fires whenever pickCsprojFile records a new selection - e.g. lets the status bar item stay in sync without polling. */
 export const onDidChangePickedCsproj = _onDidChangePickedCsproj.event;
 
 /** Reads the stored last pick with no UI and no fallback picker - unlike getPickedCsprojFile, never prompts. */
-export function peekPickedCsprojFile(context: vscode.ExtensionContext): string | undefined {
-    return context.workspaceState.get<string>(PICKED_CSPROJ_KEY);
+export function peekPickedCsprojFile(folder: vscode.WorkspaceFolder): string | undefined {
+    return peekFolderState(folder).currentProject;
 }
 
 /** Clears the stored pick and fires onDidChangePickedCsproj - used by currentSolution.ts when switching solutions, so a project from the old solution doesn't linger. */
-export async function clearPickedCsprojFile(context: vscode.ExtensionContext): Promise<void> {
-    await context.workspaceState.update(PICKED_CSPROJ_KEY, undefined);
-    _onDidChangePickedCsproj.fire(undefined);
+export async function clearPickedCsprojFile(folder: vscode.WorkspaceFolder): Promise<void> {
+    await updateFolderState(folder, { currentProject: undefined });
+    _onDidChangePickedCsproj.fire({ folder, projectPath: undefined });
 }
 
-function getRecentCsprojFiles(context: vscode.ExtensionContext): string[] {
-    return context.workspaceState.get<string[]>(RECENT_CSPROJ_KEY, []);
+function getRecentCsprojFiles(folder: vscode.WorkspaceFolder): string[] {
+    return peekFolderState(folder).recentCsprojFiles ?? [];
 }
 
 /** Newest-first, deduped case-insensitively, capped - same shape as startPage/recentItems.ts. */
-async function addRecentCsprojFile(context: vscode.ExtensionContext, filePath: string): Promise<void> {
-    const existing = getRecentCsprojFiles(context).filter(p => p.toLowerCase() !== filePath.toLowerCase());
+async function addRecentCsprojFile(folder: vscode.WorkspaceFolder, filePath: string): Promise<void> {
+    const existing = getRecentCsprojFiles(folder).filter(p => p.toLowerCase() !== filePath.toLowerCase());
     const updated = [filePath, ...existing].slice(0, MAX_RECENT_CSPROJ);
-    await context.workspaceState.update(RECENT_CSPROJ_KEY, updated);
+    await updateFolderState(folder, { recentCsprojFiles: updated });
 }
 
 export interface RecentCsprojItem extends vscode.QuickPickItem {
     projectPath: string;
 }
 
-export function getRecentCsprojItems(context: vscode.ExtensionContext): RecentCsprojItem[] {
-    return getRecentCsprojFiles(context).map(projectPath => ({
+export function getRecentCsprojItems(folder: vscode.WorkspaceFolder): RecentCsprojItem[] {
+    return getRecentCsprojFiles(folder).map(projectPath => ({
         label: `$(history) ${path.basename(projectPath)}`,
         description: projectPath,
         projectPath
     }));
 }
 
-/** Full-workspace .csproj search, the same exclude glob pickCsprojFile itself uses. */
-export function findAllCsprojFiles(): Promise<vscode.Uri[]> {
-    return Promise.resolve(vscode.workspace.findFiles('**/*.csproj', '**/{bin,obj,node_modules}/**'));
+/** .csproj search scoped to a single workspace folder - important for multi-root correctness, unlike a bare workspace-wide glob. */
+export function findAllCsprojFiles(folder: vscode.WorkspaceFolder): Promise<vscode.Uri[]> {
+    const pattern = new vscode.RelativePattern(folder, '**/*.csproj');
+    return Promise.resolve(vscode.workspace.findFiles(pattern, '**/{bin,obj,node_modules}/**'));
 }
 
 /**
@@ -62,25 +67,25 @@ export function findAllCsprojFiles(): Promise<vscode.Uri[]> {
  * paths stay in sync on the recent list, the change event, and the
  * cold-start solution auto-derive.
  */
-export async function recordPickedCsprojFile(context: vscode.ExtensionContext, picked: string): Promise<void> {
-    await context.workspaceState.update(PICKED_CSPROJ_KEY, picked);
-    await addRecentCsprojFile(context, picked);
-    _onDidChangePickedCsproj.fire(picked);
+export async function recordPickedCsprojFile(folder: vscode.WorkspaceFolder, picked: string): Promise<void> {
+    await updateFolderState(folder, { currentProject: picked });
+    await addRecentCsprojFile(folder, picked);
+    _onDidChangePickedCsproj.fire({ folder, projectPath: picked });
 
     // Cold-start default: if no solution is tracked yet, silently derive one
     // from the picked project's nearest .sln/.slnx - never overrides an
     // explicitly-picked solution, just avoids an empty Solution segment /
     // "Projects in Solution" section on first use.
-    if (!peekCurrentSolution(context)) {
+    if (!peekCurrentSolution(folder)) {
         const nearestSolution = findNearestSolutionFile(path.dirname(picked));
         if (nearestSolution) {
-            await setCurrentSolution(context, nearestSolution);
+            await setCurrentSolution(folder, nearestSolution);
         }
     }
 }
 
 /**
- * Finds .csproj files in the workspace and lets the user pick one -
+ * Finds .csproj files in the workspace folder and lets the user pick one -
  * auto-accepting the single match when there is exactly one, mirroring the
  * `extension.commandvariable.file.pickFile` input used in tasks.json/
  * launch.json `inputs`. Exposed as a command (see
@@ -96,18 +101,19 @@ export async function recordPickedCsprojFile(context: vscode.ExtensionContext, p
  * each time is real friction in a solution with more than a couple of
  * projects.
  *
- * Also remembers the result in workspaceState (see getPickedCsprojFile) -
+ * Also remembers the result per-folder (see getPickedCsprojFile) -
  * `${input:...}` only resolves against the `inputs` array declared in the
  * *same* JSON document, so a launch.json input and a tasks.json input can't
  * reference the same id even though they both run through this extension.
  * Persisting the pick lets a separate task-side command hand back the same
  * choice without prompting the user twice.
  */
-export async function pickCsprojFile(context: vscode.ExtensionContext, args?: PickCsprojArgs): Promise<string | undefined> {
+export async function pickCsprojFile(folder: vscode.WorkspaceFolder, args?: PickCsprojArgs): Promise<string | undefined> {
     const include = args?.include ?? '**/*.csproj';
     const acceptIfOneFile = args?.acceptIfOneFile ?? true;
 
-    const found = await vscode.workspace.findFiles(include, '**/{bin,obj,node_modules}/**');
+    const pattern = new vscode.RelativePattern(folder, include);
+    const found = await vscode.workspace.findFiles(pattern, '**/{bin,obj,node_modules}/**');
 
     if (found.length === 0) {
         vscode.window.showWarningMessage(`No project files found matching "${include}".`);
@@ -119,20 +125,20 @@ export async function pickCsprojFile(context: vscode.ExtensionContext, args?: Pi
     if (found.length === 1 && acceptIfOneFile) {
         picked = found[0].fsPath;
     } else {
-        picked = await showCsprojQuickPick(context, found);
+        picked = await showCsprojQuickPick(folder, found);
     }
 
     if (picked) {
-        await recordPickedCsprojFile(context, picked);
+        await recordPickedCsprojFile(folder, picked);
     }
 
     return picked;
 }
 
-async function showCsprojQuickPick(context: vscode.ExtensionContext, found: vscode.Uri[]): Promise<string | undefined> {
+async function showCsprojQuickPick(folder: vscode.WorkspaceFolder, found: vscode.Uri[]): Promise<string | undefined> {
     type Item = vscode.QuickPickItem & { uri?: vscode.Uri };
 
-    const recentPaths = getRecentCsprojFiles(context)
+    const recentPaths = getRecentCsprojFiles(folder)
         .filter(recent => found.some(uri => uri.fsPath.toLowerCase() === recent.toLowerCase()));
 
     const items: Item[] = [];
@@ -170,10 +176,10 @@ async function showCsprojQuickPick(context: vscode.ExtensionContext, found: vsco
  * yet (e.g. the task was run directly via "Tasks: Run Task" rather than as
  * part of an F5 debug session), so this never silently resolves to nothing.
  */
-export async function getPickedCsprojFile(context: vscode.ExtensionContext, args?: PickCsprojArgs): Promise<string | undefined> {
-    const stored = peekPickedCsprojFile(context);
+export async function getPickedCsprojFile(folder: vscode.WorkspaceFolder, args?: PickCsprojArgs): Promise<string | undefined> {
+    const stored = peekPickedCsprojFile(folder);
     if (stored) {
         return stored;
     }
-    return pickCsprojFile(context, args);
+    return pickCsprojFile(folder, args);
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { pickCsprojFile, getPickedCsprojFile, PickCsprojArgs } from '../utils/projectPicker';
+import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 /**
  * `getPickedCsprojFile` is the one both launch.json and tasks.json should
@@ -17,6 +18,12 @@ import { pickCsprojFile, getPickedCsprojFile, PickCsprojArgs } from '../utils/pr
  * "change it" half: run it once when you want to switch projects, then F5
  * goes back to being silent against the new selection.
  *
+ * Both commands are invoked by VS Code's own `"type": "command"` input
+ * resolution, which doesn't pass along which folder's tasks.json/launch.json
+ * triggered it - resolved here via `getActiveWorkspaceFolder()` (the active
+ * editor's folder, falling back to the first open folder), the same
+ * heuristic the status bar items use.
+ *
  * Example:
  *
  *   // launch.json
@@ -27,7 +34,13 @@ import { pickCsprojFile, getPickedCsprojFile, PickCsprojArgs } from '../utils/pr
  */
 export function registerPickCsprojFileCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.pickCsprojFile', (args?: PickCsprojArgs) => pickCsprojFile(context, args)),
-        vscode.commands.registerCommand('dotnet-creator.getPickedCsprojFile', (args?: PickCsprojArgs) => getPickedCsprojFile(context, args))
+        vscode.commands.registerCommand('dotnet-creator.pickCsprojFile', (args?: PickCsprojArgs) => {
+            const folder = getActiveWorkspaceFolder();
+            return folder ? pickCsprojFile(folder, args) : undefined;
+        }),
+        vscode.commands.registerCommand('dotnet-creator.getPickedCsprojFile', (args?: PickCsprojArgs) => {
+            const folder = getActiveWorkspaceFolder();
+            return folder ? getPickedCsprojFile(folder, args) : undefined;
+        })
     );
 }

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getPickedCsprojFile } from '../utils/projectPicker';
+import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { showNugetManager } from '../nugetManager/nugetManagerPanel';
 
 export function registerManageNugetPackagesCommand(context: vscode.ExtensionContext): void {
@@ -8,7 +9,12 @@ export function registerManageNugetPackagesCommand(context: vscode.ExtensionCont
 }
 
 export async function manageNugetPackages(context: vscode.ExtensionContext, projectPath?: string): Promise<void> {
-    const resolvedPath = projectPath ?? await getPickedCsprojFile(context);
+    let resolvedPath = projectPath;
+    if (!resolvedPath) {
+        const folder = getActiveWorkspaceFolder();
+        if (!folder) { return; }
+        resolvedPath = await getPickedCsprojFile(folder);
+    }
     if (!resolvedPath) { return; }
 
     showNugetManager(context, resolvedPath);

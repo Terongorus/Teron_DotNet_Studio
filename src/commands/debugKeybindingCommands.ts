@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { getPickedCsprojFile } from '../utils/projectPicker';
 import { getCurrentConfiguration } from '../utils/configurationPicker';
+import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { runProject } from './buildActions';
 
 /**
@@ -13,16 +14,19 @@ import { runProject } from './buildActions';
  */
 export function registerDebugKeybindingCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.debugStart', () => runViaKeybinding(context, false)),
-        vscode.commands.registerCommand('dotnet-creator.runWithoutDebugging', () => runViaKeybinding(context, true))
+        vscode.commands.registerCommand('dotnet-creator.debugStart', () => runViaKeybinding(false)),
+        vscode.commands.registerCommand('dotnet-creator.runWithoutDebugging', () => runViaKeybinding(true))
     );
 }
 
-async function runViaKeybinding(context: vscode.ExtensionContext, noDebug: boolean): Promise<void> {
-    const projectPath = await getPickedCsprojFile(context);
+async function runViaKeybinding(noDebug: boolean): Promise<void> {
+    const folder = getActiveWorkspaceFolder();
+    if (!folder) { return; }
+
+    const projectPath = await getPickedCsprojFile(folder);
     if (!projectPath) { return; }
 
     const projectName = path.basename(projectPath, path.extname(projectPath));
-    const configuration = getCurrentConfiguration(context);
+    const configuration = getCurrentConfiguration(folder);
     await runProject(projectPath, projectName, configuration, noDebug);
 }

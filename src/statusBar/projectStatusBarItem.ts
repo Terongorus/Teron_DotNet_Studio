@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { peekPickedCsprojFile, onDidChangePickedCsproj } from '../utils/projectPicker';
+import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 /**
  * Middle of the three .NET status bar segments (Solution › Project ›
@@ -10,20 +11,21 @@ import { peekPickedCsprojFile, onDidChangePickedCsproj } from '../utils/projectP
  * directly - see commands/statusBarMenus.ts.
  */
 export function registerProjectStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.projectStatus', vscode.StatusBarAlignment.Right, 100);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.projectStatus', vscode.StatusBarAlignment.Left, 4);
     item.name = '.NET: Project';
     item.command = 'dotnet-creator.showProjectMenu';
 
-    const refresh = () => updateStatusBarItem(context, item);
+    const refresh = () => updateStatusBarItem(item);
 
-    context.subscriptions.push(item, onDidChangePickedCsproj(refresh));
+    context.subscriptions.push(item, onDidChangePickedCsproj(refresh), onDidChangeActiveWorkspaceFolder(refresh));
 
     refresh();
     item.show();
 }
 
-function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.StatusBarItem): void {
-    const picked = peekPickedCsprojFile(context);
+function updateStatusBarItem(item: vscode.StatusBarItem): void {
+    const folder = getActiveWorkspaceFolder();
+    const picked = folder ? peekPickedCsprojFile(folder) : undefined;
 
     if (!picked) {
         item.text = '$(project) Select Project';

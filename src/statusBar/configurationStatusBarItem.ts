@@ -1,25 +1,29 @@
 import * as vscode from 'vscode';
 import { getCurrentConfiguration, onDidChangeConfiguration } from '../utils/configurationPicker';
+import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 /**
  * Rightmost of the three .NET status bar segments. Only ever two choices, so
  * clicking goes directly to the Debug/Release QuickPick - no intermediate menu.
  */
 export function registerConfigurationStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.configurationStatus', vscode.StatusBarAlignment.Right, 99);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.configurationStatus', vscode.StatusBarAlignment.Left, 3);
     item.name = '.NET: Build Configuration';
     item.command = 'dotnet-creator.pickConfiguration';
 
-    const refresh = () => updateStatusBarItem(context, item);
+    const refresh = () => updateStatusBarItem(item);
 
-    context.subscriptions.push(item, onDidChangeConfiguration(refresh));
+    context.subscriptions.push(item, onDidChangeConfiguration(refresh), onDidChangeActiveWorkspaceFolder(refresh));
 
     refresh();
     item.show();
 }
 
-function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.StatusBarItem): void {
-    const configuration = getCurrentConfiguration(context);
+function updateStatusBarItem(item: vscode.StatusBarItem): void {
+    const folder = getActiveWorkspaceFolder();
+    const configuration = folder ? getCurrentConfiguration(folder) : 'Debug';
     item.text = `$(gear) Configuration: ${configuration}`;
-    item.tooltip = 'Click to change the build configuration (Debug/Release).';
+    item.tooltip = folder
+        ? 'Click to change the build configuration (Debug/Release).'
+        : 'Open a folder to change the build configuration.';
 }

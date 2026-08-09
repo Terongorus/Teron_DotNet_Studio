@@ -17,8 +17,14 @@ import { registerDebugKeybindingCommands } from './commands/debugKeybindingComma
 import { registerDebugSessionTracker } from './utils/debugSessionTracker';
 import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
 import { registerManageNugetPackagesCommand } from './commands/manageNugetPackages';
+import { registerActiveWorkspaceFolderTracker } from './utils/activeWorkspaceFolder';
+import { warmFolderState, disposeFolderStateWatchers } from './utils/folderState';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
+
+async function warmAllWorkspaceFolders(): Promise<void> {
+    await Promise.all((vscode.workspace.workspaceFolders ?? []).map(folder => warmFolderState(folder)));
+}
 
 async function updateWorkspaceHasProjectContext(): Promise<void> {
     const hasCsproj = (await vscode.workspace.findFiles('**/*.csproj', '**/{bin,obj,node_modules}/**', 1)).length > 0;
@@ -40,6 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerDebugSessionTracker(context);
     registerResourceMonitorPanel(context);
     registerManageNugetPackagesCommand(context);
+    registerActiveWorkspaceFolderTracker(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
     registerConfigurationStatusBarItem(context);
@@ -48,11 +55,14 @@ export function activate(context: vscode.ExtensionContext) {
     void maybeShowSetupDebugTasksPrompt(context);
 
     void updateWorkspaceHasProjectContext();
-    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(() => {
+    void warmAllWorkspaceFolders();
+    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(event => {
         void updateWorkspaceHasProjectContext();
+        void Promise.all(event.added.map(folder => warmFolderState(folder)));
     }));
 }
 
 export function deactivate() {
     disposeDesignerHost();
+    disposeFolderStateWatchers();
 }

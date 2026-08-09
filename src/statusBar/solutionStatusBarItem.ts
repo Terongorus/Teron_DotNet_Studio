@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
+import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 /**
  * First (leftmost within the right-aligned group) of the three .NET status
@@ -10,20 +11,21 @@ import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/curren
  * visually fuse multiple StatusBarItems into one "pill").
  */
 export function registerSolutionStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.solutionStatus', vscode.StatusBarAlignment.Right, 101);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.solutionStatus', vscode.StatusBarAlignment.Left, 5);
     item.name = '.NET: Solution';
     item.command = 'dotnet-creator.showSolutionMenu';
 
-    const refresh = () => updateStatusBarItem(context, item);
+    const refresh = () => updateStatusBarItem(item);
 
-    context.subscriptions.push(item, onDidChangeCurrentSolution(refresh));
+    context.subscriptions.push(item, onDidChangeCurrentSolution(refresh), onDidChangeActiveWorkspaceFolder(refresh));
 
     refresh();
     item.show();
 }
 
-function updateStatusBarItem(context: vscode.ExtensionContext, item: vscode.StatusBarItem): void {
-    const solutionPath = peekCurrentSolution(context);
+function updateStatusBarItem(item: vscode.StatusBarItem): void {
+    const folder = getActiveWorkspaceFolder();
+    const solutionPath = folder ? peekCurrentSolution(folder) : undefined;
 
     if (!solutionPath) {
         item.text = '$(folder-library) .NET: Select Solution';
