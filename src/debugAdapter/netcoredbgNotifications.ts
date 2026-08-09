@@ -14,27 +14,23 @@ export function getNetcoredbgOutputChannel(): vscode.OutputChannel {
     return outputChannel;
 }
 
-export type NotInstalledChoice = 'download' | 'bundled' | 'instructions' | 'dont-ask-again' | undefined;
+export type NotInstalledChoice = 'download' | 'instructions' | 'dont-ask-again' | undefined;
 
 /** One-shot per session (in-memory guard) - pressing F5 again in the same window shouldn't re-prompt. Checks the persisted "Don't Ask Again" flag first. */
-export async function showNotInstalledNotice(context: vscode.ExtensionContext, hasBundled: boolean): Promise<NotInstalledChoice> {
+export async function showNotInstalledNotice(context: vscode.ExtensionContext): Promise<NotInstalledChoice> {
     if (context.globalState.get<boolean>(DONT_ASK_AGAIN_KEY, false)) { return undefined; }
     if (shownThisSession) { return undefined; }
     shownThisSession = true;
 
-    const USE_BUNDLED = 'Use Bundled netcoredbg';
     const DOWNLOAD = 'Download netcoredbg';
     const INSTRUCTIONS = 'Install Instructions';
     const DONT_ASK = "Don't Ask Again";
 
-    const actions = hasBundled ? [USE_BUNDLED, DOWNLOAD, INSTRUCTIONS, DONT_ASK] : [DOWNLOAD, INSTRUCTIONS, DONT_ASK];
-
     const choice = await vscode.window.showInformationMessage(
         'netcoredbg (an open-source, MIT-licensed .NET debugger) was not found. Install it to debug with breakpoints/stepping without Microsoft\'s C# extension.',
-        ...actions
+        DOWNLOAD, INSTRUCTIONS, DONT_ASK
     );
 
-    if (choice === USE_BUNDLED) { return 'bundled'; }
     if (choice === DOWNLOAD) { return 'download'; }
     if (choice === INSTRUCTIONS) {
         void vscode.env.openExternal(vscode.Uri.parse(NETCOREDBG_README_URL));

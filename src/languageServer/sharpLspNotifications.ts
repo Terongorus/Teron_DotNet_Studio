@@ -14,27 +14,23 @@ export function getSharpLspOutputChannel(): vscode.OutputChannel {
     return outputChannel;
 }
 
-export type NotInstalledChoice = 'download' | 'bundled' | 'instructions' | 'dont-ask-again' | undefined;
+export type NotInstalledChoice = 'download' | 'instructions' | 'dont-ask-again' | undefined;
 
 /** One-shot per session (in-memory guard) - a second C#/F# file opened in the same window shouldn't re-prompt. Checks the persisted "Don't Ask Again" flag first. */
-export async function showNotInstalledNotice(context: vscode.ExtensionContext, hasBundled: boolean): Promise<NotInstalledChoice> {
+export async function showNotInstalledNotice(context: vscode.ExtensionContext): Promise<NotInstalledChoice> {
     if (context.globalState.get<boolean>(DONT_ASK_AGAIN_KEY, false)) { return undefined; }
     if (shownThisSession) { return undefined; }
     shownThisSession = true;
 
-    const USE_BUNDLED = 'Use Bundled SharpLsp';
     const DOWNLOAD = 'Download SharpLsp';
     const INSTRUCTIONS = 'Install Instructions';
     const DONT_ASK = "Don't Ask Again";
 
-    const actions = hasBundled ? [USE_BUNDLED, DOWNLOAD, INSTRUCTIONS, DONT_ASK] : [DOWNLOAD, INSTRUCTIONS, DONT_ASK];
-
     const choice = await vscode.window.showInformationMessage(
         'SharpLsp (an open-source, MIT-licensed C#/F# language server) was not found. Install it for C# and F# language features - everything else in .NET Studio works normally without it.',
-        ...actions
+        DOWNLOAD, INSTRUCTIONS, DONT_ASK
     );
 
-    if (choice === USE_BUNDLED) { return 'bundled'; }
     if (choice === DOWNLOAD) { return 'download'; }
     if (choice === INSTRUCTIONS) {
         void vscode.env.openExternal(vscode.Uri.parse(SHARPLSP_README_URL));

@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Start Page for recent solutions and projects, live WPF XAML preview, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -213,6 +213,16 @@
       {
         "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
         "title": "Open in Integrated Terminal",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.editProjectFile",
+        "title": "Edit Project File",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.editSolutionFile",
+        "title": "Edit Solution File",
         "category": ".NET Solution Explorer"
       },
       {
@@ -475,6 +485,14 @@
           "when": "false"
         },
         {
+          "command": "dotnet-creator.solutionExplorer.editProjectFile",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.editSolutionFile",
+          "when": "false"
+        },
+        {
           "command": "dotnet-creator.solutionExplorer.removeFromSolution",
           "when": "false"
         },
@@ -517,7 +535,7 @@
       "view/item/context": [
         {
           "command": "dotnet-creator.previewXamlDesigner",
-          "when": "view == resharper.solutionExplorer && viewItem =~ /hasPath/",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetFile && resourceExtname == .xaml",
           "group": "navigation"
         },
         {
@@ -551,6 +569,16 @@
           "group": "2_open@2"
         },
         {
+          "command": "dotnet-creator.solutionExplorer.editProjectFile",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "group": "2_open@3"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.editSolutionFile",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetSolution",
+          "group": "2_open@3"
+        },
+        {
           "command": "dotnet-creator.solutionExplorer.openNugetManager",
           "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
           "group": "3_deps@1"
@@ -559,6 +587,11 @@
           "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
           "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
           "group": "3_deps@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.openNugetManager",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "group": "3_deps@1"
         },
         {
           "command": "dotnet-creator.solutionExplorer.cut",
@@ -685,15 +718,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package && npm run build:designer-host && npm run build:sharplsp && npm run build:netcoredbg",
+    "vscode:prepublish": "npm run package && npm run build:designer-host",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "build:designer-host": "npm run build:designer-host:x64 && npm run build:designer-host:x86",
     "build:designer-host:x64": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x64 --self-contained false -o dist/designer-host/win-x64",
     "build:designer-host:x86": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x86 --self-contained false -o dist/designer-host/win-x86",
-    "build:sharplsp": "node tools/build-sharplsp.js",
-    "build:netcoredbg": "node tools/build-netcoredbg.js",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",

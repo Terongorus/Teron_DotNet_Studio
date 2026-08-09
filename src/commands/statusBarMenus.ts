@@ -148,7 +148,7 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
     }
 
     if (selection.debuggerOptions) {
-        await showDebugAdapterMenu(context, debugAdapterFactory);
+        await showDebugAdapterMenu(debugAdapterFactory);
         return;
     }
 

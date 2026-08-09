@@ -3,6 +3,7 @@ import * as path from 'path';
 import { runDotnet } from '../utils/process';
 import { isValidProjectName } from '../utils/validation';
 import { addRecentItem } from '../startPage/recentItems';
+import { openFolderUnlessAlreadyOpen } from '../utils/openFolder';
 
 /**
  * Interactive core for creating an empty solution. Reused directly by the
@@ -75,12 +76,8 @@ export function registerCreateSolutionCommand(context: vscode.ExtensionContext) 
             filePath: slnPath
         });
 
-        vscode.window.showInformationMessage(`Successfully created solution!`, 'Open Folder')
-            .then(choice => {
-                if (choice === 'Open Folder') {
-                    vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(folder), false);
-                }
-            });
+        vscode.window.showInformationMessage(`Successfully created solution!`);
+        openFolderUnlessAlreadyOpen(folder);
     });
 
     context.subscriptions.push(disposable);

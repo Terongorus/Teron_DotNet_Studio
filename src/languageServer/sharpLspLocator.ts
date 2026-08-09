@@ -3,12 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
 
-/** context.globalState key holding the path to a binary either previously fetched via sharpLspInstaller.ts, or chosen via "Use Bundled SharpLsp". */
+/** context.globalState key holding the path to a binary previously fetched via sharpLspInstaller.ts. */
 export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedPath';
 /** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
 export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedVersion';
 
-const BUNDLED_BINARY_NAME = process.platform === 'win32' ? 'sharplsp.exe' : 'sharplsp';
+const BINARY_NAME = process.platform === 'win32' ? 'sharplsp.exe' : 'sharplsp';
 
 export interface ResolvedCommand {
     command: string;
@@ -20,7 +20,7 @@ export interface MisconfiguredPath {
     detail: string;
 }
 
-/** Maps to the exact `<os>-<arch>` scheme confirmed in SharpLsp's own platform.ts, and matches their release asset naming (`sharplsp-<platform>.vsix`) and bundled-directory layout. */
+/** Maps to the exact `<os>-<arch>` scheme confirmed in SharpLsp's own platform.ts, and matches their release asset naming (`sharplsp-<platform>.vsix`) and the VSIX's own internal directory layout. */
 export function detectPlatform(): string {
     if (process.platform === 'darwin') { return process.arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64'; }
     if (process.platform === 'linux') { return process.arch === 'arm64' ? 'linux-arm64' : 'linux-x64'; }
@@ -45,10 +45,8 @@ function getTrustedConfig<T>(key: string, defaultValue: T): T {
  * configured path, (2) the SHARPLSP_EXECUTABLE_PATH env var - the exact variable SharpLsp's own
  * reference client checks for an externally available install, not workspace-trust-gated since
  * a workspace can't set process env vars just by being opened, (3) a path cached from a previous
- * download or "Use Bundled SharpLsp" choice, (4) the bare command name resolved via the shell's
- * PATH (covers `cargo install sharplsp`). The bundled copy is deliberately NOT part of this
- * silent list - see getBundledCommand() - so using it always requires the explicit click even
- * though the file already ships inside the extension.
+ * download, (4) the bare command name resolved via the shell's PATH (covers
+ * `cargo install sharplsp`).
  */
 export function resolveSharpLspCommand(context: vscode.ExtensionContext): ResolvedCommand | MisconfiguredPath {
     const configuredPath = getTrustedConfig('sharpLsp.path', '');
@@ -69,23 +67,7 @@ export function resolveSharpLspCommand(context: vscode.ExtensionContext): Resolv
         return { command: cachedPath, source: 'cached' };
     }
 
-    return { command: BUNDLED_BINARY_NAME, source: 'path' };
-}
-
-/** The binary staged inside this extension's own package at build time (see tools/build-sharplsp.js), if any - currently only for the current host platform. Never silently resolved; only offered through the not-installed notice/menu. */
-export function getBundledCommand(context: vscode.ExtensionContext): string | undefined {
-    const bundledPath = context.asAbsolutePath(path.join('dist', 'sharplsp', detectPlatform(), BUNDLED_BINARY_NAME));
-    return fs.existsSync(bundledPath) ? bundledPath : undefined;
-}
-
-/** Reads the version.txt tools/build-sharplsp.js writes alongside the staged binary, for update-awareness comparisons. */
-export function getBundledVersion(context: vscode.ExtensionContext): string | undefined {
-    const versionPath = context.asAbsolutePath(path.join('dist', 'sharplsp', detectPlatform(), 'version.txt'));
-    try {
-        return fs.readFileSync(versionPath, 'utf8').trim();
-    } catch {
-        return undefined;
-    }
+    return { command: BINARY_NAME, source: 'path' };
 }
 
 /**

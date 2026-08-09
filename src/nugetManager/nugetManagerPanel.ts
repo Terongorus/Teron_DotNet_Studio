@@ -151,7 +151,24 @@ export function showNugetManager(context: vscode.ExtensionContext, projectPath: 
         }
     });
 
-    panel.onDidDispose(() => { panels.delete(projectPath); });
+    // refreshInstalled() only ever ran on open and after this panel's own install/remove
+    // actions - an external change to the .csproj (a source-control revert/checkout, a manual
+    // edit in another editor, another tool) left the Installed tab silently stale until the
+    // panel was closed and reopened. A FileSystemWatcher sees real disk changes regardless of
+    // how they were made, unlike onDidSaveTextDocument, which only fires for VS Code's own
+    // editor saves.
+    const projectWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(path.dirname(projectPath)), path.basename(projectPath))
+    );
+    const handleProjectFileChange = () => void refreshInstalled();
+    projectWatcher.onDidChange(handleProjectFileChange);
+    projectWatcher.onDidCreate(handleProjectFileChange);
+    projectWatcher.onDidDelete(handleProjectFileChange);
+
+    panel.onDidDispose(() => {
+        panels.delete(projectPath);
+        projectWatcher.dispose();
+    });
 
     panels.set(projectPath, panel);
     void refreshInstalled();

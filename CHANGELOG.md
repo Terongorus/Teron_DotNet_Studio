@@ -2,6 +2,50 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.6.0] - 2026-08-09
+
+A live verification pass (actually running every recent feature in a real Extension Development
+Host, not just reading the code) turned up a real bug or gap for nearly everything touched.
+
+* **Solution Explorer**:
+  * The project's own `.csproj` and the current `.sln`/`.slnx` no longer show up as ordinary
+    loose file leaves (redundant with the Project/Solution nodes themselves - this happened
+    whenever they sat in a directory this extension already lists, common in a
+    single-project-at-repo-root layout). Replaced with explicit **Edit Project File** / **Edit
+    Solution File** context-menu commands on the Project/Solution nodes.
+  * **Manage NuGet Packages** is now on the project node's own context menu directly, not only
+    on its Dependencies sub-node.
+  * Expanding a NuGet package now shows the actual compile-time assembly file(s) it contributes
+    (or a "No compile-time assemblies" placeholder for build/analyzer-only packages), read
+    directly from `obj/project.assets.json` - matches Visual Studio/ReSharper, which this didn't
+    have at all before.
+  * Fixed: XAML Live Preview was completely unreachable from this view's own right-click menu -
+    a stale, mismatched view ID and a contextValue pattern that never matched anything, present
+    since it was first wired up. Every other surface for the same command (editor title bar,
+    native Explorer, editor context menu) already worked correctly.
+  * Fixed: "Reveal in File Explorer"/"Open in Integrated Terminal" would have failed on a
+    Solution node (`Uri.joinPath` against a field that node type doesn't have).
+* **A single-project solution now auto-selects that project** as the startup project instead of
+  showing an unresolved "Select Project" placeholder - matches Visual Studio; a solution with
+  more than one project is left alone, since which one is current genuinely matters there.
+* **Create New Project / Create Solution now open the result automatically** instead of asking
+  via an easy-to-miss, auto-dismissing toast notification - matches Visual Studio's own behavior.
+  A missed prompt previously left the real VS Code workspace on the old folder (git, the actual
+  Explorer, the terminal) while this extension's own Solution Explorer showed the new project,
+  a confusing split. Skipped automatically when the target is already the open workspace folder
+  (e.g. adding a project to an already-open solution), so nothing reloads unnecessarily.
+* **NuGet Manager panel now refreshes on external `.csproj` changes** (a source-control
+  revert/checkout, a manual edit in another editor, another tool) - previously only refreshed on
+  open and after its own install/remove actions, silently going stale otherwise.
+* **Fixed**: "Download SharpLsp" could fail with `EBUSY` when SharpLsp's own client was already
+  running from the exact file being overwritten (re-downloading the active version, or updating
+  while connected) - Windows locks a running executable's file. The client is now stopped first.
+* **Removed**: "Use Bundled SharpLsp" and "Use Bundled netcoredbg". Both tools now resolve via
+  configured path, environment variable, a previously-downloaded cached copy, or PATH -
+  **Download** is the only way to get a managed copy of either going forward. Removes the
+  build-time binary staging (`tools/build-sharplsp.js`, `tools/build-netcoredbg.js`) and the
+  corresponding VSIX bloat entirely.
+
 ## [1.5.0] - 2026-08-09
 
 * **XAML Live Preview: interactive editing** - the read-only preview added in 1.2.0 ("interactive

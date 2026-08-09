@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { NetcoredbgAdapterFactory } from '../debugAdapter/netcoredbgAdapterFactory';
-import { getBundledCommand } from '../debugAdapter/netcoredbgLocator';
 import { getNetcoredbgOutputChannel } from '../debugAdapter/netcoredbgNotifications';
 
 const NETCOREDBG_README_URL = 'https://github.com/Samsung/netcoredbg#readme';
@@ -10,24 +9,19 @@ export function registerDebugAdapterCommands(context: vscode.ExtensionContext, f
         vscode.commands.registerCommand('dotnet-creator.debugAdapter.showOutput', () => {
             getNetcoredbgOutputChannel().show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.debugAdapter.showMenu', () => showMenu(context, factory))
+        vscode.commands.registerCommand('dotnet-creator.debugAdapter.showMenu', () => showMenu(factory))
     );
 }
 
-export async function showMenu(context: vscode.ExtensionContext, factory: NetcoredbgAdapterFactory): Promise<void> {
-    type Item = vscode.QuickPickItem & { action: 'showOutput' | 'bundled' | 'download' | 'instructions' | 'openSettings' };
+export async function showMenu(factory: NetcoredbgAdapterFactory): Promise<void> {
+    type Item = vscode.QuickPickItem & { action: 'showOutput' | 'download' | 'instructions' | 'openSettings' };
 
     const items: Item[] = [
-        { label: '$(output) Show Debugger Output', action: 'showOutput' }
-    ];
-    if (getBundledCommand(context)) {
-        items.push({ label: '$(archive) Use Bundled netcoredbg', action: 'bundled' });
-    }
-    items.push(
+        { label: '$(output) Show Debugger Output', action: 'showOutput' },
         { label: '$(cloud-download) Download netcoredbg', action: 'download' },
         { label: '$(link-external) Install Instructions', action: 'instructions' },
         { label: '$(gear) Open Settings', action: 'openSettings' }
-    );
+    ];
 
     const selection = await vscode.window.showQuickPick(items, { title: 'netcoredbg (.NET Debugger)' });
     if (!selection) { return; }
@@ -35,9 +29,6 @@ export async function showMenu(context: vscode.ExtensionContext, factory: Netcor
     switch (selection.action) {
         case 'showOutput':
             getNetcoredbgOutputChannel().show();
-            break;
-        case 'bundled':
-            await factory.useBundled();
             break;
         case 'download':
             await factory.downloadAndCache();

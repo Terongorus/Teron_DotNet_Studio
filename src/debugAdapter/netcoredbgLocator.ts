@@ -1,15 +1,14 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as cp from 'child_process';
 import { detectPlatform } from '../languageServer/sharpLspLocator';
 
-/** context.globalState key holding the path to a netcoredbg binary either previously downloaded, or chosen via "Use Bundled". */
+/** context.globalState key holding the path to a netcoredbg binary previously downloaded. */
 export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.debugAdapter.resolvedPath';
 /** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
 export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.debugAdapter.resolvedVersion';
 
-const BUNDLED_BINARY_NAME = process.platform === 'win32' ? 'netcoredbg.exe' : 'netcoredbg';
+const BINARY_NAME = process.platform === 'win32' ? 'netcoredbg.exe' : 'netcoredbg';
 
 export interface ResolvedCommand {
     command: string;
@@ -22,8 +21,8 @@ export interface MisconfiguredPath {
 }
 
 /**
- * Maps our own internal dist/<platform> naming (shared with sharpLspLocator's detectPlatform,
- * kept consistent across both bundled tools) to netcoredbg's own release-asset suffix.
+ * Maps our own internal platform naming (shared with sharpLspLocator's detectPlatform, kept
+ * consistent across both tools' download paths) to netcoredbg's own release-asset suffix.
  * netcoredbg publishes fewer platform combos than SharpLsp - no win32-arm64 or darwin-x64 asset
  * exists, confirmed against their actual releases.
  */
@@ -47,9 +46,8 @@ function getTrustedConfig<T>(key: string, defaultValue: T): T {
  * Silent resolution order, mirroring sharpLspLocator.ts's resolveSharpLspCommand exactly:
  * (1) configured path, (2) NETCOREDBG_EXECUTABLE_PATH env var (our own invented name - unlike
  * SHARPLSP_EXECUTABLE_PATH there's no upstream convention to mirror, since netcoredbg isn't
- * itself a VS Code extension author), (3) a path cached from a previous download or "Use
- * Bundled" choice, (4) bare command name on PATH. The bundled copy is deliberately never part
- * of this silent list - see getBundledCommand().
+ * itself a VS Code extension author), (3) a path cached from a previous download, (4) bare
+ * command name on PATH.
  */
 export function resolveNetcoredbgCommand(context: vscode.ExtensionContext): ResolvedCommand | MisconfiguredPath {
     const configuredPath = getTrustedConfig('debugAdapter.path', '');
@@ -70,23 +68,7 @@ export function resolveNetcoredbgCommand(context: vscode.ExtensionContext): Reso
         return { command: cachedPath, source: 'cached' };
     }
 
-    return { command: BUNDLED_BINARY_NAME, source: 'path' };
-}
-
-/** The binary staged inside this extension's own package at build time (see tools/build-netcoredbg.js), currently Windows x64 only. Never silently resolved - only offered through the not-installed notice/menu. */
-export function getBundledCommand(context: vscode.ExtensionContext): string | undefined {
-    const bundledPath = context.asAbsolutePath(path.join('dist', 'netcoredbg', detectPlatform(), BUNDLED_BINARY_NAME));
-    return fs.existsSync(bundledPath) ? bundledPath : undefined;
-}
-
-/** Reads the version.txt tools/build-netcoredbg.js writes alongside the staged binary, for update-awareness comparisons. */
-export function getBundledVersion(context: vscode.ExtensionContext): string | undefined {
-    const versionPath = context.asAbsolutePath(path.join('dist', 'netcoredbg', detectPlatform(), 'version.txt'));
-    try {
-        return fs.readFileSync(versionPath, 'utf8').trim();
-    } catch {
-        return undefined;
-    }
+    return { command: BINARY_NAME, source: 'path' };
 }
 
 export function getExtraArgs(): string[] {

@@ -4,7 +4,7 @@ import * as path from 'path';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 import { peekPickedCsprojFile, onDidChangePickedCsproj, findAllCsprojFiles } from '../utils/projectPicker';
 import { parseSolutionProjects } from '../utils/solutionParser';
-import { listPackageReferences, PackageReference } from '../utils/nugetPackages';
+import { listPackageReferences, getPackageAssemblies, PackageReference } from '../utils/nugetPackages';
 import { parseProjectReferences } from '../utils/projectReferences';
 import { parseAnalyzerReferences } from '../utils/analyzerReferences';
 import { isExcluded } from '../utils/csprojItemEdits';
@@ -15,6 +15,7 @@ import {
     ProjectNode,
     DependenciesNode,
     PackageNode,
+    PackageAssemblyNode,
     ProjectReferenceNode,
     AnalyzersNode,
     AnalyzerNode,
@@ -126,6 +127,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             case 'solution': return this.getSolutionChildren(element);
             case 'project': return this.getProjectChildren(element);
             case 'dependencies': return this.getDependenciesChildren(element);
+            case 'package': return this.getPackageAssemblyChildren(element);
             case 'analyzers': return this.getAnalyzersChildren(element);
             case 'folder': return this.readFsChildren(element.projectNode, element.uri.fsPath, element);
             case 'file': return this.getFileDependents(element);
@@ -240,6 +242,28 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
         }
     }
 
+    private async getPackageAssemblyChildren(node: PackageNode): Promise<SolutionExplorerNode[]> {
+        const assemblies = await getPackageAssemblies(node.projectNode.projectPath, node.packageId, node.version);
+
+        if (assemblies.length === 0) {
+            return [this.cacheNode<PackageAssemblyNode>({
+                kind: 'packageAssembly',
+                id: `pkgasm::${node.id}::none`,
+                parent: node,
+                displayName: 'No compile-time assemblies',
+                assemblyPath: undefined
+            })];
+        }
+
+        return assemblies.map(assemblyPath => this.cacheNode<PackageAssemblyNode>({
+            kind: 'packageAssembly',
+            id: `pkgasm::${node.id}::${assemblyPath}`,
+            parent: node,
+            displayName: path.basename(assemblyPath),
+            assemblyPath
+        }));
+    }
+
     private async getAnalyzersChildren(node: AnalyzersNode): Promise<SolutionExplorerNode[]> {
         const analyzerIds = await parseAnalyzerReferences(node.projectNode.projectPath);
         return analyzerIds.map(packageId => this.cacheNode<AnalyzerNode>({
@@ -258,8 +282,20 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
             return [];
         }
 
-        entries = entries.filter(entry => !(entry.isDirectory() &&
-            (IGNORED_DIR_NAMES.has(entry.name.toLowerCase()) || HIDDEN_DIR_NAMES.has(entry.name.toLowerCase()))));
+        // The project's own .csproj and the current .sln/.slnx (when it happens to sit in this
+        // same directory) are already represented by the Project/Solution nodes themselves -
+        // listing them again as ordinary loose files would be redundant. Edit Project File /
+        // Edit Solution File on those nodes' own context menus are the way to open them now.
+        const solutionPath = peekCurrentSolution(projectNode.folder);
+        entries = entries.filter(entry => {
+            if (entry.isDirectory()) {
+                return !(IGNORED_DIR_NAMES.has(entry.name.toLowerCase()) || HIDDEN_DIR_NAMES.has(entry.name.toLowerCase()));
+            }
+            const fullPath = path.join(dirPath, entry.name);
+            if (fullPath.toLowerCase() === projectNode.projectPath.toLowerCase()) { return false; }
+            if (solutionPath && fullPath.toLowerCase() === solutionPath.toLowerCase()) { return false; }
+            return true;
+        });
 
         const fileNames = entries.filter(entry => !entry.isDirectory()).map(entry => entry.name);
         const dependentGroups = computeDependentGroups(fileNames);
@@ -300,9 +336,8 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
     }
 
     private async buildFileNode(projectNode: ProjectNode, parent: ProjectNode | FolderNode | FileNode, fullPath: string): Promise<FileNode> {
-        const isProjectFile = fullPath.toLowerCase() === projectNode.projectPath.toLowerCase();
         const excluded = await isExcluded(projectNode.projectPath, fullPath);
-        return { kind: 'file', id: `file::${fullPath}`, parent, projectNode, uri: vscode.Uri.file(fullPath), isProjectFile, excluded };
+        return { kind: 'file', id: `file::${fullPath}`, parent, projectNode, uri: vscode.Uri.file(fullPath), excluded };
     }
 
     private async getFileDependents(element: FileNode): Promise<SolutionExplorerNode[]> {
@@ -360,11 +395,28 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
                 return item;
             }
             case 'package': {
-                const item = new vscode.TreeItem(`${element.packageId} ${element.version}`, vscode.TreeItemCollapsibleState.None);
+                // Collapsed unconditionally, matching Dependencies/Analyzers - whether it
+                // actually has any compile-time assemblies is only known lazily, on expansion
+                // (real I/O never happens here in getTreeItem, only in getChildren).
+                const item = new vscode.TreeItem(`${element.packageId} ${element.version}`, vscode.TreeItemCollapsibleState.Collapsed);
                 item.id = element.id;
                 item.iconPath = new vscode.ThemeIcon('package');
                 item.contextValue = 'dotnetPackage';
                 item.command = { command: 'dotnet-creator.solutionExplorer.openNugetManager', title: 'Manage NuGet Packages', arguments: [element] };
+                return item;
+            }
+            case 'packageAssembly': {
+                const item = new vscode.TreeItem(element.displayName, vscode.TreeItemCollapsibleState.None);
+                item.id = element.id;
+                if (element.assemblyPath) {
+                    item.iconPath = new vscode.ThemeIcon('library');
+                    item.tooltip = element.assemblyPath;
+                    item.contextValue = 'dotnetPackageAssembly';
+                    item.command = { command: 'revealFileInOS', title: 'Reveal in File Explorer', arguments: [vscode.Uri.file(element.assemblyPath)] };
+                } else {
+                    item.iconPath = new vscode.ThemeIcon('info');
+                    item.contextValue = 'dotnetPackageAssemblyPlaceholder';
+                }
                 return item;
             }
             case 'projectReference': {
@@ -405,9 +457,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
                 item.id = element.id;
                 item.command = { command: 'vscode.open', title: 'Open', arguments: [element.uri] };
                 item.description = element.excluded ? '(excluded)' : undefined;
-                const tokens = ['dotnetFile'];
-                if (!element.isProjectFile) { tokens.push('canRename'); }
-                tokens.push('canDelete', 'canNew', 'canCopy', 'canCut');
+                const tokens = ['dotnetFile', 'canRename', 'canDelete', 'canNew', 'canCopy', 'canCut'];
                 tokens.push(element.excluded ? 'canInclude' : 'canExclude');
                 item.contextValue = tokens.join(' ');
                 return item;

@@ -8,7 +8,7 @@ import { SharpLspClientManager, SharpLspStatus } from './sharpLspClient';
  * never see it at all.
  */
 export function registerSharpLspStatusBarItem(context: vscode.ExtensionContext, manager: SharpLspClientManager): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.sharpLspStatus', vscode.StatusBarAlignment.Left, 2);
+    const item = vscode.window.createStatusBarItem('dotnet-creator.sharpLspStatus', vscode.StatusBarAlignment.Right, 2);
     item.name = '.NET: C# Language Server';
     item.command = 'dotnet-creator.sharpLsp.showMenu';
 

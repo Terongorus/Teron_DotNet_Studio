@@ -7,6 +7,7 @@ import { getProjectTemplates, firstShortName, DotnetTemplate } from '../utils/te
 import { pickExistingSolution } from '../utils/solutionPicker';
 import { promptCreateSolution } from './createSolution';
 import { addRecentItem } from '../startPage/recentItems';
+import { openFolderUnlessAlreadyOpen } from '../utils/openFolder';
 
 interface TemplatePickItem extends vscode.QuickPickItem {
     template?: DotnetTemplate;
@@ -140,13 +141,8 @@ export function registerNewProjectCommand(context: vscode.ExtensionContext) {
                     folderPath: slnPath ? solutionFolder : fullProjectPath
                 });
 
-                vscode.window.showInformationMessage(`Successfully created ${projectName}!`, 'Open Project')
-                    .then(choice => {
-                        if (choice === 'Open Project') {
-                            const openPath = slnPath ? solutionFolder : fullProjectPath;
-                            vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(openPath), false);
-                        }
-                    });
+                vscode.window.showInformationMessage(`Successfully created ${projectName}!`);
+                openFolderUnlessAlreadyOpen(slnPath ? solutionFolder : fullProjectPath);
             } catch (error: any) {
                 vscode.window.showErrorMessage(`Failed to create project/solution: ${error.message}`);
             }

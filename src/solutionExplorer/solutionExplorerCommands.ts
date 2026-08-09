@@ -89,12 +89,8 @@ async function rename(node: MovableNode): Promise<void> {
 async function deleteNodes(node: MovableNode, selected?: MovableNode[]): Promise<void> {
     const nodes = selected && selected.length > 0 ? selected : [node];
     const names = nodes.map(n => path.basename(n.uri.fsPath)).join(', ');
-    const includesProjectFile = nodes.some(n => n.kind === 'file' && n.isProjectFile);
-    const message = includesProjectFile
-        ? `Permanently delete ${names}? This includes the project's own definition file, not just source files.`
-        : `Delete ${names}?`;
 
-    const confirm = await vscode.window.showWarningMessage(message, { modal: true }, 'Delete');
+    const confirm = await vscode.window.showWarningMessage(`Delete ${names}?`, { modal: true }, 'Delete');
     if (confirm !== 'Delete') { return; }
 
     for (const n of nodes) {
@@ -148,17 +144,28 @@ async function includeCommand(node: FileNode, provider: SolutionExplorerProvider
     provider.refresh(node.parent);
 }
 
-async function revealInFileExplorer(node: MovableNode | ProjectNode): Promise<void> {
-    const uri = node.kind === 'project' ? vscode.Uri.file(node.projectPath) : node.uri;
+async function revealInFileExplorer(node: MovableNode | ProjectNode | SolutionNode): Promise<void> {
+    const uri = node.kind === 'project' ? vscode.Uri.file(node.projectPath)
+        : node.kind === 'solution' ? vscode.Uri.file(node.solutionPath)
+        : node.uri;
     await vscode.commands.executeCommand('revealFileInOS', uri);
 }
 
-async function openInIntegratedTerminal(node: MovableNode | ProjectNode): Promise<void> {
+async function openInIntegratedTerminal(node: MovableNode | ProjectNode | SolutionNode): Promise<void> {
     let uri: vscode.Uri;
     if (node.kind === 'project') { uri = vscode.Uri.file(path.dirname(node.projectPath)); }
+    else if (node.kind === 'solution') { uri = vscode.Uri.file(path.dirname(node.solutionPath)); }
     else if (node.kind === 'folder') { uri = node.uri; }
     else { uri = vscode.Uri.joinPath(node.uri, '..'); }
     await vscode.commands.executeCommand('openInTerminal', uri);
+}
+
+async function editProjectFile(node: ProjectNode): Promise<void> {
+    await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(node.projectPath));
+}
+
+async function editSolutionFile(node: SolutionNode): Promise<void> {
+    await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(node.solutionPath));
 }
 
 async function removeFromSolution(node: ProjectNode, provider: SolutionExplorerProvider): Promise<void> {
@@ -255,8 +262,10 @@ async function runTarget(node: ProjectNode): Promise<void> {
     await runProject(node.projectPath, name, configuration);
 }
 
-async function openNugetManager(node: DependenciesNode | PackageNode, context: vscode.ExtensionContext): Promise<void> {
-    const projectPath = node.kind === 'dependencies' ? node.parent.projectPath : node.projectNode.projectPath;
+async function openNugetManager(node: ProjectNode | DependenciesNode | PackageNode, context: vscode.ExtensionContext): Promise<void> {
+    const projectPath = node.kind === 'project' ? node.projectPath
+        : node.kind === 'dependencies' ? node.parent.projectPath
+        : node.projectNode.projectPath;
     await manageNugetPackages(context, projectPath);
 }
 
@@ -281,6 +290,8 @@ export function registerSolutionExplorerCommands(context: vscode.ExtensionContex
     register('dotnet-creator.solutionExplorer.include', (node: FileNode) => includeCommand(node, provider));
     register('dotnet-creator.solutionExplorer.revealInFileExplorer', revealInFileExplorer);
     register('dotnet-creator.solutionExplorer.openInIntegratedTerminal', openInIntegratedTerminal);
+    register('dotnet-creator.solutionExplorer.editProjectFile', editProjectFile);
+    register('dotnet-creator.solutionExplorer.editSolutionFile', editSolutionFile);
     register('dotnet-creator.solutionExplorer.removeFromSolution', (node: ProjectNode) => removeFromSolution(node, provider));
     register('dotnet-creator.solutionExplorer.manageProjectReferences', (node: DependenciesNode) => manageProjectReferences(node, provider));
     register('dotnet-creator.solutionExplorer.setAsStartupProject', setAsStartupProject);
@@ -288,5 +299,5 @@ export function registerSolutionExplorerCommands(context: vscode.ExtensionContex
     register('dotnet-creator.solutionExplorer.rebuild', (node: ProjectNode | SolutionNode) => buildTarget(node, 'rebuild'));
     register('dotnet-creator.solutionExplorer.clean', (node: ProjectNode | SolutionNode) => buildTarget(node, 'clean'));
     register('dotnet-creator.solutionExplorer.run', runTarget);
-    register('dotnet-creator.solutionExplorer.openNugetManager', (node: DependenciesNode | PackageNode) => openNugetManager(node, context));
+    register('dotnet-creator.solutionExplorer.openNugetManager', (node: ProjectNode | DependenciesNode | PackageNode) => openNugetManager(node, context));
 }

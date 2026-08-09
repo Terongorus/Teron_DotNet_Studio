@@ -20,8 +20,6 @@ import {
     resolveSidecarEnv,
     getExtraArgs,
     probeSharpLsp,
-    getBundledCommand,
-    getBundledVersion,
     RESOLVED_PATH_STATE_KEY,
     RESOLVED_VERSION_STATE_KEY
 } from './sharpLspLocator';
@@ -92,12 +90,9 @@ export class SharpLspClientManager implements vscode.Disposable {
             if (probe.reason === 'not-found') {
                 this.notInstalled = true;
                 this.setStatus('NotInstalled');
-                const bundledPath = getBundledCommand(this.context);
-                const choice = await showNotInstalledNotice(this.context, bundledPath !== undefined);
+                const choice = await showNotInstalledNotice(this.context);
                 if (choice === 'download') {
                     await this.downloadAndStart();
-                } else if (choice === 'bundled' && bundledPath) {
-                    await this.useResolvedPath(bundledPath, getBundledVersion(this.context));
                 }
             } else {
                 this.setStatus('Failed');
@@ -115,6 +110,14 @@ export class SharpLspClientManager implements vscode.Disposable {
 
     /** Invoked by the not-installed notice's "Download" action and by the status bar menu's "Download/Update SharpLsp" entry. */
     async downloadAndStart(): Promise<void> {
+        // Windows locks a running executable's file - overwriting sharplsp.exe while this
+        // manager's own client is still running against that exact path (the common case:
+        // re-downloading the version already active, or updating while it's connected) fails
+        // with EBUSY. Stopping first, same as "close an app before updating it", is the fix;
+        // useResolvedPath/spawnClient below starts the (possibly new) binary back up regardless
+        // of whether this was a fresh install or an update.
+        await this.stopClient();
+
         const result = await vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: 'SharpLsp', cancellable: true },
             (progress, token) => downloadLatestRelease(this.context, progress, token)
@@ -129,13 +132,7 @@ export class SharpLspClientManager implements vscode.Disposable {
         await this.useResolvedPath(result.path, result.version);
     }
 
-    /** Invoked by the not-installed notice's "Use Bundled SharpLsp" action and by the status bar menu's equivalent entry. */
-    async useBundled(): Promise<void> {
-        const bundledPath = getBundledCommand(this.context);
-        if (bundledPath) { await this.useResolvedPath(bundledPath, getBundledVersion(this.context)); }
-    }
-
-    /** Shared tail for both "Download" and "Use Bundled": persist the resolved path (and version, for update-awareness) so future sessions skip straight to it via resolveSharpLspCommand's cached tier, clear latches, and spawn. */
+    /** Shared tail for "Download": persist the resolved path (and version, for update-awareness) so future sessions skip straight to it via resolveSharpLspCommand's cached tier, clear latches, and spawn. */
     private async useResolvedPath(resolvedPath: string, version: string | undefined): Promise<void> {
         await this.context.globalState.update(RESOLVED_PATH_STATE_KEY, resolvedPath);
         await this.context.globalState.update(RESOLVED_VERSION_STATE_KEY, version);

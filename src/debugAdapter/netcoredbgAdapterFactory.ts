@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import {
     resolveNetcoredbgCommand,
-    getBundledCommand,
-    getBundledVersion,
     probeNetcoredbg,
     getExtraArgs,
     RESOLVED_PATH_STATE_KEY,
@@ -46,13 +44,7 @@ export class NetcoredbgAdapterFactory implements vscode.DebugAdapterDescriptorFa
         }
         if (probe.reason !== 'not-found') { return undefined; }
 
-        const bundledPath = getBundledCommand(this.context);
-        const choice = await showNotInstalledNotice(this.context, bundledPath !== undefined);
-
-        if (choice === 'bundled' && bundledPath) {
-            await this.recordResolved(bundledPath, getBundledVersion(this.context));
-            return this.makeExecutable(bundledPath);
-        }
+        const choice = await showNotInstalledNotice(this.context);
 
         if (choice === 'download') {
             const downloadedPath = await this.downloadAndCache();
@@ -61,8 +53,8 @@ export class NetcoredbgAdapterFactory implements vscode.DebugAdapterDescriptorFa
 
         // Returning undefined surfaces VS Code's own "no debug adapter descriptor" failure -
         // the not-installed notice already explained why and what to do; the user retries F5
-        // once resolved (Download/Use Bundled both resolve inline above without needing that,
-        // since this factory call is itself async and can just wait).
+        // once resolved (Download resolves inline above without needing that, since this
+        // factory call is itself async and can just wait).
         return undefined;
     }
 
@@ -81,14 +73,6 @@ export class NetcoredbgAdapterFactory implements vscode.DebugAdapterDescriptorFa
         showDownloadSucceededNotice(result.version);
         await this.recordResolved(result.path, result.version);
         return result.path;
-    }
-
-    /** Invoked by the "Use Bundled netcoredbg" command directly (outside of an active F5 press). */
-    async useBundled(): Promise<string | undefined> {
-        const bundledPath = getBundledCommand(this.context);
-        if (!bundledPath) { return undefined; }
-        await this.recordResolved(bundledPath, getBundledVersion(this.context));
-        return bundledPath;
     }
 
     private async recordResolved(resolvedPath: string, version: string | undefined): Promise<void> {

@@ -38,6 +38,15 @@ export interface PackageNode {
     version: string;
 }
 
+/** A compile-time assembly a package contributes to the build (see utils/nugetPackages.ts's getPackageAssemblies) - absent for the placeholder shown when a package contributes none (e.g. build/analyzer-only packages). */
+export interface PackageAssemblyNode {
+    kind: 'packageAssembly';
+    id: string;
+    parent: PackageNode;
+    displayName: string;
+    assemblyPath: string | undefined;
+}
+
 export interface ProjectReferenceNode {
     kind: 'projectReference';
     id: string;
@@ -74,7 +83,6 @@ export interface FileNode {
     parent: ProjectNode | FolderNode | FileNode;
     projectNode: ProjectNode;
     uri: vscode.Uri;
-    isProjectFile: boolean;
     excluded: boolean;
     /** Filenames (not full paths, same directory) of code-behind/designer files nested under this one - e.g. "MainWindow.xaml.cs" under "MainWindow.xaml". Matches VS/ReSharper's dependent-file grouping. */
     dependentNames?: string[];
@@ -86,6 +94,7 @@ export type SolutionExplorerNode =
     | ProjectNode
     | DependenciesNode
     | PackageNode
+    | PackageAssemblyNode
     | ProjectReferenceNode
     | AnalyzersNode
     | AnalyzerNode
