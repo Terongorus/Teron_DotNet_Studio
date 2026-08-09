@@ -585,13 +585,14 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run package && npm run build:designer-host",
+    "vscode:prepublish": "npm run package && npm run build:designer-host && npm run build:sharplsp",
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "build:designer-host": "npm run build:designer-host:x64 && npm run build:designer-host:x86",
     "build:designer-host:x64": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x64 --self-contained false -o dist/designer-host/win-x64",
     "build:designer-host:x86": "dotnet publish designer-host/DesignerHost.csproj -c Release -r win-x86 --self-contained false -o dist/designer-host/win-x86",
+    "build:sharplsp": "node tools/build-sharplsp.js",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",

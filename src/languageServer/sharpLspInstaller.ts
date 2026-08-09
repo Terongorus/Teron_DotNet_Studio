@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 import * as yauzl from 'yauzl';
-import { DOWNLOADED_PATH_STATE_KEY } from './sharpLspLocator';
+import { detectPlatform } from './sharpLspLocator';
 
 const RELEASES_API_URL = 'https://api.github.com/repos/Nimblesite/SharpLsp/releases/latest';
 const GITHUB_HEADERS = { 'User-Agent': 'dotnet-project-creator-vscode-extension', 'Accept': 'application/vnd.github+json' };
@@ -21,14 +21,6 @@ interface ReleaseAsset {
 interface Release {
     tag_name: string;
     assets: ReleaseAsset[];
-}
-
-/** Maps to the exact `<os>-<arch>` scheme confirmed in SharpLsp's own platform.ts, and matches their release asset naming (`sharplsp-<platform>.vsix`). */
-export function detectPlatform(): string {
-    if (process.platform === 'darwin') { return process.arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64'; }
-    if (process.platform === 'linux') { return process.arch === 'arm64' ? 'linux-arm64' : 'linux-x64'; }
-    if (process.platform === 'win32') { return process.arch === 'arm64' ? 'win32-arm64' : 'win32-x64'; }
-    return 'linux-x64';
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -149,7 +141,6 @@ export async function downloadLatestRelease(
             await fs.promises.chmod(destPath, 0o755);
         }
 
-        await context.globalState.update(DOWNLOADED_PATH_STATE_KEY, destPath);
         return { ok: true, path: destPath, version };
     } catch (error: any) {
         return { ok: false, detail: error.message ?? String(error) };

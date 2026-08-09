@@ -14,7 +14,7 @@ import {
     State,
     RevealOutputChannelOn
 } from 'vscode-languageclient/node';
-import { resolveSharpLspCommand, resolveDotnetPath, getExtraArgs, probeSharpLsp } from './sharpLspLocator';
+import { resolveSharpLspCommand, resolveDotnetPath, getExtraArgs, probeSharpLsp, getBundledCommand, RESOLVED_PATH_STATE_KEY } from './sharpLspLocator';
 import { downloadLatestRelease } from './sharpLspInstaller';
 import {
     showNotInstalledNotice,
@@ -78,9 +78,12 @@ export class SharpLspClientManager implements vscode.Disposable {
             if (probe.reason === 'not-found') {
                 this.notInstalled = true;
                 this.setStatus('NotInstalled');
-                const choice = await showNotInstalledNotice(this.context);
+                const bundledPath = getBundledCommand(this.context);
+                const choice = await showNotInstalledNotice(this.context, bundledPath !== undefined);
                 if (choice === 'download') {
                     await this.downloadAndStart();
+                } else if (choice === 'bundled' && bundledPath) {
+                    await this.useResolvedPath(bundledPath);
                 }
             } else {
                 this.setStatus('Failed');
@@ -104,9 +107,21 @@ export class SharpLspClientManager implements vscode.Disposable {
         }
 
         showDownloadSucceededNotice(result.version);
+        await this.useResolvedPath(result.path);
+    }
+
+    /** Invoked by the not-installed notice's "Use Bundled SharpLsp" action and by the status bar menu's equivalent entry. */
+    async useBundled(): Promise<void> {
+        const bundledPath = getBundledCommand(this.context);
+        if (bundledPath) { await this.useResolvedPath(bundledPath); }
+    }
+
+    /** Shared tail for both "Download" and "Use Bundled": persist the resolved path so future sessions skip straight to it (see resolveSharpLspCommand's cached tier), clear latches, and spawn. */
+    private async useResolvedPath(resolvedPath: string): Promise<void> {
+        await this.context.globalState.update(RESOLVED_PATH_STATE_KEY, resolvedPath);
         this.notInstalled = false;
         this.restartAttempts = 0;
-        await this.spawnClient(result.path);
+        await this.spawnClient(resolvedPath);
     }
 
     private async spawnClient(command: string): Promise<void> {

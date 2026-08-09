@@ -13,7 +13,8 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 * **Solution Scaffold File Management:** Add or permanently delete solution-level scaffold files (`.gitignore`, `.editorconfig`, `NuGet.Config`, `global.json`, `.sln`/`.slnx`, etc.) in any folder via **.NET: Manage Solution Files**.
 * **NuGet Package Manager:** A dedicated panel (**.NET: Manage NuGet Packages**, or from the Project status bar item) to browse NuGet.org, and install, update, or remove package references for a project — no typing exact package IDs required. Requires .NET SDK 7.0.200 or later.
 * **Solution Explorer:** A dedicated activity bar view (its own icon, separate from the native Explorer) showing your solution, its projects, each project's dependencies (NuGet packages, project references, detected analyzers/source generators), and its real file/folder structure — with full New File/Class/Folder, Add Existing File, Rename, Delete, Cut/Copy/Paste, Exclude/Include From Project, drag-and-drop move, Build/Rebuild/Clean/Run, Set as Startup Project, Remove from Solution, and sync-with-active-editor support. Stays in sync with the Solution status bar item, and shows one independent section per folder in a multi-root workspace. Does not show source generators' actual *generated* output files — that needs a real Roslyn/MSBuild hook, the same boundary as the language-server items below.
-* **Fast and Lightweight:** No heavy background language servers or telemetry; just pure UI to CLI bridging.
+* **Optional C#/F# Language Server:** drives [SharpLsp](https://github.com/Nimblesite/SharpLsp) (MIT-licensed, Roslyn for C# + FSharp.Compiler.Service for F#) directly as a standard language server — diagnostics, completions, hover, go-to-definition, the Outline panel/breadcrumbs, and code folding — without installing SharpLsp's own VS Code extension (which ships its own Solution Explorer/NuGet browser/profiler that would duplicate this extension's own). Entirely opt-in: if SharpLsp isn't found, opening a C#/F# file offers a one-click **Download SharpLsp** (fetches the official release, checksum-verified against SharpLsp's own published hashes before anything is extracted or run) or **Install Instructions** (`cargo install sharplsp` / build it yourself) — nothing is ever installed automatically. A status bar item shows its state, with Restart/Show Output actions.
+* **Fast and Lightweight by Default:** every feature above is pure UI-to-CLI/filesystem bridging — no background processes unless you explicitly opt into the language server integration.
 
 ## Requirements
 
@@ -165,23 +166,20 @@ Planned, not yet started:
   `dotnet-trace` use) — a materially different, larger feature than OS-level polling. Flagged
   as a real boundary, not a silent omission, in case it's wanted as a future milestone.
 
-Also under consideration, but a different category of effort — each of these needs a real C#
-semantic engine (Roslyn or similar), not a CLI wrapper, so they're not planned in detail here.
-This extension isn't going to build its own Roslyn-hosting language server, but a real,
-free option now exists worth knowing about: **[SharpLsp](https://github.com/Nimblesite/SharpLsp)**
-(MIT licensed, editor-agnostic, Roslyn for C# + FSharp.Compiler.Service for F#), installable
-separately from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Nimblesite.sharplsp)
-the same way ReSharper or C# Dev Kit would be. It's early (v0.18.0 as of writing, ~150
-installs, requires .NET SDK 10+) but actively developed, so it's not a mature drop-in yet -
-worth revisiting as it matures. Note it also ships its own Solution Explorer and a profiler,
-which will overlap with this extension's own Solution Explorer and the "Deeper runtime
-diagnostics" item above if both are installed at once.
+The items below are no longer a silent gap — this extension now provides the plumbing (see the
+**Optional C#/F# Language Server** feature above) to drive **[SharpLsp](https://github.com/Nimblesite/SharpLsp)**
+(MIT licensed, editor-agnostic, Roslyn for C# + FSharp.Compiler.Service for F#) directly, rather
+than building a Roslyn-hosting language server of its own:
 
-* **Code Analysis & Inspections** — real-time issue detection and quick fixes.
-* **Navigation & Search** — go to definition, find usages, symbol search.
-* **Code Refactoring** — Rename, Extract Method, Introduce Variable, and similar operations.
-* **Code Completion / IntelliSense** — context-aware completions, live templates, auto-imports.
-* **C#-aware Code Formatting** — semantic formatting beyond generic EditorConfig rules.
+* **Code Analysis & Inspections**, **Navigation & Search**, **Code Completion / IntelliSense**,
+  **Code Refactoring**, and **C#-aware Code Formatting** — provided by SharpLsp once it's
+  installed (via the built-in **Download SharpLsp** action or your own `cargo install
+  sharplsp`), to whatever extent SharpLsp itself implements each one. It's early (v0.18.0 as of
+  writing, requires .NET SDK 10+) but actively developed, so coverage and polish will keep
+  improving over time rather than being a mature drop-in for ReSharper/C# Dev Kit on day one.
+* Deliberately not using SharpLsp's own VS Code extension: it ships its own Solution Explorer
+  and a profiler, which would overlap with this extension's own Solution Explorer and the
+  "Deeper runtime diagnostics" item above if both were installed.
 
 ## Known Issues
 

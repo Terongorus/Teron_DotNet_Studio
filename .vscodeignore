@@ -4,6 +4,7 @@ out/**
 node_modules/**
 src/**
 designer-host/**
+third-party/**
 Front_page_design.png
 .gitignore
 .yarnrc
