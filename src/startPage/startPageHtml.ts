@@ -43,9 +43,9 @@ function renderRecentItem(item: RecentItem): string {
         </li>`;
 }
 
-export function getStartPageHtml(webview: vscode.Webview, recentItems: RecentItem[]): string {
+export function getStartPageHtml(webview: vscode.Webview, recentItems: RecentItem[], iconUri: vscode.Uri, showOnStartup: boolean): string {
     const nonce = getNonce();
-    const csp = `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
+    const csp = `default-src 'none'; img-src ${webview.cspSource}; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
 
     const recentHtml = recentItems.length > 0
         ? `<ul class="recent-list">${recentItems.map(renderRecentItem).join('')}</ul>`
@@ -56,18 +56,44 @@ export function getStartPageHtml(webview: vscode.Webview, recentItems: RecentIte
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="${csp}">
-    <title>.NET Project Creator</title>
+    <title>.NET Studio</title>
     <style nonce="${nonce}">
+        html, body {
+            height: 100%;
+        }
         body {
+            display: flex;
+            justify-content: center;
             font-family: var(--vscode-font-family);
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
-            padding: 48px 64px;
+            margin: 0;
+        }
+        .page {
+            width: 100%;
+            max-width: 760px;
+            box-sizing: border-box;
+            padding: 72px 32px 48px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+        .header img {
+            width: 48px;
+            height: 48px;
         }
         h1 {
             font-weight: 300;
-            font-size: 28px;
-            margin-bottom: 40px;
+            font-size: 30px;
+            margin: 0;
+        }
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: 4px;
         }
         .columns {
             display: flex;
@@ -171,24 +197,49 @@ export function getStartPageHtml(webview: vscode.Webview, recentItems: RecentIte
             opacity: 0.6;
             font-size: 13px;
         }
+        .footer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 56px;
+            font-size: 13px;
+            opacity: 0.8;
+            cursor: pointer;
+            user-select: none;
+        }
+        .footer-toggle input {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
-    <h1>.NET Project Creator</h1>
-    <div class="columns">
-        <div>
-            <h2>Start</h2>
-            <ul class="actions">
-                <li><button data-command="newProject">${iconSvg('newProject')}<span>Create New Project...</span></button></li>
-                <li><button data-command="createSolution">${iconSvg('createSolution')}<span>Create Solution...</span></button></li>
-                <li><button data-command="manageSolution">${iconSvg('manageSolution')}<span>Manage Solution Files...</span></button></li>
-                <li><button data-command="openExisting">${iconSvg('openExisting')}<span>Open Existing Solution/Project...</span></button></li>
-            </ul>
+    <div class="page">
+        <div class="header">
+            <img src="${iconUri}" alt="">
+            <div>
+                <h1>.NET Studio</h1>
+                <div class="subtitle">Your solution, streamlined.</div>
+            </div>
         </div>
-        <div>
-            <h2>Recent</h2>
-            ${recentHtml}
+        <div class="columns">
+            <div>
+                <h2>Start</h2>
+                <ul class="actions">
+                    <li><button data-command="newProject">${iconSvg('newProject')}<span>Create New Project...</span></button></li>
+                    <li><button data-command="createSolution">${iconSvg('createSolution')}<span>Create Solution...</span></button></li>
+                    <li><button data-command="manageSolution">${iconSvg('manageSolution')}<span>Manage Solution Files...</span></button></li>
+                    <li><button data-command="openExisting">${iconSvg('openExisting')}<span>Open Existing Solution/Project...</span></button></li>
+                </ul>
+            </div>
+            <div>
+                <h2>Recent</h2>
+                ${recentHtml}
+            </div>
         </div>
+        <label class="footer-toggle">
+            <input type="checkbox" id="showOnStartup" ${showOnStartup ? 'checked' : ''}>
+            <span>Show start page on startup</span>
+        </label>
     </div>
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
@@ -211,6 +262,10 @@ export function getStartPageHtml(webview: vscode.Webview, recentItems: RecentIte
                 e.stopPropagation();
                 vscode.postMessage({ command: 'removeRecent', folderPath: el.getAttribute('data-remove-folder') });
             });
+        });
+
+        document.getElementById('showOnStartup').addEventListener('change', (e) => {
+            vscode.postMessage({ command: 'toggleShowOnStartup', checked: e.target.checked });
         });
     </script>
 </body>

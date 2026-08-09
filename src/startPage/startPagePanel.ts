@@ -15,16 +15,19 @@ export function showStartPage(context: vscode.ExtensionContext): void {
 
     const panel = vscode.window.createWebviewPanel(
         VIEW_TYPE,
-        '.NET Project Creator',
+        '.NET Studio',
         vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
     );
 
-    panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'appicon.png');
+    const iconFsUri = vscode.Uri.joinPath(context.extensionUri, 'resources', 'appicon.png');
+    panel.iconPath = iconFsUri;
+    const iconUri = panel.webview.asWebviewUri(iconFsUri);
 
     const refresh = () => {
         const items = getRecentItems(context.globalState).filter(i => fs.existsSync(i.folderPath));
-        panel.webview.html = getStartPageHtml(panel.webview, items);
+        const showOnStartup = vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('showStartPageOnStartup', true);
+        panel.webview.html = getStartPageHtml(panel.webview, items, iconUri, showOnStartup);
     };
 
     const changeSubscription = onDidChangeRecentItems(refresh);
@@ -42,6 +45,9 @@ export function showStartPage(context: vscode.ExtensionContext): void {
                 break;
             case 'removeRecent':
                 await removeRecentItem(context.globalState, message.folderPath);
+                break;
+            case 'toggleShowOnStartup':
+                await vscode.workspace.getConfiguration('dotnet-creator').update('showStartPageOnStartup', message.checked, vscode.ConfigurationTarget.Global);
                 break;
         }
     });
