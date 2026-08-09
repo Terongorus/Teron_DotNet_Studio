@@ -16,6 +16,9 @@ interface RawSample {
 
 const POLL_INTERVAL_MS = 1500;
 
+/** Rolling history window kept for charting - 60 samples at POLL_INTERVAL_MS is 90 seconds. */
+export const MAX_SAMPLES = 60;
+
 /** .NET DateTime ticks (100ns units since 0001-01-01) for the Unix epoch. */
 const DOTNET_EPOCH_TICKS = 621355968000000000;
 

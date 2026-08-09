@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { onDidChangePid } from '../utils/debugSessionTracker';
-import { startPolling, ProcessStats } from '../utils/processStats';
+import { startPolling, ProcessStats, MAX_SAMPLES } from '../utils/processStats';
 import { getResourceMonitorHtml } from './resourceMonitorHtml';
 
 const VIEW_TYPE = 'dotnet-creator.resourceMonitorView';
@@ -16,7 +16,7 @@ class ResourceMonitorProvider implements vscode.WebviewViewProvider {
     private pidChangeSubscription: vscode.Disposable | undefined;
     private pollingSubscription: vscode.Disposable | undefined;
     private currentPid: number | undefined;
-    private lastStats: ProcessStats | undefined;
+    private sampleHistory: ProcessStats[] = [];
 
     constructor(private readonly context: vscode.ExtensionContext) { }
 
@@ -24,13 +24,13 @@ class ResourceMonitorProvider implements vscode.WebviewViewProvider {
         this.webviewView = webviewView;
         webviewView.webview.options = { enableScripts: true };
         webviewView.webview.html = getResourceMonitorHtml(webviewView.webview);
-        this.postStats(this.lastStats);
+        this.postHistory();
 
         if (!this.pidChangeSubscription) {
             this.pidChangeSubscription = onDidChangePid(tracked => {
                 this.currentPid = tracked?.pid;
-                this.lastStats = undefined;
-                this.postStats(undefined);
+                this.sampleHistory = [];
+                this.postHistory();
                 this.refreshPolling();
             });
             this.context.subscriptions.push(this.pidChangeSubscription);
@@ -56,13 +56,20 @@ class ResourceMonitorProvider implements vscode.WebviewViewProvider {
         }
 
         this.pollingSubscription = startPolling(this.currentPid, stats => {
-            this.lastStats = stats;
-            this.postStats(stats);
+            if (!stats) {
+                this.sampleHistory = [];
+                void this.webviewView?.webview.postMessage({ command: 'sample', stats: undefined });
+                return;
+            }
+
+            this.sampleHistory = [...this.sampleHistory, stats].slice(-MAX_SAMPLES);
+            void this.webviewView?.webview.postMessage({ command: 'sample', stats });
         });
     }
 
-    private postStats(stats: ProcessStats | undefined): void {
-        void this.webviewView?.webview.postMessage({ command: 'stats', stats });
+    /** Replays the full rolling buffer in one message - used on resolve (the webview's own DOM/JS is torn down whenever hidden, since retainContextWhenHidden is false) and on every pid change. */
+    private postHistory(): void {
+        void this.webviewView?.webview.postMessage({ command: 'history', samples: this.sampleHistory });
     }
 }
 
