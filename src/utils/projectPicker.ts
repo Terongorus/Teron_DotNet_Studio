@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { peekCurrentSolution, setCurrentSolution } from './currentSolution';
+import { findNearestSolutionFile } from './solutionParser';
 
 export interface PickCsprojArgs {
     include?: string;
@@ -19,6 +21,12 @@ export function peekPickedCsprojFile(context: vscode.ExtensionContext): string |
     return context.workspaceState.get<string>(PICKED_CSPROJ_KEY);
 }
 
+/** Clears the stored pick and fires onDidChangePickedCsproj - used by currentSolution.ts when switching solutions, so a project from the old solution doesn't linger. */
+export async function clearPickedCsprojFile(context: vscode.ExtensionContext): Promise<void> {
+    await context.workspaceState.update(PICKED_CSPROJ_KEY, undefined);
+    _onDidChangePickedCsproj.fire(undefined);
+}
+
 function getRecentCsprojFiles(context: vscode.ExtensionContext): string[] {
     return context.workspaceState.get<string[]>(RECENT_CSPROJ_KEY, []);
 }
@@ -28,6 +36,47 @@ async function addRecentCsprojFile(context: vscode.ExtensionContext, filePath: s
     const existing = getRecentCsprojFiles(context).filter(p => p.toLowerCase() !== filePath.toLowerCase());
     const updated = [filePath, ...existing].slice(0, MAX_RECENT_CSPROJ);
     await context.workspaceState.update(RECENT_CSPROJ_KEY, updated);
+}
+
+export interface RecentCsprojItem extends vscode.QuickPickItem {
+    projectPath: string;
+}
+
+export function getRecentCsprojItems(context: vscode.ExtensionContext): RecentCsprojItem[] {
+    return getRecentCsprojFiles(context).map(projectPath => ({
+        label: `$(history) ${path.basename(projectPath)}`,
+        description: projectPath,
+        projectPath
+    }));
+}
+
+/** Full-workspace .csproj search, the same exclude glob pickCsprojFile itself uses. */
+export function findAllCsprojFiles(): Promise<vscode.Uri[]> {
+    return Promise.resolve(vscode.workspace.findFiles('**/*.csproj', '**/{bin,obj,node_modules}/**'));
+}
+
+/**
+ * Records a project as the current pick outside of pickCsprojFile's own
+ * find+prompt flow - for callers (like the Project status bar menu) that
+ * already know the exact path from their own combined menu. Shared so both
+ * paths stay in sync on the recent list, the change event, and the
+ * cold-start solution auto-derive.
+ */
+export async function recordPickedCsprojFile(context: vscode.ExtensionContext, picked: string): Promise<void> {
+    await context.workspaceState.update(PICKED_CSPROJ_KEY, picked);
+    await addRecentCsprojFile(context, picked);
+    _onDidChangePickedCsproj.fire(picked);
+
+    // Cold-start default: if no solution is tracked yet, silently derive one
+    // from the picked project's nearest .sln/.slnx - never overrides an
+    // explicitly-picked solution, just avoids an empty Solution segment /
+    // "Projects in Solution" section on first use.
+    if (!peekCurrentSolution(context)) {
+        const nearestSolution = findNearestSolutionFile(path.dirname(picked));
+        if (nearestSolution) {
+            await setCurrentSolution(context, nearestSolution);
+        }
+    }
 }
 
 /**
@@ -74,9 +123,7 @@ export async function pickCsprojFile(context: vscode.ExtensionContext, args?: Pi
     }
 
     if (picked) {
-        await context.workspaceState.update(PICKED_CSPROJ_KEY, picked);
-        await addRecentCsprojFile(context, picked);
-        _onDidChangePickedCsproj.fire(picked);
+        await recordPickedCsprojFile(context, picked);
     }
 
     return picked;

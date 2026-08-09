@@ -67,6 +67,12 @@
         "icon": "resources/appicon.png",
         "title": "Change Debug Project",
         "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.pickConfiguration",
+        "icon": "resources/appicon.png",
+        "title": "Change Build Configuration",
+        "category": ".NET"
       }
     ],
     "configuration": {

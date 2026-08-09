@@ -8,6 +8,10 @@ import { registerXamlDesignerCommand } from './commands/xamlDesigner';
 import { disposeDesignerHost } from './xamlDesigner/xamlDesignerPanel';
 import { registerPickCsprojFileCommand } from './commands/pickCsprojFile';
 import { registerProjectStatusBarItem } from './statusBar/projectStatusBarItem';
+import { registerSolutionStatusBarItem } from './statusBar/solutionStatusBarItem';
+import { registerConfigurationStatusBarItem } from './statusBar/configurationStatusBarItem';
+import { registerPickConfigurationCommand } from './commands/pickConfiguration';
+import { registerStatusBarMenuCommands } from './commands/statusBarMenus';
 
 export function activate(context: vscode.ExtensionContext) {
     registerNewProjectCommand(context);
@@ -17,7 +21,11 @@ export function activate(context: vscode.ExtensionContext) {
     registerStartPageCommand(context);
     registerXamlDesignerCommand(context);
     registerPickCsprojFileCommand(context);
+    registerPickConfigurationCommand(context);
+    registerStatusBarMenuCommands(context);
+    registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);
+    registerConfigurationStatusBarItem(context);
 
     maybeShowStartPageOnStartup(context);
 }
