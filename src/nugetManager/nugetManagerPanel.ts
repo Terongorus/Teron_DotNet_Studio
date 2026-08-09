@@ -41,9 +41,27 @@ export function showNugetManager(context: vscode.ExtensionContext, projectPath: 
         try {
             installed = await listPackageReferences(projectPath);
             void panel.webview.postMessage({ command: 'installedPackages', packages: installed });
+            void checkForUpdates();
         } catch (error: any) {
             void panel.webview.postMessage({ command: 'searchError', message: error.message });
         }
+    };
+
+    /** Runs after the installed list refreshes - checks each package against NuGet's latest stable version, reported separately since it's slower than the local `dotnet list` call. */
+    const checkForUpdates = async (): Promise<void> => {
+        const currentInstalled = installed;
+        const updates = await Promise.all(currentInstalled.map(async pkg => {
+            try {
+                const versions = await getPackageVersions(pkg.id);
+                const latestStable = versions.find(v => !v.includes('-'));
+                return { id: pkg.id, hasUpdate: !!latestStable && latestStable !== pkg.resolvedVersion };
+            } catch {
+                return { id: pkg.id, hasUpdate: false };
+            }
+        }));
+
+        if (currentInstalled !== installed) { return; } // superseded by a newer refresh while this was in flight
+        void panel.webview.postMessage({ command: 'updateAvailability', updates });
     };
 
     const postDetails = async (packageId: string): Promise<void> => {

@@ -116,6 +116,15 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .update-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--vscode-charts-orange);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
         .details {
             display: none;
             border: 1px solid var(--vscode-panel-border);
@@ -184,19 +193,19 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
 <body>
     <h1>${projectName}</h1>
     <div class="tabs">
-        <button class="tab-button active" id="tabBrowse">Browse</button>
-        <button class="tab-button" id="tabInstalled">Installed</button>
+        <button class="tab-button active" id="tabInstalled">Installed</button>
+        <button class="tab-button" id="tabBrowse">Browse</button>
     </div>
     <div class="layout">
         <div class="list-column">
-            <div id="browsePane">
+            <div id="installedPane">
+                <div class="status-line" id="installedStatus">Loading...</div>
+                <ul class="package-list" id="installedList"></ul>
+            </div>
+            <div id="browsePane" style="display: none;">
                 <input type="text" id="searchInput" placeholder="Search NuGet.org (min. 2 characters)...">
                 <div class="status-line" id="browseStatus"></div>
                 <ul class="package-list" id="searchResults"></ul>
-            </div>
-            <div id="installedPane" style="display: none;">
-                <div class="status-line" id="installedStatus">Loading...</div>
-                <ul class="package-list" id="installedList"></ul>
             </div>
         </div>
         <div class="details-column">
@@ -238,8 +247,14 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
         let selectedId = null;
         let lastInstalledVersion = undefined;
         const descriptionsById = {};
+        let lastInstalledPackages = [];
+        const updatesById = {};
 
+        let activeTab = 'installed';
+
+        /** Unconditionally re-applies the active tab's visibility to both panes - also called after every incoming message, so any earlier inconsistency (e.g. a pane left visible from a prior state) self-heals on the next data update rather than persisting. */
         function showTab(tab) {
+            activeTab = tab;
             const isBrowse = tab === 'browse';
             browsePane.style.display = isBrowse ? 'block' : 'none';
             installedPane.style.display = isBrowse ? 'none' : 'block';
@@ -263,15 +278,27 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
             return n + ' downloads';
         }
 
-        function renderPackageRow(id, meta, description) {
+        function renderPackageRow(id, meta, description, hasUpdate) {
             const li = document.createElement('li');
             li.className = 'package-row' + (id === selectedId ? ' selected' : '');
             li.dataset.id = id;
-            li.innerHTML = '<div class="package-id">' + escapeHtml(id) + '</div>' +
+            li.innerHTML = '<div class="package-id">' + escapeHtml(id) + (hasUpdate ? '<span class="update-dot" title="Update available"></span>' : '') + '</div>' +
                 '<div class="package-meta">' + escapeHtml(meta) + '</div>' +
                 (description ? '<div class="package-desc">' + escapeHtml(description) + '</div>' : '');
             li.addEventListener('click', () => selectPackage(id));
             return li;
+        }
+
+        function renderInstalledList() {
+            installedListEl.innerHTML = '';
+            if (lastInstalledPackages.length === 0) {
+                installedStatus.textContent = 'No packages installed.';
+                return;
+            }
+            installedStatus.textContent = '';
+            lastInstalledPackages.forEach(p => {
+                installedListEl.appendChild(renderPackageRow(p.id, p.resolvedVersion, '', !!updatesById[p.id]));
+            });
         }
 
         function selectPackage(id) {
@@ -348,15 +375,13 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
                     break;
                 }
                 case 'installedPackages': {
-                    installedListEl.innerHTML = '';
-                    if (message.packages.length === 0) {
-                        installedStatus.textContent = 'No packages installed.';
-                    } else {
-                        installedStatus.textContent = '';
-                        message.packages.forEach(p => {
-                            installedListEl.appendChild(renderPackageRow(p.id, p.resolvedVersion, ''));
-                        });
-                    }
+                    lastInstalledPackages = message.packages;
+                    renderInstalledList();
+                    break;
+                }
+                case 'updateAvailability': {
+                    message.updates.forEach(u => { updatesById[u.id] = u.hasUpdate; });
+                    renderInstalledList();
                     break;
                 }
                 case 'packageDetails': {
@@ -384,6 +409,7 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
                     break;
                 }
             }
+            showTab(activeTab);
         });
     </script>
 </body>
