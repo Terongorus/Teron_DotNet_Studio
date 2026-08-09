@@ -1,0 +1,4 @@
+<Project>
+    <!-- MSBuild discovers this root filename automatically; shared settings live with project config. -->
+    <Import Project="$(MSBuildThisFileDirectory).config/dotnet/common.props" />
+</Project>

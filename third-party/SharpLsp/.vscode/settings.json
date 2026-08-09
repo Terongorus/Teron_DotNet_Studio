@@ -1,0 +1,11 @@
+{
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#007a35",
+    "titleBar.activeForeground": "#ffffff",
+    "titleBar.inactiveBackground": "#005826",
+    "titleBar.inactiveForeground": "#ffffffcc"
+  },
+  "deslop.topOffenders.splitByLanguage": true,
+  "makefile.makefilePath": "${workspaceFolder}/tools/make/vscode.mk",
+  "makefile.phonyOnlyTargets": true
+}

@@ -2,6 +2,37 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.3.0] - 2026-08-09
+
+* **NuGet Package Manager**: a dedicated panel (`.NET: Manage NuGet Packages`, or from the
+  Project status bar item) with Browse (live NuGet.org search, resolved via NuGet's stable
+  service index) and Installed tabs, package details with a version dropdown, and
+  Install/Update/Remove actions. Requires .NET SDK 7.0.200 or later. Installed-tab rows show an
+  update-available indicator.
+* **Solution Explorer**: a dedicated activity bar view showing the current solution, its
+  projects, each project's dependencies (NuGet packages, project references, detected
+  analyzers/source generators) and real file/folder structure - matched precisely against
+  ReSharper's own Solution Explorer, including code-behind/designer-file nesting (e.g.
+  `MainWindow.xaml.cs` under `MainWindow.xaml`) and a pinned `Properties` folder. Full New
+  File/Class/Folder, Add Existing File, Rename, Delete, Cut/Copy/Paste, Exclude/Include From
+  Project, drag-and-drop move, Build/Rebuild/Clean/Run, Set as Startup Project, Remove from
+  Solution, and sync-with-active-editor support. One independent section per folder in a
+  multi-root workspace.
+* **Per-folder state storage**: the current solution/project/build configuration now persist
+  per workspace folder (`.vscode/dotnet-creator.state.json`) instead of a single shared bucket,
+  so a multi-root workspace with different solutions per folder no longer cross-contaminates.
+* **Optional C#/F# Language Server**: drives [SharpLsp](https://github.com/Nimblesite/SharpLsp)
+  directly as a standard language server (diagnostics, completions, hover, go-to-definition,
+  Outline/breadcrumbs, code folding) via the standard `vscode-languageclient` package - not
+  SharpLsp's own VS Code extension, avoiding duplicate Solution Explorer/NuGet UI. Entirely
+  opt-in: detects an install via a `dotnet-creator.sharpLsp.path` setting, the
+  `SHARPLSP_EXECUTABLE_PATH` environment variable, or PATH; if none is found, offers a one-click
+  **Download SharpLsp** (checksum-verified against SharpLsp's published hashes) or **Use Bundled
+  SharpLsp** (a copy built from vendored source and shipped inside this extension's own package,
+  Windows x64 only for now) alongside **Install Instructions** for building it yourself -
+  nothing ever runs without an explicit choice. A new status bar item shows its state, with
+  Restart/Show Output actions.
+
 ## [1.2.1] - 2026-08-09
 
 * **`.csproj` picker**:

@@ -1,0 +1,156 @@
+# agent-pmo:0b21609
+---
+# PR pipeline orchestrator. Each leg lives in its own reusable workflow so a
+# single file never grows past comprehension:
+#
+#   ci-lint.yml         Rust / Zed / .NET / VS Code lint + format gates
+#   ci-rust.yml         sharded Rust e2e suite, coverage gate, version contract
+#   ci-dotnet.yml       sidecar tests (Ubuntu) + win32 named-pipe transport
+#   ci-vsix.yml         full VS Code suite + coverage gate (Ubuntu)
+#   ci-vsix-windows.yml VS Code feature chunks on Windows ([DIST-CI-WIN-VSIX])
+#   ci-editors.yml      Zed + Rider tests and coverage gates ([DIST-CI-EDITORS])
+#
+# Every leg is gated on `detect-changes`, and none of them `needs:` another:
+# lint and tests are independent required gates, and serializing tests behind
+# lint added ~3 minutes to every PR's critical path.
+name: PR
+'on':
+  pull_request:
+    branches:
+      - main
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  detect-changes:
+    name: Detect Changed Paths
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    outputs:
+      code_changed: ${{ steps.classify.outputs.code_changed }}
+      manifest_changed: ${{ steps.classify.outputs.manifest_changed }}
+    steps:
+      - name: Classify changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |-
+          set -euo pipefail
+          mapfile -t files < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
+
+          code_changed=false
+          manifest_changed=false
+          for file in "${files[@]}"; do
+            case "$file" in
+              shipwright.json|src/editors/vscode/shipwright.json|.github/shipwright/deployment-toolkit.schema.json)
+                manifest_changed=true
+                code_changed=true
+                ;;
+              src/website/*|docs/*|.github/ISSUE_TEMPLATE/*|*.md)
+                ;;
+              *)
+                code_changed=true
+                ;;
+            esac
+          done
+
+          {
+            echo "code_changed=${code_changed}"
+            echo "manifest_changed=${manifest_changed}"
+          } >> "$GITHUB_OUTPUT"
+
+          printf 'Changed files:\n'
+          printf '  %s\n' "${files[@]}"
+          echo "code_changed=${code_changed}"
+          echo "manifest_changed=${manifest_changed}"
+  security:
+    name: Dependency Review
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    needs:
+      - detect-changes
+    # Owns vulnerable *dependencies* (Cargo, npm, NuGet). CodeQL (codeql.yml)
+    # owns vulnerable *code* and `make lint` owns style - no overlap. There is
+    # no native vuln-gate (cargo-deny/osv) in this repo, so dependency-review is
+    # the single dependency scanner. [DIST-CI-SECURITY]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Dependency review
+        # Fails the PR when it introduces a dependency carrying a known
+        # high-or-worse vulnerability advisory.
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  validate-manifest:
+    name: Validate Shipwright Manifest
+    runs-on: ${{ vars.UBUNTU_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - name: Validate shipwright.json
+        shell: bash
+        run: |-
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          npm install --prefix "$tmp" @nimblesite/shipwright-validate-manifest@0.9.0
+          "$tmp/node_modules/.bin/shipwright-validate-manifest" \
+            --schema .github/shipwright/deployment-toolkit.schema.json \
+            shipwright.json src/editors/vscode/shipwright.json
+    needs:
+      - detect-changes
+    if: ${{ needs.detect-changes.outputs.manifest_changed == 'true' }}
+  lint:
+    name: Lint
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-lint.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  rust:
+    name: Rust
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-rust.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  dotnet:
+    name: .NET
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-dotnet.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  vsix:
+    name: VS Code
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-vsix.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  vsix-windows:
+    name: VS Code (Windows)
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-vsix-windows.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  editors:
+    name: Editors
+    needs:
+      - detect-changes
+    uses: ./.github/workflows/ci-editors.yml
+    if: ${{ needs.detect-changes.outputs.code_changed == 'true' }}
+  # NOTE: the former `coverage` job that git-committed+pushed ratcheted
+  # thresholds was removed. On a pull_request, actions/checkout is a detached
+  # HEAD, so `git push` failed the moment coverage changed — a latent red build,
+  # and a direct push to a protected branch ([DIST-CI-LAYOUT]). Coverage is
+  # already enforced inside `make test` (tools/coverage/check-coverage.sh reads
+  # .config/coverage/thresholds.json and fails below threshold in each test-* job).
+  # Thresholds ratchet via the reviewed PR diff, not a bot commit.
+  # [DIST-CI-RUST-SHARDS]

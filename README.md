@@ -185,6 +185,12 @@ than building a Roslyn-hosting language server of its own:
 
 * If no templates are loading, ensure that your `.NET SDK` is installed properly and that the `dotnet` command is recognized in your terminal.
 
+## Credits
+
+The optional C#/F# Language Server feature builds and bundles
+**[SharpLsp](https://github.com/Nimblesite/SharpLsp)** by **Christian Findlay** (MIT licensed).
+See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for the full license text and attribution.
+
 ## Author
 
 Kaloyan Kolev

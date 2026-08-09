@@ -1,0 +1,100 @@
+# Dependabot configuration.
+#
+# Goal: routine version bumps NEVER bother you and NEVER burn CI on `main`,
+# while genuine security fixes still reach you automatically.
+#
+# How this achieves that:
+#   * VERSION updates -> `target-branch: dependabot-upgrades`. Every routine bump
+#     PR is opened against the long-lived `dependabot-upgrades` staging branch,
+#     not main. ci.yml / codeql.yml only trigger on `pull_request: [main]`
+#     (the filter matches the PR *base*), so these PRs run NO build/test/CodeQL.
+#     They are auto-merged into the staging branch by
+#     .github/workflows/dependabot-automerge.yml. When you want the batch in
+#     main, open ONE `dependabot-upgrades -> main` PR (CI runs once).
+#   * SECURITY updates -> still raised automatically against `main`, untouched by
+#     this file. Per GitHub docs, `target-branch` only redirects *version*
+#     updates; "security updates always use the default branch for the
+#     repository." So a real CVE still opens a PR against main where you see it
+#     and CI runs. This is the "only bother me for genuine security" channel, and
+#     it is controlled by the repo's "Dependabot security updates" setting (ON),
+#     NOT by this file.
+#   * groups with no update-types filter -> each ecosystem collapses ALL bumps
+#     (minor, patch AND major) into ONE grouped PR per run.
+#   * interval: weekly -> one grouped PR per ecosystem each week (not 50).
+#
+# REQUIREMENT: the `dependabot-upgrades` branch must exist (create it from main
+# AFTER this file + the auto-merge workflow are merged to main, so the staging
+# branch contains the auto-merge workflow).
+version: 2
+updates:
+  # ── Rust: host crate ────────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: "/"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      rust-host:
+        patterns: ["*"]
+
+  # ── Rust: Zed extension crate ───────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: "/src/editors/zed"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      rust-zed:
+        patterns: ["*"]
+
+  # ── .NET: C#/F# sidecars solution ───────────────────────────────────
+  - package-ecosystem: nuget
+    directory: "/src/sidecars"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      dotnet-sidecars:
+        patterns: ["*"]
+
+  # ── npm: VS Code extension ──────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/src/editors/vscode"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      vscode-extension:
+        patterns: ["*"]
+
+  # ── npm: website ────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/src/website"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      website:
+        patterns: ["*"]
+
+  # ── GitHub Actions: all workflows ───────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: "dependabot-upgrades"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      github-actions:
+        patterns: ["*"]
+    # dtolnay/rust-toolchain publishes no semver releases (only rolling
+    # stable/nightly/per-version branches), so Dependabot's pinned-ref
+    # resolver throws and fails the ENTIRE github-actions group update
+    # (run 28865233155). Bump this action's SHA manually instead.
+    ignore:
+      - dependency-name: "dtolnay/rust-toolchain"
