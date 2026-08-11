@@ -2,6 +2,17 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.9] - 2026-08-12
+
+* **Fix: self-update's install step failed with `"No Servers"`.** Root cause confirmed by reading
+  VS Code's own source (`extensionManagementService.ts`): the install command's internal
+  `getManifest()` rejects with that literal string unless the given URI's `.scheme` is exactly
+  `"file"` (or `"vscode-remote"`) - `context.globalStorageUri` isn't guaranteed to be a literal
+  `file://` URI in every environment, and `vscode.workspace.fs.writeFile` succeeds regardless of
+  scheme (it abstracts over any filesystem provider), so the download silently worked while only
+  the install step broke. Now explicitly re-wraps the downloaded path via `Uri.file(fsPath)`
+  before installing, guaranteeing the scheme the install command actually requires.
+
 ## [1.10.8] - 2026-08-11
 
 * **Fix: the Project status bar's "Recently Used" list could show projects from a solution

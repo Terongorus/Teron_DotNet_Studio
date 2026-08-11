@@ -76,7 +76,15 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
                 // throwOnFailure argument matters: without it, this command logs the real
                 // exception internally and rejects with essentially nothing useful, which
                 // previously rendered as the literal text "undefined" here.
-                await vscode.commands.executeCommand('workbench.extensions.installExtension', vsixPath, true);
+                //
+                // Re-wrapping via Uri.file(vsixPath.fsPath) matters too - confirmed by reading
+                // VS Code's own source (extensionManagementService.ts): the install command's
+                // getManifest() rejects with the literal string "No Servers" unless the URI's
+                // `.scheme` is exactly "file" (or "vscode-remote"). vscode.workspace.fs.writeFile
+                // above succeeds regardless of scheme (it abstracts over any filesystem
+                // provider), so context.globalStorageUri not being a literal file:// URI in this
+                // environment silently writes the file fine but breaks only this specific command.
+                await vscode.commands.executeCommand('workbench.extensions.installExtension', vscode.Uri.file(vsixPath.fsPath), true);
             } catch (error) {
                 // workbench.extensions.installExtension is an internal command with no documented
                 // rejection shape - always offer the already-downloaded file as a manual fallback
