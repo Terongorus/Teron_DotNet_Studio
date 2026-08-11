@@ -9,3 +9,4 @@ designer-host/obj/
 dotnet-project-creator.code-workspace
 .claude/
 SHARPLSP-STARTTRACE-BUG-REPORT.md
+logs/*.*
