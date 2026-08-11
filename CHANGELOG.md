@@ -2,6 +2,18 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.10] - 2026-08-12
+
+* **Fix: Resource Monitor never detected an active debug session, even while genuinely
+  debugging.** Its PID tracker was watching DAP traffic for VS Code's own *built-in* `dotnet`
+  debug type (contributed by Microsoft's C# extension, which this project deliberately doesn't
+  depend on) instead of this extension's actual debug type, `dotnet-creator-debug`. Since nothing
+  here ever starts a session of the type it was listening for, it never once captured a real
+  process id - Resource Monitor's live counters and "Start Trace Recording" always showed "No
+  active .NET debug session" / "Start debugging a .NET project first," regardless of which
+  language server was selected or whether a debug session was actually running. Found from a real
+  screenshot of an active, successful debug session next to that exact message.
+
 ## [1.10.9] - 2026-08-12
 
 * **Fix: self-update's install step failed with `"No Servers"`.** Root cause confirmed by reading
