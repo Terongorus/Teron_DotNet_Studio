@@ -171,6 +171,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
     }
 
     private async getSolutionChildren(node: SolutionNode): Promise<SolutionExplorerNode[]> {
+        this.ensureSolutionWatcher(node);
         const projectPaths = await parseSolutionProjects(node.solutionPath);
         return projectPaths.map(projectPath => this.cacheNode<ProjectNode>({
             kind: 'project',
@@ -477,6 +478,25 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
     }
 
     // --- File watching -----------------------------------------------------
+
+    /**
+     * Refreshes the SolutionNode when the .sln/.slnx file itself changes externally (another
+     * tool's `dotnet sln add/remove`, another VS Code window, a hand edit) - getSolutionChildren
+     * already re-parses parseSolutionProjects() fresh on every call with no caching of its own,
+     * so detecting the change and firing a refresh is the whole fix. Keyed `sln::<path>` in the
+     * same watchers map ensureWatcher() uses for projects, so it can't collide with a project
+     * path and is disposed the same way.
+     */
+    private ensureSolutionWatcher(node: SolutionNode): void {
+        const key = `sln::${node.solutionPath}`;
+        if (this.watchers.has(key)) { return; }
+
+        const pattern = new vscode.RelativePattern(vscode.Uri.file(path.dirname(node.solutionPath)), path.basename(node.solutionPath));
+        const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+        watcher.onDidChange(() => this._onDidChangeTreeData.fire(node));
+
+        this.watchers.set(key, watcher);
+    }
 
     private ensureWatcher(node: ProjectNode): void {
         if (this.watchers.has(node.projectPath)) { return; }

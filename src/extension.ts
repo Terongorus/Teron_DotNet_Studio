@@ -14,6 +14,7 @@ import { registerPickConfigurationCommand } from './commands/pickConfiguration';
 import { registerStatusBarMenuCommands } from './commands/statusBarMenus';
 import { registerSetupDebugTasksCommand, maybeShowSetupDebugTasksPrompt } from './commands/setupDebugTasks';
 import { registerDebugKeybindingCommands } from './commands/debugKeybindingCommands';
+import { registerBuildShortcutCommands } from './commands/buildShortcutCommands';
 import { registerDebugSessionTracker } from './utils/debugSessionTracker';
 import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
 import { registerProfilerCommands } from './commands/profilerCommands';
@@ -26,14 +27,20 @@ import { hasAnyDotnetProject } from './utils/workspaceHasProject';
 import { SharpLspClientManager } from './languageServer/sharpLspClient';
 import { registerSharpLspStatusBarItem } from './languageServer/sharpLspStatusBarItem';
 import { registerLanguageServerCommands } from './commands/languageServerCommands';
+import { RoslynClientManager } from './languageServer/roslynClient';
+import { registerRoslynStatusBarItem } from './languageServer/roslynStatusBarItem';
+import { registerRoslynCommands } from './commands/roslynCommands';
+import { registerSwitchLanguageServerCommand, LanguageServerChoice } from './commands/switchLanguageServer';
 import { NetcoredbgAdapterFactory } from './debugAdapter/netcoredbgAdapterFactory';
 import { registerDebugAdapterCommands } from './commands/debugAdapterCommands';
 import { registerNetcoredbgConfigurationProvider } from './debugAdapter/netcoredbgConfigurationProvider';
+import { registerExtensionUpdateCommands, checkForExtensionUpdate } from './utils/extensionUpdateCheck';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
 
 let sharpLsp: SharpLspClientManager | undefined;
+let roslyn: RoslynClientManager | undefined;
 
 async function warmAllWorkspaceFolders(): Promise<void> {
     await Promise.all((vscode.workspace.workspaceFolders ?? []).map(folder => warmFolderState(folder)));
@@ -43,9 +50,22 @@ async function updateWorkspaceHasProjectContext(): Promise<void> {
     await vscode.commands.executeCommand('setContext', WORKSPACE_HAS_PROJECT_CONTEXT, await hasAnyDotnetProject());
 }
 
+function getSelectedLanguageServer(): LanguageServerChoice {
+    return vscode.workspace.getConfiguration('dotnet-creator').get<LanguageServerChoice>('languageServer', 'sharpLsp');
+}
+
+/** Mutually exclusive with maybeStartRoslyn() via dotnet-creator.languageServer - both managers exist so either can be restarted/switched to, but only the selected one's ensureStarted() ever actually runs here. */
 async function maybeStartSharpLsp(manager: SharpLspClientManager, doc: vscode.TextDocument): Promise<void> {
+    if (getSelectedLanguageServer() !== 'sharpLsp') { return; }
     if (!vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('sharpLsp.enabled', true)) { return; }
     if (!SHARPLSP_LANGUAGE_IDS.includes(doc.languageId)) { return; }
+    if (!(await hasAnyDotnetProject())) { return; }
+    await manager.ensureStarted();
+}
+
+async function maybeStartRoslyn(manager: RoslynClientManager, doc: vscode.TextDocument): Promise<void> {
+    if (getSelectedLanguageServer() !== 'roslyn') { return; }
+    if (doc.languageId !== 'csharp') { return; }
     if (!(await hasAnyDotnetProject())) { return; }
     await manager.ensureStarted();
 }
@@ -68,6 +88,9 @@ export function activate(context: vscode.ExtensionContext) {
     registerStatusBarMenuCommands(context, debugAdapterFactory);
     registerSetupDebugTasksCommand(context);
     registerDebugKeybindingCommands(context);
+    registerBuildShortcutCommands(context);
+    registerExtensionUpdateCommands(context);
+    void checkForExtensionUpdate(context);
     registerDebugSessionTracker(context);
     registerManageNugetPackagesCommand(context);
     registerActiveWorkspaceFolderTracker(context);
@@ -79,18 +102,36 @@ export function activate(context: vscode.ExtensionContext) {
     registerSolutionExplorerCommands(context, solutionExplorerProvider);
 
     sharpLsp = new SharpLspClientManager(context);
+    roslyn = new RoslynClientManager(context);
     registerSharpLspStatusBarItem(context, sharpLsp);
     registerLanguageServerCommands(context, sharpLsp);
+    registerRoslynStatusBarItem(context, roslyn);
+    registerRoslynCommands(context, roslyn);
+    registerSwitchLanguageServerCommand(context, sharpLsp, roslyn);
 
     const resourceMonitorProvider = registerResourceMonitorPanel(context, sharpLsp);
     registerProfilerCommands(context, sharpLsp, resourceMonitorProvider);
 
     context.subscriptions.push(
-        vscode.workspace.onDidOpenTextDocument(doc => void maybeStartSharpLsp(sharpLsp!, doc)),
-        { dispose: () => sharpLsp?.dispose() }
+        vscode.workspace.onDidOpenTextDocument(doc => {
+            void maybeStartSharpLsp(sharpLsp!, doc);
+            void maybeStartRoslyn(roslyn!, doc);
+        }),
+        vscode.workspace.onDidChangeConfiguration(e => {
+            // A manual settings.json edit (not the switchLanguageServer command, which already
+            // stops the deselected one itself) should still stop whichever server is no longer
+            // selected - it doesn't auto-start the newly selected one, matching this codebase's
+            // existing lazy-start-on-relevant-document-open convention.
+            if (!e.affectsConfiguration('dotnet-creator.languageServer')) { return; }
+            const selected = getSelectedLanguageServer();
+            if (selected === 'roslyn') { void sharpLsp?.stop(); } else { void roslyn?.stop(); }
+        }),
+        { dispose: () => sharpLsp?.dispose() },
+        { dispose: () => roslyn?.dispose() }
     );
     for (const doc of vscode.workspace.textDocuments) {
         void maybeStartSharpLsp(sharpLsp, doc);
+        void maybeStartRoslyn(roslyn, doc);
     }
 
     maybeShowStartPageOnStartup(context);
@@ -108,4 +149,5 @@ export function deactivate() {
     disposeDesignerHost();
     disposeFolderStateWatchers();
     void sharpLsp?.dispose();
+    void roslyn?.dispose();
 }

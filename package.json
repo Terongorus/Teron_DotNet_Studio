@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "teronverse-solutions",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -41,6 +41,8 @@
         "dotnet-creator.sharpLsp.path",
         "dotnet-creator.sharpLsp.extraArgs",
         "dotnet-creator.sharpLsp.dotnetPath",
+        "dotnet-creator.roslyn.path",
+        "dotnet-creator.roslyn.extraArgs",
         "dotnet-creator.debugAdapter.path",
         "dotnet-creator.debugAdapter.extraArgs"
       ]
@@ -115,6 +117,48 @@
         "category": ".NET"
       },
       {
+        "command": "dotnet-creator.buildProject",
+        "icon": "resources/appicon.png",
+        "title": "Build Project",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.rebuildProject",
+        "icon": "resources/appicon.png",
+        "title": "Rebuild Project",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.cleanProject",
+        "icon": "resources/appicon.png",
+        "title": "Clean Project",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.buildSolution",
+        "icon": "resources/appicon.png",
+        "title": "Build Solution",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.rebuildSolution",
+        "icon": "resources/appicon.png",
+        "title": "Rebuild Solution",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.cleanSolution",
+        "icon": "resources/appicon.png",
+        "title": "Clean Solution",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.checkForUpdates",
+        "icon": "resources/appicon.png",
+        "title": "Check for Updates",
+        "category": ".NET"
+      },
+      {
         "command": "dotnet-creator.manageNugetPackages",
         "icon": "resources/appicon.png",
         "title": "Manage NuGet Packages",
@@ -130,6 +174,24 @@
         "command": "dotnet-creator.sharpLsp.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Language Server Output",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.roslyn.restart",
+        "icon": "resources/appicon.png",
+        "title": "Restart Roslyn Language Server",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.roslyn.showOutput",
+        "icon": "resources/appicon.png",
+        "title": "Show Roslyn Language Server Output",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.switchLanguageServer",
+        "icon": "resources/appicon.png",
+        "title": "Switch Language Server (SharpLsp / Roslyn)",
         "category": ".NET"
       },
       {
@@ -411,6 +473,32 @@
           ],
           "default": "off",
           "description": "Trace communication between .NET Studio and the SharpLsp language server (for troubleshooting)."
+        },
+        "dotnet-creator.languageServer": {
+          "type": "string",
+          "enum": [
+            "sharpLsp",
+            "roslyn"
+          ],
+          "enumDescriptions": [
+            "SharpLsp - a third-party, MIT-licensed C#/F# language server.",
+            "Roslyn Language Server - Microsoft's own C# language server, the same one C# Dev Kit uses internally, driven standalone (not via C# Dev Kit)."
+          ],
+          "default": "sharpLsp",
+          "description": "Which C#/F# language server .NET Studio drives. Both can be installed at once, but only the selected one ever runs - use \".NET: Switch Language Server\" to change this and restart."
+        },
+        "dotnet-creator.roslyn.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Roslyn Language Server executable. Leave empty to resolve it from PATH, or to use a copy downloaded via the \"Download Roslyn Language Server\" action."
+        },
+        "dotnet-creator.roslyn.extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra command-line arguments passed to the Roslyn Language Server process."
         },
         "dotnet-creator.debugAdapter.path": {
           "type": "string",
@@ -738,6 +826,36 @@
       {
         "key": "ctrl+f5",
         "command": "dotnet-creator.runWithoutDebugging",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k b",
+        "command": "dotnet-creator.buildProject",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k shift+b",
+        "command": "dotnet-creator.rebuildProject",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k c",
+        "command": "dotnet-creator.cleanProject",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k ctrl+b",
+        "command": "dotnet-creator.buildSolution",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k ctrl+shift+b",
+        "command": "dotnet-creator.rebuildSolution",
+        "when": "dotnet-creator.workspaceHasProject"
+      },
+      {
+        "key": "ctrl+k ctrl+c",
+        "command": "dotnet-creator.cleanSolution",
         "when": "dotnet-creator.workspaceHasProject"
       }
     ],

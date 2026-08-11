@@ -2,6 +2,28 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.10.0] - 2026-08-11
+
+* **New: Build/Rebuild/Clean keyboard shortcuts.** Six new commands operating on the currently
+  selected project/solution: **Build/Rebuild/Clean Project** (`Ctrl+K B` / `Ctrl+K Shift+B` /
+  `Ctrl+K C`) and **Build/Rebuild/Clean Solution** (`Ctrl+K Ctrl+B` / `Ctrl+K Ctrl+Shift+B` /
+  `Ctrl+K Ctrl+C`) - previously only reachable via the status bar's Build/Rebuild/Clean QuickPick
+  entries, with no way to bind a key to them directly.
+* **New: Solution Explorer auto-refreshes on external `.sln`/`.slnx` changes.** Adding or
+  removing a project via `dotnet sln`, another tool, or another VS Code window now updates the
+  tree automatically - previously only each project's own folder was watched, not the solution
+  file itself.
+* **New: choice of C#/F# language server - SharpLsp or Microsoft's own Roslyn Language Server.**
+  A new setting, `dotnet-creator.languageServer` (`sharpLsp` or `roslyn`, default `sharpLsp`),
+  and a new command, **.NET: Switch Language Server**, let you pick. The Roslyn option downloads
+  and drives Microsoft's real `Microsoft.CodeAnalysis.LanguageServer` binary - the same one C#
+  Dev Kit uses internally - standalone, from Microsoft's own public feed, the same approach the
+  `roslyn.nvim` Neovim plugin uses. Both language servers can be installed side by side; only the
+  selected one ever runs.
+* **New: self-update via GitHub Releases.** .NET Studio now checks its own GitHub releases (not
+  the VS Code Marketplace) for updates once a day and offers to download and install the latest
+  `.vsix` directly - **.NET: Check for Updates** triggers this on demand too.
+
 ## [1.9.0] - 2026-08-11
 
 A detailed bug report plus 5 more issues, all found through real, hands-on use of the packaged

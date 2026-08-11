@@ -241,6 +241,20 @@ export class SharpLspClientManager implements vscode.Disposable {
         await this.ensureStarted();
     }
 
+    /**
+     * Stops the client WITHOUT the permanent `disposed = true` latch `dispose()` sets - for the
+     * "switch to the other language server" flow (switchLanguageServer.ts), which needs this one
+     * stoppable now and startable again later if the user switches back. `dispose()` alone would
+     * make ensureStarted() a permanent no-op afterward (its own errorHandler.closed() also
+     * refuses to restart once disposed), which is correct for real extension shutdown but wrong
+     * here.
+     */
+    async stop(): Promise<void> {
+        await this.stopClient();
+        this.restartAttempts = 0;
+        this.setStatus('Stopped');
+    }
+
     private async stopClient(): Promise<void> {
         const client = this.client;
         this.client = undefined;
