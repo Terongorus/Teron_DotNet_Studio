@@ -2,6 +2,16 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.6] - 2026-08-11
+
+* **New: "Start" and "Stop" for each language server, alongside the existing "Restart".**
+  Previously the only way to stop a running SharpLsp or Roslyn Language Server (short of switching
+  the other one on, which stops it as a side effect) was closing VS Code. Both language server
+  menus (and the Command Palette) now offer **.NET: Start/Stop Language Server** and
+  **.NET: Start/Stop Roslyn Language Server** - Start/Stop show contextually (Start only once the
+  binary's been resolved at least once and it isn't already running; Stop only while it's
+  active), so there's never a dead button.
+
 ## [1.10.5] - 2026-08-11
 
 * **Fix: self-update (and the SharpLsp/netcoredbg update checks it shares code with) could go
