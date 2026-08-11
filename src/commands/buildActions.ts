@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { BuildConfiguration } from '../utils/configurationPicker';
 import { resolveProjectInfo, findX86DotnetHost } from '../utils/projectAssemblyResolver';
+import { isUpToDate } from '../utils/buildUpToDateCheck';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
@@ -72,6 +73,13 @@ export async function runBuildAction(
     }
 
     if (action === 'build' || action === 'rebuild') {
+        // Only worth checking for a standalone "build" - "rebuild" just ran clean, so its output
+        // can never be up to date, and checking would just be wasted work.
+        if (action === 'build' && await isUpToDate(targetPath, configuration)) {
+            vscode.window.showInformationMessage(`${targetName}: already up to date (${configuration}).`);
+            return;
+        }
+
         const ok = await runDotnetTask(targetPath, ['build', targetPath, '-c', configuration], `.NET ${VERBS.build}: ${targetName}`);
         if (!ok) {
             vscode.window.showErrorMessage(`${targetName}: ${action} failed (${configuration}).`);
@@ -102,7 +110,8 @@ export async function runProject(
     configuration: BuildConfiguration,
     noDebug: boolean = false
 ): Promise<void> {
-    const buildSucceeded = await runDotnetTask(projectPath, ['build', projectPath, '-c', configuration], `.NET Build: ${projectName}`);
+    const buildSucceeded = await isUpToDate(projectPath, configuration)
+        || await runDotnetTask(projectPath, ['build', projectPath, '-c', configuration], `.NET Build: ${projectName}`);
     if (!buildSucceeded) {
         vscode.window.showErrorMessage(`${projectName}: build failed, not launching (${configuration}).`);
         return;

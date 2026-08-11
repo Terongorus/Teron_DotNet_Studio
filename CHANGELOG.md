@@ -2,6 +2,21 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.3] - 2026-08-11
+
+* **New: Build now skips the task entirely when the project/solution is already up to date.**
+  Previously, running Build always spawned a `dotnet build` task and showed a terminal, even when
+  nothing had changed - MSBuild's own `CoreCompile` incremental check was already correctly
+  skipping recompilation underneath (confirmed via `-v:normal`: `Skipping target "CoreCompile"
+  because all output files are up-to-date`), but the ~1-2s process-spawn/evaluation overhead ran
+  every time regardless, unlike Visual Studio's own instant Fast Up-to-Date Check. Added a
+  conservative pre-check (source files, the `.csproj` itself, restore state, and referenced
+  projects' outputs, all compared against the built output's timestamp) that skips the task and
+  shows an instant "already up to date" message when it's confident nothing changed - falls back
+  to always building on any ambiguity, so a stale binary is never silently used. Applies to the
+  Build action (status bar, `Ctrl+K B`/`Ctrl+K Ctrl+B`, and the debug launch's pre-build step) -
+  Rebuild and Clean always run regardless, since forcing the work is the whole point of those.
+
 ## [1.10.2] - 2026-08-11
 
 * **Fix: the Roslyn Language Server never actually started - it errored on every launch attempt
