@@ -94,15 +94,19 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
         { label: '$(debug-alt) Debugger Options...', debuggerOptions: true }
     ];
 
-    const recent = getRecentCsprojItems(folder);
-    if (recent.length > 0) {
-        items.push({ label: 'Recently Used', kind: vscode.QuickPickItemKind.Separator });
-        items.push(...recent);
-    }
-
     const currentSolution = peekCurrentSolution(folder);
     if (currentSolution) {
         const solutionProjects = await parseSolutionProjects(currentSolution);
+
+        // getRecentCsprojItems is bucketed per solution (projectPicker.ts), so this is already
+        // scoped to projects recently used under this specific solution - not a global,
+        // cross-solution history.
+        const recent = getRecentCsprojItems(folder);
+        if (recent.length > 0) {
+            items.push({ label: 'Recently Used', kind: vscode.QuickPickItemKind.Separator });
+            items.push(...recent);
+        }
+
         const notRecent = solutionProjects.filter(
             p => !recent.some(r => r.projectPath.toLowerCase() === p.toLowerCase())
         );
@@ -118,6 +122,14 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
             }
         }
     } else {
+        // No current solution to scope by - the recent list and the full folder scan are both
+        // shown as-is, same as before.
+        const recent = getRecentCsprojItems(folder);
+        if (recent.length > 0) {
+            items.push({ label: 'Recently Used', kind: vscode.QuickPickItemKind.Separator });
+            items.push(...recent);
+        }
+
         const found = await findAllCsprojFiles(folder);
         const remaining = found.filter(
             uri => !recent.some(r => r.projectPath.toLowerCase() === uri.fsPath.toLowerCase())

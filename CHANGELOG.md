@@ -2,6 +2,17 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.8] - 2026-08-11
+
+* **Fix: the Project status bar's "Recently Used" list could show projects from a solution
+  other than the one currently open.** Recently-picked projects were tracked once per workspace
+  folder, shared across every solution ever opened there - switching to an unrelated solution
+  left the old one's projects sitting in "Recently Used" indefinitely, out of context. Recent
+  projects are now bucketed by solution within the same per-workspace state file
+  (`.vscode/dotnet-creator.state.json`) - switching solutions now shows only that solution's own
+  recently-used projects, and switching back restores its list exactly as it was, with no history
+  lost.
+
 ## [1.10.7] - 2026-08-11
 
 * **Fix: self-update's install step failed with an unhelpful "undefined" error message.**

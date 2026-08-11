@@ -4,7 +4,11 @@ export interface FolderState {
     currentSolution?: string;
     currentProject?: string;
     currentConfiguration?: 'Debug' | 'Release';
-    recentCsprojFiles?: string[];
+    /** Keyed by lowercased absolute solution path (or "" for "no solution tracked yet") - a
+     *  workspace folder can host many different solutions over its lifetime, and a project
+     *  recently used under one shouldn't linger in another's "Recently Used" list. See
+     *  projectPicker.ts's solutionKey(). */
+    recentCsprojFilesBySolution?: Record<string, string[]>;
     /** UI-only "Unload Project" marker for .slnx solutions (absolute .csproj paths) - classic .sln
      *  solutions use real ProjectConfigurationPlatforms editing instead (see solutionBuildConfig.ts),
      *  since that's verified to actually affect `dotnet build`; this list has no such effect. */

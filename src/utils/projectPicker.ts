@@ -35,15 +35,34 @@ export async function clearPickedCsprojFile(folder: vscode.WorkspaceFolder): Pro
     _onDidChangePickedCsproj.fire({ folder, projectPath: undefined });
 }
 
-function getRecentCsprojFiles(folder: vscode.WorkspaceFolder): string[] {
-    return peekFolderState(folder).recentCsprojFiles ?? [];
+/** "" (a real solution path is never empty) buckets projects picked before any solution is tracked yet. */
+const NO_SOLUTION_KEY = '';
+
+/** Which bucket of recentCsprojFilesBySolution applies right now - the currently tracked solution, if any. */
+function solutionKey(folder: vscode.WorkspaceFolder): string {
+    const solution = peekCurrentSolution(folder);
+    return solution ? path.resolve(solution).toLowerCase() : NO_SOLUTION_KEY;
 }
 
-/** Newest-first, deduped case-insensitively, capped - same shape as startPage/recentItems.ts. */
+function getRecentCsprojFiles(folder: vscode.WorkspaceFolder): string[] {
+    const bucketed = peekFolderState(folder).recentCsprojFilesBySolution ?? {};
+    return bucketed[solutionKey(folder)] ?? [];
+}
+
+/**
+ * Newest-first, deduped case-insensitively, capped - same shape as startPage/recentItems.ts.
+ * Bucketed by whichever solution is current right now (see solutionKey()) - a workspace folder
+ * can host many different solutions over its lifetime, and a project recently used under one
+ * shouldn't linger in another's "Recently Used" list once you switch. Still stored in the same
+ * single per-workspace-folder state file (.vscode/dotnet-creator.state.json), just partitioned
+ * internally - not a separate file per solution.
+ */
 async function addRecentCsprojFile(folder: vscode.WorkspaceFolder, filePath: string): Promise<void> {
-    const existing = getRecentCsprojFiles(folder).filter(p => p.toLowerCase() !== filePath.toLowerCase());
-    const updated = [filePath, ...existing].slice(0, MAX_RECENT_CSPROJ);
-    await updateFolderState(folder, { recentCsprojFiles: updated });
+    const key = solutionKey(folder);
+    const bucketed = { ...(peekFolderState(folder).recentCsprojFilesBySolution ?? {}) };
+    const existing = (bucketed[key] ?? []).filter(p => p.toLowerCase() !== filePath.toLowerCase());
+    bucketed[key] = [filePath, ...existing].slice(0, MAX_RECENT_CSPROJ);
+    await updateFolderState(folder, { recentCsprojFilesBySolution: bucketed });
 }
 
 export interface RecentCsprojItem extends vscode.QuickPickItem {
@@ -73,19 +92,22 @@ export function findAllCsprojFiles(folder: vscode.WorkspaceFolder): Promise<vsco
  */
 export async function recordPickedCsprojFile(folder: vscode.WorkspaceFolder, picked: string): Promise<void> {
     await updateFolderState(folder, { currentProject: picked });
-    await addRecentCsprojFile(folder, picked);
-    _onDidChangePickedCsproj.fire({ folder, projectPath: picked });
 
     // Cold-start default: if no solution is tracked yet, silently derive one
     // from the picked project's nearest .sln/.slnx - never overrides an
     // explicitly-picked solution, just avoids an empty Solution segment /
-    // "Projects in Solution" section on first use.
+    // "Projects in Solution" section on first use. Done *before* recording into the recent-
+    // projects list, so that list gets bucketed under the newly-derived solution from the start
+    // instead of being orphaned under "no solution" (see addRecentCsprojFile/solutionKey()).
     if (!peekCurrentSolution(folder)) {
         const nearestSolution = findNearestSolutionFile(path.dirname(picked));
         if (nearestSolution) {
             await setCurrentSolution(folder, nearestSolution);
         }
     }
+
+    await addRecentCsprojFile(folder, picked);
+    _onDidChangePickedCsproj.fire({ folder, projectPath: picked });
 }
 
 /**
