@@ -2,6 +2,20 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.5] - 2026-08-11
+
+* **Fix: self-update (and the SharpLsp/netcoredbg update checks it shares code with) could go
+  silent for a full 24 hours after a single transient failure.** The "last checked" timestamp was
+  being recorded *before* the GitHub API request even ran, so any blip - a network hiccup, or an
+  unauthenticated rate limit (capped at 60 requests/hour) - would silently block every future
+  check, automatic or manual, for a full day with no visible sign anything had gone wrong. Now
+  only recorded after an actual successful response.
+* **Fix: the manual `.NET: Check for Updates` command did nothing if the automatic background
+  check had already run recently.** It shared the exact same 24h throttle meant only to rate-limit
+  the automatic check - an explicit user action should never be silently swallowed by that.
+  Manual checks now always run for real, and say so explicitly either way ("you're on the latest
+  version" if nothing's newer, instead of total silence).
+
 ## [1.10.4] - 2026-08-11
 
 * **Fix: Roslyn Language Server produced zero diagnostics for `.slnx` solutions - not just
@@ -298,7 +312,7 @@ Host, not just reading the code) turned up a real bug or gap for nearly everythi
   points the sidecars at it explicitly via environment variables, matching what SharpLsp's own
   official extension does internally.
 * **Changed**: SharpLsp is no longer built from a vendored copy of its source at packaging time
-  - `tools/build-sharplsp.js` and the new `tools/build-netcoredbg.js` both now fetch each tool's
+  * `tools/build-sharplsp.js` and the new `tools/build-netcoredbg.js` both now fetch each tool's
   official, checksum-verified release binary directly, matching exactly what the in-extension
   "Download" action already did. No local Rust/CMake/MSVC toolchain is required to package this
   extension, and no third-party source tree is vendored in this repository.

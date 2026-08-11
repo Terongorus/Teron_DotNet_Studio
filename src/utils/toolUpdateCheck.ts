@@ -5,18 +5,31 @@ const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function lastCheckedKey(toolKey: string): string { return `dotnet-creator.${toolKey}.lastVersionCheck`; }
 
-/** Throttled to once per 24h per tool, so this never hammers GitHub's API on every activation. */
-async function checkForUpdate(context: vscode.ExtensionContext, toolKey: string, owner: string, repo: string, currentVersion: string): Promise<string | undefined> {
-    const lastChecked = context.globalState.get<number>(lastCheckedKey(toolKey), 0);
-    if (Date.now() - lastChecked < CHECK_INTERVAL_MS) { return undefined; }
-    await context.globalState.update(lastCheckedKey(toolKey), Date.now());
+/**
+ * Throttled to once per 24h per tool, so this never hammers GitHub's API on every activation.
+ * `force` (the manual "Check for Updates"-style commands) bypasses the throttle entirely - an
+ * explicit user action should never be silently swallowed by a window meant only to rate-limit
+ * the automatic background check.
+ *
+ * The "last checked" timestamp is only persisted on an actual successful response - previously it
+ * was set unconditionally before the fetch even ran, so a single transient failure (a network
+ * blip, or a GitHub API rate limit - unauthenticated requests are capped at 60/hour) would
+ * silently block every check, automatic or manual, for a full 24h with no visible sign anything
+ * had gone wrong.
+ */
+async function checkForUpdate(context: vscode.ExtensionContext, toolKey: string, owner: string, repo: string, currentVersion: string, force: boolean): Promise<string | undefined> {
+    if (!force) {
+        const lastChecked = context.globalState.get<number>(lastCheckedKey(toolKey), 0);
+        if (Date.now() - lastChecked < CHECK_INTERVAL_MS) { return undefined; }
+    }
 
     try {
         const release = await fetchLatestRelease(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+        await context.globalState.update(lastCheckedKey(toolKey), Date.now());
         const latestVersion = release.tag_name.replace(/^v/, '');
         return latestVersion !== currentVersion.replace(/^v/, '') ? latestVersion : undefined;
     } catch {
-        return undefined; // Best-effort - a failed check is silent, never surfaced as an error.
+        return undefined; // Best-effort - a failed check is silent, never surfaced as an error, and never marked as "checked" so the next attempt retries for real.
     }
 }
 
@@ -35,13 +48,21 @@ export async function maybeNotifyUpdate(
     owner: string,
     repo: string,
     currentVersion: string,
-    onUpdate: () => Promise<void>
+    onUpdate: () => Promise<void>,
+    force = false
 ): Promise<void> {
-    const latestVersion = await checkForUpdate(context, toolKey, owner, repo, currentVersion);
-    if (!latestVersion) { return; }
+    const latestVersion = await checkForUpdate(context, toolKey, owner, repo, currentVersion, force);
+    if (!latestVersion) {
+        // A silent no-op is correct for the automatic background check, but a manual "Check for
+        // Updates" click met with total silence looks broken/unresponsive - say so explicitly.
+        if (force) { vscode.window.showInformationMessage(`${displayName}: you're on the latest version (${currentVersion}).`); }
+        return;
+    }
 
+    // force skips the per-version dismissal too - an explicit re-check should always be able to
+    // surface an update, even one the user previously dismissed.
     const dontAskKey = `dotnet-creator.${toolKey}.updateDismissed.${latestVersion}`;
-    if (context.globalState.get<boolean>(dontAskKey, false)) { return; }
+    if (!force && context.globalState.get<boolean>(dontAskKey, false)) { return; }
 
     const UPDATE = 'Update';
     const NOT_NOW = 'Not Now';

@@ -17,11 +17,11 @@ const GITHUB_REPO = 'dotnet-project-creator';
  * (see git history), and a stale hardcoded ID here would make getExtension() return undefined,
  * silently disabling the entire self-update check with no error.
  */
-export async function checkForExtensionUpdate(context: vscode.ExtensionContext): Promise<void> {
+export async function checkForExtensionUpdate(context: vscode.ExtensionContext, force = false): Promise<void> {
     const currentVersion = context.extension.packageJSON.version as string | undefined;
     if (!currentVersion) { return; }
 
-    await maybeNotifyUpdate(context, 'extension', '.NET Studio', GITHUB_OWNER, GITHUB_REPO, currentVersion, () => downloadAndInstallLatest(context));
+    await maybeNotifyUpdate(context, 'extension', '.NET Studio', GITHUB_OWNER, GITHUB_REPO, currentVersion, () => downloadAndInstallLatest(context), force);
 }
 
 async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promise<void> {
@@ -71,6 +71,6 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
 
 export function registerExtensionUpdateCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.checkForUpdates', () => checkForExtensionUpdate(context))
+        vscode.commands.registerCommand('dotnet-creator.checkForUpdates', () => checkForExtensionUpdate(context, true))
     );
 }
