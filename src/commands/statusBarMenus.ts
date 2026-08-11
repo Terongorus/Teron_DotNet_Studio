@@ -17,6 +17,7 @@ import {
 import { getCurrentConfiguration } from '../utils/configurationPicker';
 import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { parseSolutionProjects } from '../utils/solutionParser';
+import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 import { runBuildAction, runProject, BuildAction } from './buildActions';
 import { manageNugetPackages } from './manageNugetPackages';
 import { showMenu as showDebugAdapterMenu } from './debugAdapterCommands';
@@ -102,9 +103,13 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
     const currentSolution = peekCurrentSolution(folder);
     if (currentSolution) {
         const solutionProjects = await parseSolutionProjects(currentSolution);
-        const remaining = solutionProjects.filter(
+        const notRecent = solutionProjects.filter(
             p => !recent.some(r => r.projectPath.toLowerCase() === p.toLowerCase())
         );
+        // Unloaded isn't a real "pick me as startup" option - same reason it's excluded from
+        // autoPickSoleProject() (projectStatusBarItem.ts).
+        const loadedFlags = await Promise.all(notRecent.map(p => isProjectUnloadedInSolution(folder, currentSolution, p).then(unloaded => !unloaded)));
+        const remaining = notRecent.filter((_, i) => loadedFlags[i]);
         if (remaining.length > 0) {
             const solutionName = path.basename(currentSolution, path.extname(currentSolution));
             items.push({ label: `Projects in ${solutionName}`, kind: vscode.QuickPickItemKind.Separator });

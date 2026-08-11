@@ -2,6 +2,45 @@
 
 All notable changes to the **.NET Project Creator** extension will be documented in this file.
 
+## [1.9.0] - 2026-08-11
+
+A detailed bug report plus 5 more issues, all found through real, hands-on use of the packaged
+extension - investigating one of them (a supposedly missing context menu entry) surfaced a wider,
+previously unnoticed bug affecting several others.
+
+* **Fixed: debugging an x86 `PlatformTarget` project failed immediately with `Failed command
+  'configurationDone' : 0x80004005`.** The debug launch never told the .NET host to use the
+  32-bit runtime, so the system-default x64 host faulted trying to load an x86-only IL image
+  before any user code ran. Now detects `PlatformTarget` via the same MSBuild query used to
+  resolve the build output, and points `DOTNET_ROOT` at the 32-bit .NET host when needed - or
+  shows a clear error if that host isn't installed, instead of the opaque CLR failure.
+* **Fixed: several Solution Explorer context menu items were silently missing for any project
+  that's part of a solution** (New File/Class/Folder, Add Existing File, Reveal in File Explorer,
+  Open in Integrated Terminal, Paste) - almost every real project, since nearly everyone uses
+  solutions. Root cause: a project's context value is `"dotnetProject inSolution"`, but these
+  entries checked for exact equality against `"dotnetProject"` alone, which never matched.
+* **Fixed: debug sessions were hard to tell apart when running several at once** - both the F5/
+  status bar Run path and VS Code's native Run and Debug dropdown always named every session
+  generically (".NET Debug"/".NET Debug 2"/".NET Debug 3"...). Session names now include the
+  actual project name.
+* **Fixed: F5 did nothing while a debug session was already running**, even after selecting a
+  different project - the keybinding was gated to only fire when no session was active at all.
+  Multiple concurrent debug sessions via F5 now work the same way they already did through the
+  Run and Debug panel.
+* **Fixed: two build tasks running at once would overwrite or silently no-op each other's
+  output** - build tasks shared a single terminal panel. Each distinct build (by project/solution
+  name) now gets its own dedicated terminal, so building two different projects concurrently
+  shows both live, separately.
+* **New: Unload Project.** A project can now be unloaded/reloaded from its Solution Explorer
+  context menu, matching Visual Studio. For classic `.sln` solutions this is real: it edits the
+  solution's own build configuration so `dotnet build` genuinely skips the project (verified
+  directly against a real solution before shipping). `.slnx` solutions get a UI-only version
+  instead (hidden from pickers, shown dimmed) with an explicit note that a solution build will
+  still build it - `.slnx` doesn't yet reliably support build exclusion on the current SDK
+  (confirmed via a real round-trip test; even Visual Studio itself has an open, unresolved bug
+  in this exact area). Unloaded projects are excluded from the auto-pick-sole-project logic and
+  the project QuickPick either way.
+
 ## [1.8.0] - 2026-08-10
 
 * **Fixed: debug session launching didn't work with a custom build output path.** Resolving the

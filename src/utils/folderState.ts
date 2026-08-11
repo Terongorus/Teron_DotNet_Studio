@@ -5,6 +5,10 @@ export interface FolderState {
     currentProject?: string;
     currentConfiguration?: 'Debug' | 'Release';
     recentCsprojFiles?: string[];
+    /** UI-only "Unload Project" marker for .slnx solutions (absolute .csproj paths) - classic .sln
+     *  solutions use real ProjectConfigurationPlatforms editing instead (see solutionBuildConfig.ts),
+     *  since that's verified to actually affect `dotnet build`; this list has no such effect. */
+    unloadedProjects?: string[];
 }
 
 const STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-creator.state.json'];

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { BuildConfiguration } from '../utils/configurationPicker';
-import { resolveTargetPath } from '../utils/projectAssemblyResolver';
+import { resolveProjectInfo, findX86DotnetHost } from '../utils/projectAssemblyResolver';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
@@ -30,7 +30,11 @@ function runDotnetTask(targetPath: string, args: string[], taskName: string): Pr
     task.group = vscode.TaskGroup.Build;
     task.presentationOptions = {
         reveal: vscode.TaskRevealKind.Always,
-        panel: vscode.TaskPanelKind.Shared,
+        // Dedicated (not Shared) so two different projects/solutions building concurrently get
+        // their own terminals instead of one overwriting/interleaving with the other - task
+        // identity for this already varies by name (e.g. ".NET Build: ProjectName"), so the same
+        // build re-run still reuses its own terminal.
+        panel: vscode.TaskPanelKind.Dedicated,
         clear: true,
         focus: false
     };
@@ -104,21 +108,37 @@ export async function runProject(
         return;
     }
 
-    const assemblyPath = await resolveTargetPath(projectPath, configuration);
+    const { targetPath: assemblyPath, platformTarget } = await resolveProjectInfo(projectPath, configuration);
     if (!assemblyPath) {
         vscode.window.showErrorMessage(`${projectName}: build succeeded, but MSBuild couldn't resolve a TargetPath for it (${configuration}).`);
         return;
     }
 
+    // PlatformTarget=x86 needs the 32-bit .NET host - the system-default (x64) host faults
+    // trying to load an x86-only IL image with an opaque CLR error (0x80004005) during the debug
+    // adapter's configurationDone handshake, before any user code runs.
+    let env: Record<string, string> | undefined;
+    if (platformTarget === 'x86') {
+        const x86Host = findX86DotnetHost();
+        if (!x86Host) {
+            vscode.window.showErrorMessage(
+                `${projectName} targets x86, but no 32-bit .NET host was found at the expected install location. Install the x86 .NET SDK/runtime to debug this project.`
+            );
+            return;
+        }
+        env = { DOTNET_ROOT: path.dirname(x86Host) };
+    }
+
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectPath));
 
     const started = await vscode.debug.startDebugging(workspaceFolder, {
-        name: configuration === 'Release' ? '.NET Release' : '.NET Debug',
+        name: `${projectName} (${configuration})`,
         type: 'dotnet-creator-debug',
         request: 'launch',
         program: assemblyPath,
         cwd: path.dirname(projectPath),
         args: [],
+        env,
         internalConsoleOptions: 'neverOpen',
         noDebug
     });

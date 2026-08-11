@@ -28,6 +28,7 @@ import { registerSharpLspStatusBarItem } from './languageServer/sharpLspStatusBa
 import { registerLanguageServerCommands } from './commands/languageServerCommands';
 import { NetcoredbgAdapterFactory } from './debugAdapter/netcoredbgAdapterFactory';
 import { registerDebugAdapterCommands } from './commands/debugAdapterCommands';
+import { registerNetcoredbgConfigurationProvider } from './debugAdapter/netcoredbgConfigurationProvider';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
@@ -62,6 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
     const debugAdapterFactory = new NetcoredbgAdapterFactory(context);
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('dotnet-creator-debug', debugAdapterFactory));
     registerDebugAdapterCommands(context, debugAdapterFactory);
+    registerNetcoredbgConfigurationProvider(context);
 
     registerStatusBarMenuCommands(context, debugAdapterFactory);
     registerSetupDebugTasksCommand(context);

@@ -7,6 +7,7 @@ import { getCurrentConfiguration } from '../utils/configurationPicker';
 import { parseSolutionProjects } from '../utils/solutionParser';
 import { parseProjectReferences, addProjectReference, removeProjectReference } from '../utils/projectReferences';
 import { excludeFromProject, includeInProject } from '../utils/csprojItemEdits';
+import { isClassicSln, setProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 import { runBuildAction, runProject, BuildAction } from '../commands/buildActions';
 import { manageNugetPackages } from '../commands/manageNugetPackages';
 import {
@@ -180,6 +181,41 @@ async function removeFromSolution(node: ProjectNode, provider: SolutionExplorerP
     provider.refresh(solutionNode);
 }
 
+async function unloadProject(node: ProjectNode, provider: SolutionExplorerProvider): Promise<void> {
+    const solutionNode = node.parent;
+    if (!solutionNode || solutionNode.kind !== 'solution') { return; }
+
+    const name = path.basename(node.projectPath, path.extname(node.projectPath));
+    const message = isClassicSln(solutionNode.solutionPath)
+        ? `Unload ${name}? It will be excluded from solution builds until reloaded.`
+        : `Unload ${name}? This hides it from pickers, but .slnx doesn't yet support real build exclusion - a solution build will still build it.`;
+
+    const confirm = await vscode.window.showWarningMessage(message, { modal: true }, 'Unload');
+    if (confirm !== 'Unload') { return; }
+
+    try {
+        await setProjectUnloadedInSolution(node.folder, solutionNode.solutionPath, node.projectPath, true);
+    } catch (error: any) {
+        vscode.window.showErrorMessage(`Failed to unload ${name}: ${error.message}`);
+        return;
+    }
+    provider.refresh(node);
+}
+
+async function reloadProject(node: ProjectNode, provider: SolutionExplorerProvider): Promise<void> {
+    const solutionNode = node.parent;
+    if (!solutionNode || solutionNode.kind !== 'solution') { return; }
+
+    const name = path.basename(node.projectPath, path.extname(node.projectPath));
+    try {
+        await setProjectUnloadedInSolution(node.folder, solutionNode.solutionPath, node.projectPath, false);
+    } catch (error: any) {
+        vscode.window.showErrorMessage(`Failed to reload ${name}: ${error.message}`);
+        return;
+    }
+    provider.refresh(node);
+}
+
 async function pickProjectToReference(currentProjectPath: string, folder: vscode.WorkspaceFolder): Promise<string | undefined> {
     const solutionPath = peekCurrentSolution(folder);
     const candidates = solutionPath
@@ -293,6 +329,8 @@ export function registerSolutionExplorerCommands(context: vscode.ExtensionContex
     register('dotnet-creator.solutionExplorer.editProjectFile', editProjectFile);
     register('dotnet-creator.solutionExplorer.editSolutionFile', editSolutionFile);
     register('dotnet-creator.solutionExplorer.removeFromSolution', (node: ProjectNode) => removeFromSolution(node, provider));
+    register('dotnet-creator.solutionExplorer.unloadProject', (node: ProjectNode) => unloadProject(node, provider));
+    register('dotnet-creator.solutionExplorer.reloadProject', (node: ProjectNode) => reloadProject(node, provider));
     register('dotnet-creator.solutionExplorer.manageProjectReferences', (node: DependenciesNode) => manageProjectReferences(node, provider));
     register('dotnet-creator.solutionExplorer.setAsStartupProject', setAsStartupProject);
     register('dotnet-creator.solutionExplorer.build', (node: ProjectNode | SolutionNode) => buildTarget(node, 'build'));

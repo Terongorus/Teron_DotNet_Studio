@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "teronverse-solutions",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -244,6 +244,16 @@
       {
         "command": "dotnet-creator.solutionExplorer.removeFromSolution",
         "title": "Remove",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.unloadProject",
+        "title": "Unload Project",
+        "category": ".NET Solution Explorer"
+      },
+      {
+        "command": "dotnet-creator.solutionExplorer.reloadProject",
+        "title": "Reload Project",
         "category": ".NET Solution Explorer"
       },
       {
@@ -518,6 +528,14 @@
           "when": "false"
         },
         {
+          "command": "dotnet-creator.solutionExplorer.unloadProject",
+          "when": "false"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.reloadProject",
+          "when": "false"
+        },
+        {
           "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
           "when": "false"
         },
@@ -571,32 +589,32 @@
         },
         {
           "command": "dotnet-creator.solutionExplorer.newFile",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@1"
         },
         {
           "command": "dotnet-creator.solutionExplorer.newClass",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@2"
         },
         {
           "command": "dotnet-creator.solutionExplorer.newFolder",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@3"
         },
         {
           "command": "dotnet-creator.solutionExplorer.addExistingFile",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@4"
         },
         {
           "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
           "group": "2_open@1"
         },
         {
           "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
           "group": "2_open@2"
         },
         {
@@ -636,7 +654,7 @@
         },
         {
           "command": "dotnet-creator.solutionExplorer.paste",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem == dotnetProject || viewItem =~ /\\bcanNew\\b/)",
+          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "4_clipboard@3"
         },
         {
@@ -698,6 +716,16 @@
           "command": "dotnet-creator.solutionExplorer.removeFromSolution",
           "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\binSolution\\b/",
           "group": "9_remove@1"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.unloadProject",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\binSolution\\b/ && !(viewItem =~ /\\bunloaded\\b/)",
+          "group": "9_remove@2"
+        },
+        {
+          "command": "dotnet-creator.solutionExplorer.reloadProject",
+          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bunloaded\\b/",
+          "group": "9_remove@2"
         }
       ]
     },
@@ -705,12 +733,12 @@
       {
         "key": "f5",
         "command": "dotnet-creator.debugStart",
-        "when": "dotnet-creator.workspaceHasProject && !inDebugMode"
+        "when": "dotnet-creator.workspaceHasProject"
       },
       {
         "key": "ctrl+f5",
         "command": "dotnet-creator.runWithoutDebugging",
-        "when": "dotnet-creator.workspaceHasProject && !inDebugMode"
+        "when": "dotnet-creator.workspaceHasProject"
       }
     ],
     "viewsContainers": {

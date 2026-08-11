@@ -4,6 +4,7 @@ import { peekPickedCsprojFile, recordPickedCsprojFile, findAllCsprojFiles, onDid
 import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 import { parseSolutionProjects } from '../utils/solutionParser';
+import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 
 /**
  * Middle of the three .NET status bar segments (Solution › Project ›
@@ -45,9 +46,17 @@ async function autoPickSoleProject(): Promise<void> {
     if (!folder || peekPickedCsprojFile(folder)) { return; }
 
     const solutionPath = peekCurrentSolution(folder);
-    const candidates = solutionPath
+    let candidates = solutionPath
         ? await parseSolutionProjects(solutionPath)
         : (await findAllCsprojFiles(folder)).map(uri => uri.fsPath);
+
+    // An unloaded project isn't a real choice for "the" startup project either - excluded the
+    // same way a picker would exclude it, so a solution with one loaded + one unloaded project
+    // still auto-picks the loaded one instead of treating it as "more than one candidate."
+    if (solutionPath) {
+        const loadedFlags = await Promise.all(candidates.map(p => isProjectUnloadedInSolution(folder, solutionPath, p).then(unloaded => !unloaded)));
+        candidates = candidates.filter((_, i) => loadedFlags[i]);
+    }
 
     if (candidates.length === 1) {
         await recordPickedCsprojFile(folder, candidates[0]);

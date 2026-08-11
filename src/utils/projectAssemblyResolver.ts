@@ -6,12 +6,21 @@ import { BuildConfiguration } from './configurationPicker';
 
 export type HelperPlatform = 'x86' | 'x64';
 
+/** `AnyCPU` covers both a literally-empty `PlatformTarget` and a project MSBuild couldn't be queried for at all (fallback path). */
+export type ProjectPlatform = 'x86' | 'x64' | 'AnyCPU';
+
+export interface ProjectInfo {
+    targetPath: string | undefined;
+    platformTarget: ProjectPlatform;
+}
+
 interface GetPropertyResult {
     TargetPath?: string;
     TargetFrameworks?: string;
+    PlatformTarget?: string;
 }
 
-const targetPathCache = new Map<string, Promise<string | undefined>>();
+const projectInfoCache = new Map<string, Promise<ProjectInfo>>();
 let cacheWatcher: vscode.Disposable | undefined;
 
 function cacheKey(csprojPath: string, configuration: BuildConfiguration): string {
@@ -26,7 +35,7 @@ function cacheKey(csprojPath: string, configuration: BuildConfiguration): string
 function ensureCacheWatcher(): void {
     if (cacheWatcher) { return; }
     const watcher = vscode.workspace.createFileSystemWatcher('**/*.{csproj,props,targets}');
-    const clear = () => targetPathCache.clear();
+    const clear = () => projectInfoCache.clear();
     watcher.onDidChange(clear);
     watcher.onDidCreate(clear);
     watcher.onDidDelete(clear);
@@ -98,10 +107,14 @@ function findAssemblyInBinFallback(csprojPath: string): string | undefined {
     return findAssemblyInBin(path.join(path.dirname(csprojPath), 'bin'), assemblyName);
 }
 
-async function queryTargetPath(csprojPath: string, configuration: BuildConfiguration, targetFramework?: string): Promise<string | undefined> {
+function toProjectPlatform(platformTarget: string | undefined): ProjectPlatform {
+    return platformTarget?.trim().toLowerCase() === 'x86' ? 'x86' : platformTarget?.trim().toLowerCase() === 'x64' ? 'x64' : 'AnyCPU';
+}
+
+async function queryProjectInfo(csprojPath: string, configuration: BuildConfiguration, targetFramework?: string): Promise<ProjectInfo> {
     const args = [
         'msbuild', csprojPath,
-        '-getProperty:TargetPath,TargetFrameworks',
+        '-getProperty:TargetPath,TargetFrameworks,PlatformTarget',
         `-p:Configuration=${configuration}`,
         '-nologo'
     ];
@@ -111,14 +124,15 @@ async function queryTargetPath(csprojPath: string, configuration: BuildConfigura
     try {
         stdout = await runDotnet(args, path.dirname(csprojPath));
     } catch {
-        return undefined;
+        return { targetPath: undefined, platformTarget: 'AnyCPU' };
     }
 
     const parsed = parseGetPropertyOutput(stdout);
-    if (!parsed) { return undefined; }
+    if (!parsed) { return { targetPath: undefined, platformTarget: 'AnyCPU' }; }
 
     if (parsed.TargetPath) {
-        return path.isAbsolute(parsed.TargetPath) ? parsed.TargetPath : path.resolve(path.dirname(csprojPath), parsed.TargetPath);
+        const targetPath = path.isAbsolute(parsed.TargetPath) ? parsed.TargetPath : path.resolve(path.dirname(csprojPath), parsed.TargetPath);
+        return { targetPath, platformTarget: toProjectPlatform(parsed.PlatformTarget) };
     }
 
     // A multi-targeted outer project (<TargetFrameworks>, plural) has no single TargetPath of
@@ -126,10 +140,10 @@ async function queryTargetPath(csprojPath: string, configuration: BuildConfigura
     // listed framework, matching what "just build it" would reasonably mean without asking.
     if (!targetFramework && parsed.TargetFrameworks) {
         const first = parsed.TargetFrameworks.split(';')[0]?.trim();
-        if (first) { return queryTargetPath(csprojPath, configuration, first); }
+        if (first) { return queryProjectInfo(csprojPath, configuration, first); }
     }
 
-    return undefined;
+    return { targetPath: undefined, platformTarget: toProjectPlatform(parsed.PlatformTarget) };
 }
 
 /**
@@ -151,13 +165,29 @@ async function queryTargetPath(csprojPath: string, configuration: BuildConfigura
  * a build has actually run; invalidated on any .csproj/.props/.targets change anywhere in the
  * workspace (see ensureCacheWatcher).
  */
-export function resolveTargetPath(csprojPath: string, configuration: BuildConfiguration): Promise<string | undefined> {
+export async function resolveTargetPath(csprojPath: string, configuration: BuildConfiguration): Promise<string | undefined> {
+    return (await resolveProjectInfo(csprojPath, configuration)).targetPath;
+}
+
+/**
+ * Same underlying cached MSBuild query as resolveTargetPath, but also returns the project's
+ * PlatformTarget - needed to pick the matching-bitness .NET host for a debug launch (see
+ * netcoredbgConfigurationProvider.ts): an x86 PlatformTarget project fails to launch under the
+ * system-default x64 host with an opaque CLR fault, and the output path alone doesn't reliably
+ * signal this (a plain PlatformTarget=x86 build with no RuntimeIdentifier has no "x86" folder
+ * segment in its TargetPath at all - verified against a real project). One shared query per
+ * (csproj, configuration) rather than a second, separate one - resolveTargetPath's existing
+ * callers are unaffected, they just see the same targetPath as before.
+ */
+export function resolveProjectInfo(csprojPath: string, configuration: BuildConfiguration): Promise<ProjectInfo> {
     ensureCacheWatcher();
     const key = cacheKey(csprojPath, configuration);
-    let cached = targetPathCache.get(key);
+    let cached = projectInfoCache.get(key);
     if (!cached) {
-        cached = queryTargetPath(csprojPath, configuration).then(resolved => resolved ?? findAssemblyInBinFallback(csprojPath));
-        targetPathCache.set(key, cached);
+        cached = queryProjectInfo(csprojPath, configuration).then(info =>
+            info.targetPath ? info : { targetPath: findAssemblyInBinFallback(csprojPath), platformTarget: info.platformTarget }
+        );
+        projectInfoCache.set(key, cached);
     }
     return cached;
 }
@@ -236,4 +266,21 @@ export function detectAssemblyPlatform(assemblyPath: string): HelperPlatform {
     const segments = assemblyPath.toLowerCase().split(/[\\/]+/);
     if (segments.includes('x86')) { return 'x86'; }
     return 'x64';
+}
+
+/**
+ * Locates the 32-bit .NET host, needed to launch a PlatformTarget=x86 project - the
+ * system-default host resolved via PATH is the x64 one, which faults trying to load an x86-only
+ * IL image (the CLR raises E_FAIL during the debug adapter's configurationDone handshake, not a
+ * clear error). Windows-only: the x86/x64 dual-host-install split this depends on is a Windows
+ * SDK installer concept, not something Linux/macOS installs have. Checks the conventional
+ * install location directly rather than probing PATH, since a 32-bit host is never the one a
+ * 64-bit machine's PATH points at by default.
+ */
+export function findX86DotnetHost(): string | undefined {
+    if (process.platform !== 'win32') { return undefined; }
+    const programFilesX86 = process.env['ProgramFiles(x86)'];
+    if (!programFilesX86) { return undefined; }
+    const hostPath = path.join(programFilesX86, 'dotnet', 'dotnet.exe');
+    return fs.existsSync(hostPath) ? hostPath : undefined;
 }

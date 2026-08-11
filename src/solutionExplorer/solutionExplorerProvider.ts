@@ -8,6 +8,7 @@ import { listPackageReferences, getPackageAssemblies, PackageReference } from '.
 import { parseProjectReferences } from '../utils/projectReferences';
 import { parseAnalyzerReferences } from '../utils/analyzerReferences';
 import { isExcluded } from '../utils/csprojItemEdits';
+import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 import {
     SolutionExplorerNode,
     WorkspaceFolderNode,
@@ -115,7 +116,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
         return getParentNode(element);
     }
 
-    getTreeItem(element: SolutionExplorerNode): vscode.TreeItem {
+    getTreeItem(element: SolutionExplorerNode): Promise<vscode.TreeItem> {
         return this.buildTreeItem(element);
     }
 
@@ -357,7 +358,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
         return node;
     }
 
-    private buildTreeItem(element: SolutionExplorerNode): vscode.TreeItem {
+    private async buildTreeItem(element: SolutionExplorerNode): Promise<vscode.TreeItem> {
         switch (element.kind) {
             case 'workspaceFolder': {
                 const item = new vscode.TreeItem(element.folder.name, vscode.TreeItemCollapsibleState.Expanded);
@@ -377,14 +378,24 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
                 return item;
             }
             case 'project': {
+                const inSolution = element.parent?.kind === 'solution';
+                const unloaded = inSolution && element.parent?.kind === 'solution'
+                    ? await isProjectUnloadedInSolution(element.folder, element.parent.solutionPath, element.projectPath)
+                    : false;
+
                 const name = path.basename(element.projectPath, path.extname(element.projectPath));
-                const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+                const item = new vscode.TreeItem(unloaded ? `${name} (unloaded)` : name, vscode.TreeItemCollapsibleState.Collapsed);
                 item.id = element.id;
-                item.iconPath = new vscode.ThemeIcon('project');
+                item.iconPath = new vscode.ThemeIcon('project', unloaded ? new vscode.ThemeColor('disabledForeground') : undefined);
                 item.tooltip = element.projectPath;
-                const picked = peekPickedCsprojFile(element.folder);
-                item.description = picked && picked.toLowerCase() === element.projectPath.toLowerCase() ? 'Startup Project' : undefined;
-                item.contextValue = element.parent?.kind === 'solution' ? 'dotnetProject inSolution' : 'dotnetProject';
+                if (!unloaded) {
+                    const picked = peekPickedCsprojFile(element.folder);
+                    item.description = picked && picked.toLowerCase() === element.projectPath.toLowerCase() ? 'Startup Project' : undefined;
+                }
+                const contextParts = ['dotnetProject'];
+                if (inSolution) { contextParts.push('inSolution'); }
+                if (unloaded) { contextParts.push('unloaded'); }
+                item.contextValue = contextParts.join(' ');
                 return item;
             }
             case 'dependencies': {
