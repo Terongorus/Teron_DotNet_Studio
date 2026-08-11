@@ -2,6 +2,28 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.4] - 2026-08-11
+
+* **Fix: Roslyn Language Server produced zero diagnostics for `.slnx` solutions - not just
+  slow to warm up, genuinely never analyzing anything.** Confirmed via real server logs and
+  upstream research: Microsoft's own Roslyn Language Server's `.slnx`-specific solution reader
+  throws a hard internal assertion failure trying to load a real `.slnx` (a known, still-open
+  MSBuild/Roslyn limitation - see
+  [dotnet/roslyn#73004](https://github.com/dotnet/roslyn/issues/73004)), leaving the server's
+  project system completely unpopulated afterward - so every file's diagnostics, completions, and
+  navigation silently came back empty regardless of what the code actually contained. Classic
+  `.sln` was unaffected. Worked around by opening each member project individually
+  (`project/open`) instead of the solution as a whole (`solution/open`) specifically for `.slnx`,
+  bypassing the broken reader entirely.
+* **Fix: "Start Trace Recording" gave dead-end instructions when Roslyn is the selected language
+  server.** Runtime trace recording and the Resource Monitor's live counters both drive SharpLsp's
+  own profiler protocol extension specifically (Roslyn doesn't implement an equivalent) - the
+  error shown when SharpLsp isn't running told users to "open a C#/F# file, or use the status bar"
+  to start it, but neither works when Roslyn is selected (SharpLsp's own auto-start is gated off,
+  and its status bar item never even appears). Both messages now explain this is a SharpLsp-
+  specific capability and offer a direct "Start SharpLsp" action that works regardless of which
+  language server is currently selected.
+
 ## [1.10.3] - 2026-08-11
 
 * **New: Build now skips the task entirely when the project/solution is already up to date.**

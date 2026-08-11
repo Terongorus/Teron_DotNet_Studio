@@ -36,7 +36,20 @@ export function registerProfilerCommands(context: vscode.ExtensionContext, sharp
 
 async function startTrace(sharpLsp: SharpLspClientManager, resourceMonitor: ResourceMonitorProvider): Promise<void> {
     if (sharpLsp.getStatus() !== 'Running') {
-        vscode.window.showErrorMessage('SharpLsp is not running. Open a C#/F# file, or use the status bar, to start it.');
+        // Trace recording drives SharpLsp's own profiler protocol extension specifically - Roslyn
+        // doesn't implement it, so this is needed even when Roslyn is the selected language
+        // server. "Open a C#/F# file" used to be suggested here, but that's a dead end whenever
+        // Roslyn is selected: the auto-start gate in extension.ts only starts SharpLsp when it's
+        // the *selected* server, so opening a file does nothing, and SharpLsp's own status bar
+        // item never even appears (it only shows once SharpLsp's status changes for the first
+        // time). Starting it directly here runs it alongside whichever language server is
+        // currently selected - it's only used for its profiler capability, not as your C#
+        // language server.
+        const choice = await vscode.window.showErrorMessage(
+            'Trace recording requires SharpLsp specifically (a capability Roslyn doesn\'t implement), and it isn\'t running.',
+            'Start SharpLsp'
+        );
+        if (choice === 'Start SharpLsp') { await sharpLsp.ensureStarted(); }
         return;
     }
 

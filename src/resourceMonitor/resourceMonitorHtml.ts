@@ -165,7 +165,7 @@ export function getResourceMonitorHtml(webview: vscode.Webview): string {
                 <span class="chart-label">Runtime Counters</span>
             </div>
             <div class="counters-gate" id="countersGate">
-                <p class="idle">SharpLsp language server is not running.</p>
+                <p class="idle">Runtime counters require SharpLsp specifically (a capability Roslyn doesn't implement), and it isn't running.</p>
                 <button id="startSharpLspBtn">Start SharpLsp</button>
             </div>
             <p class="counters-starting" id="countersStarting">Starting counters…</p>

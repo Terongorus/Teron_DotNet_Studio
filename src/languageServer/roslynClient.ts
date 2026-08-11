@@ -30,6 +30,7 @@ import {
 } from './roslynNotifications';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 import { peekPickedCsprojFile, onDidChangePickedCsproj } from '../utils/projectPicker';
+import { parseSolutionProjects } from '../utils/solutionParser';
 import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 export type RoslynStatus = 'NotInstalled' | 'Starting' | 'Running' | 'Restarting' | 'Stopped' | 'Failed';
@@ -210,6 +211,29 @@ export class RoslynClientManager implements vscode.Disposable {
 
         const solutionPath = peekCurrentSolution(folder);
         if (solutionPath) {
+            // .slnx specifically (not classic .sln) goes through project/open instead, one
+            // project per member .csproj - a real, confirmed upstream bug, not a guess: Roslyn's
+            // own SolutionFileReader (the .slnx-specific solution/open code path) throws a hard
+            // internal assertion failure (Contract.Fail, "Unexpected false", SolutionFileReader.cs
+            // line 24) trying to read a real .slnx here, verified against this exact server
+            // version's real log output - and confirmed as a known, still-unresolved MSBuild/
+            // Roslyn .slnx limitation (github.com/dotnet/roslyn/issues/73004, deferred to
+            // github.com/dotnet/msbuild/issues/10012), not something fixable from this extension.
+            // Once that failure happens the server is left in a broken state where even ordinary
+            // file diagnostics fail with malformed URIs - project/open's per-project MSBuild
+            // evaluation is the same mature, working code path already exercised by SharpLsp and
+            // this extension's own build/debug features, so it sidesteps the broken reader
+            // entirely. Classic .sln keeps using solution/open - that's the older, more mature
+            // MSBuild code path per the same upstream issue thread, but it hasn't been driven
+            // through a real Roslyn session in this codebase yet either; worth confirming live.
+            if (solutionPath.toLowerCase().endsWith('.slnx')) {
+                const projects = await parseSolutionProjects(solutionPath);
+                if (projects.length > 0) {
+                    await this.client.sendNotification('project/open', { projects: projects.map(p => vscode.Uri.file(p).toString()) });
+                    return;
+                }
+            }
+
             await this.client.sendNotification('solution/open', { solution: vscode.Uri.file(solutionPath).toString() });
             return;
         }
