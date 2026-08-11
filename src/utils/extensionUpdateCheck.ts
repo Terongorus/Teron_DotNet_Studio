@@ -6,6 +6,21 @@ const GITHUB_OWNER = 'Terongorus';
 const GITHUB_REPO = 'dotnet-project-creator';
 
 /**
+ * `workbench.extensions.installExtension` (and other internal VS Code commands) don't always
+ * reject with a real `Error` - sometimes it's a plain object or string with no `message` property
+ * at all, which previously rendered literally as the text "undefined" with zero diagnostic value.
+ * Falls back to a full JSON/string dump so a future failure is at least legible.
+ */
+function describeError(error: unknown): string {
+    if (error instanceof Error && error.message) { return error.message; }
+    try {
+        return JSON.stringify(error);
+    } catch {
+        return String(error);
+    }
+}
+
+/**
  * Self-update via this extension's own GitHub Releases, not the VS Code Marketplace - the
  * Marketplace requires publishing through an Azure DevOps organization, which this project
  * deliberately doesn't use. Reuses maybeNotifyUpdate() (toolUpdateCheck.ts) exactly as-is - same
@@ -38,8 +53,8 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
                 if (!asset) { throw new Error('The latest release has no .vsix asset.'); }
                 vsixUrl = asset.browser_download_url;
                 version = release.tag_name.replace(/^v/, '');
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`.NET Studio: failed to check for updates - ${error.message}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`.NET Studio: failed to check for updates - ${describeError(error)}`);
                 return;
             }
 
@@ -50,16 +65,28 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
                 await vscode.workspace.fs.createDirectory(context.globalStorageUri);
                 vsixPath = vscode.Uri.joinPath(context.globalStorageUri, `dotnet-project-creator-${version}.vsix`);
                 await vscode.workspace.fs.writeFile(vsixPath, bytes);
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`.NET Studio: failed to download v${version} - ${error.message}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`.NET Studio: failed to download v${version} - ${describeError(error)}`);
                 return;
             }
 
             progress.report({ message: 'Installing...' });
             try {
-                await vscode.commands.executeCommand('workbench.extensions.installExtension', vsixPath);
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`.NET Studio: failed to install v${version} - ${error.message}`);
+                // The second (undocumented but real, confirmed via microsoft/vscode#88713)
+                // throwOnFailure argument matters: without it, this command logs the real
+                // exception internally and rejects with essentially nothing useful, which
+                // previously rendered as the literal text "undefined" here.
+                await vscode.commands.executeCommand('workbench.extensions.installExtension', vsixPath, true);
+            } catch (error) {
+                // workbench.extensions.installExtension is an internal command with no documented
+                // rejection shape - always offer the already-downloaded file as a manual fallback
+                // via "Extensions: Install from VSIX...", since automatic install failing here
+                // doesn't mean the download itself was bad.
+                const choice = await vscode.window.showErrorMessage(
+                    `.NET Studio: failed to install v${version} - ${describeError(error)}`,
+                    'Reveal Downloaded VSIX'
+                );
+                if (choice === 'Reveal Downloaded VSIX') { await vscode.commands.executeCommand('revealFileInOS', vsixPath); }
                 return;
             }
 

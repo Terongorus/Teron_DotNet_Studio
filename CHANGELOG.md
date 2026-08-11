@@ -2,6 +2,22 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.7] - 2026-08-11
+
+* **Fix: self-update's install step failed with an unhelpful "undefined" error message.**
+  `workbench.extensions.installExtension` silently swallows the real exception unless a
+  second, undocumented `throwOnFailure` argument is passed
+  ([microsoft/vscode#88713](https://github.com/microsoft/vscode/issues/88713)) - now passed, so a
+  future install failure shows the actual reason instead of nothing. All three self-update
+  failure messages (check/download/install) also now handle non-`Error` rejections gracefully
+  instead of assuming a `.message` property exists. Install failures also offer a "Reveal
+  Downloaded VSIX" action, so a failed automatic install doesn't strand the already-downloaded
+  file with no way to install it manually.
+  > Note: since this fix lives in the self-update code that only ships starting with this
+  > version, an update *to* v1.10.7 itself from an older version will still show the old
+  > "undefined" message - install v1.10.7 once manually, and self-update from then on will show
+  > real diagnostics if it ever fails again.
+
 ## [1.10.6] - 2026-08-11
 
 * **New: "Start" and "Stop" for each language server, alongside the existing "Restart".**
