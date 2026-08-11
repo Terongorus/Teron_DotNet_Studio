@@ -2,6 +2,18 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.12] - 2026-08-12
+
+* **New: `KNOWN-LIMITATIONS.md`, documenting verified (not guessed) limitations in the third-party
+  language servers this extension drives.** Covers Roslyn Language Server's project/solution
+  loading currently failing on at least some Windows environments across every loading path
+  tested (`solution/open` for both `.slnx` and classic `.sln`, and `project/open`, independent of
+  file format, project count, or Roslyn version) with no reliable client-side workaround found;
+  Roslyn having no `dotnet-trace`/`dotnet-counters`/`dotnet-dump` integration at all (a permanent
+  feature gap, not a bug); and SharpLsp's trace recording failing with `invalid type: map,
+  expected u32`, root-caused as a likely genuine upstream SharpLsp bug. Linked from README's Known
+  Issues section.
+
 ## [1.10.11] - 2026-08-12
 
 * **Diagnostics: "Start Trace Recording" logs the exact request/error to the ".NET Language

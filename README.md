@@ -220,6 +220,7 @@ than building a Roslyn-hosting language server of its own:
 ## Known Issues
 
 * If no templates are loading, ensure that your `.NET SDK` is installed properly and that the `dotnet` command is recognized in your terminal.
+* See [KNOWN-LIMITATIONS.md](KNOWN-LIMITATIONS.md) for verified limitations in the third-party language servers this extension drives (SharpLsp, Roslyn Language Server) - not bugs in this extension itself, but real, directly-tested gaps worth knowing about before relying on either.
 
 ## Credits
 
