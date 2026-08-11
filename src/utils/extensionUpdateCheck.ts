@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { fetchLatestRelease, downloadToBuffer } from './githubReleaseInstaller';
 import { maybeNotifyUpdate } from './toolUpdateCheck';
 
-const EXTENSION_ID = 'teronverse-solutions.dotnet-project-creator';
 const GITHUB_OWNER = 'Terongorus';
 const GITHUB_REPO = 'dotnet-project-creator';
 
@@ -12,9 +11,14 @@ const GITHUB_REPO = 'dotnet-project-creator';
  * deliberately doesn't use. Reuses maybeNotifyUpdate() (toolUpdateCheck.ts) exactly as-is - same
  * 24h-throttled "Update / Not Now / Don't Ask for This Version" flow already used for SharpLsp/
  * netcoredbg, just pointed at this extension's own repo/version instead of a bundled tool's.
+ *
+ * Reads the running version from context.extension.id rather than a hardcoded
+ * "<publisher>.<name>" string - this project's publisher ID has already changed multiple times
+ * (see git history), and a stale hardcoded ID here would make getExtension() return undefined,
+ * silently disabling the entire self-update check with no error.
  */
 export async function checkForExtensionUpdate(context: vscode.ExtensionContext): Promise<void> {
-    const currentVersion = vscode.extensions.getExtension(EXTENSION_ID)?.packageJSON.version as string | undefined;
+    const currentVersion = context.extension.packageJSON.version as string | undefined;
     if (!currentVersion) { return; }
 
     await maybeNotifyUpdate(context, 'extension', '.NET Studio', GITHUB_OWNER, GITHUB_REPO, currentVersion, () => downloadAndInstallLatest(context));

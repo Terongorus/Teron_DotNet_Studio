@@ -118,13 +118,23 @@ export function activate(context: vscode.ExtensionContext) {
             void maybeStartRoslyn(roslyn!, doc);
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            // A manual settings.json edit (not the switchLanguageServer command, which already
-            // stops the deselected one itself) should still stop whichever server is no longer
-            // selected - it doesn't auto-start the newly selected one, matching this codebase's
-            // existing lazy-start-on-relevant-document-open convention.
+            // Fires for both the "Switch Language Server" command (which already does this
+            // itself, so this is a harmless no-op restart there) and a direct Settings UI/
+            // settings.json edit - the latter has no other trigger to start the newly selected
+            // server, since maybeStartSharpLsp/maybeStartRoslyn only run on document-open and
+            // any relevant C# file is typically already open by the time someone flips this
+            // setting. Stop whichever is no longer selected, then start the newly selected one
+            // (mirrors switchLanguageServer.ts's own stop-then-start pair) so switching via
+            // settings offers the same install prompt switching via the command does.
             if (!e.affectsConfiguration('dotnet-creator.languageServer')) { return; }
             const selected = getSelectedLanguageServer();
-            if (selected === 'roslyn') { void sharpLsp?.stop(); } else { void roslyn?.stop(); }
+            if (selected === 'roslyn') {
+                void sharpLsp?.stop();
+                void roslyn?.ensureStarted();
+            } else {
+                void roslyn?.stop();
+                void sharpLsp?.ensureStarted();
+            }
         }),
         { dispose: () => sharpLsp?.dispose() },
         { dispose: () => roslyn?.dispose() }

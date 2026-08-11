@@ -1,4 +1,4 @@
-# .NET Project Creator
+# .NET Studio
 
 A clean, lightweight Visual Studio Code extension for generating C# and F# .NET projects directly from the command palette.
 

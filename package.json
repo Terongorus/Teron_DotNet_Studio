@@ -3,8 +3,8 @@
   "displayName": ".NET Studio",
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
-  "publisher": "teronverse-solutions",
-  "version": "1.10.0",
+  "publisher": "Terongorus",
+  "version": "1.10.1",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -177,6 +177,12 @@
         "category": ".NET"
       },
       {
+        "command": "dotnet-creator.sharpLsp.download",
+        "icon": "resources/appicon.png",
+        "title": "Download SharpLsp",
+        "category": ".NET"
+      },
+      {
         "command": "dotnet-creator.roslyn.restart",
         "icon": "resources/appicon.png",
         "title": "Restart Roslyn Language Server",
@@ -186,6 +192,12 @@
         "command": "dotnet-creator.roslyn.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Roslyn Language Server Output",
+        "category": ".NET"
+      },
+      {
+        "command": "dotnet-creator.roslyn.download",
+        "icon": "resources/appicon.png",
+        "title": "Download Roslyn Language Server",
         "category": ".NET"
       },
       {
@@ -423,96 +435,117 @@
         ]
       }
     ],
-    "configuration": {
-      "title": ".NET Project Creator",
-      "properties": {
-        "dotnet-creator.showStartPageOnStartup": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically show the .NET Project Creator start page on launch when no folder or workspace is open."
-        },
-        "dotnet-creator.offerDebugTaskSetup": {
-          "type": "boolean",
-          "default": true,
-          "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
-        },
-        "dotnet-creator.useGlobalDebugTasks": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use global (User Tasks/launch) .NET debug/build configurations shared across every workspace, instead of setting them up per-workspace. Created automatically the first time they're needed. When enabled, the per-workspace setup prompt is skipped entirely."
-        },
-        "dotnet-creator.sharpLsp.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable C# and F# language features (diagnostics, completion, hover, go-to-definition) via a SharpLsp binary already installed on PATH. Disable if you're using another C# language extension."
-        },
-        "dotnet-creator.sharpLsp.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the SharpLsp executable. Leave empty to resolve 'sharplsp' from PATH, or to use a copy downloaded via the \"Download SharpLsp\" action."
-        },
-        "dotnet-creator.sharpLsp.extraArgs": {
-          "type": "array",
-          "items": {
-            "type": "string"
+    "configuration": [
+      {
+        "title": ".NET Studio",
+        "order": 0,
+        "properties": {
+          "dotnet-creator.showStartPageOnStartup": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically show the .NET Studio start page on launch when no folder or workspace is open."
           },
-          "default": [],
-          "description": "Extra command-line arguments passed to the SharpLsp server process."
-        },
-        "dotnet-creator.sharpLsp.dotnetPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to a specific dotnet executable (e.g. a portable/user-local .NET SDK install not on PATH) for the SharpLsp language server to use."
-        },
-        "dotnet-creator.sharpLsp.trace.server": {
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Trace communication between .NET Studio and the SharpLsp language server (for troubleshooting)."
-        },
-        "dotnet-creator.languageServer": {
-          "type": "string",
-          "enum": [
-            "sharpLsp",
-            "roslyn"
-          ],
-          "enumDescriptions": [
-            "SharpLsp - a third-party, MIT-licensed C#/F# language server.",
-            "Roslyn Language Server - Microsoft's own C# language server, the same one C# Dev Kit uses internally, driven standalone (not via C# Dev Kit)."
-          ],
-          "default": "sharpLsp",
-          "description": "Which C#/F# language server .NET Studio drives. Both can be installed at once, but only the selected one ever runs - use \".NET: Switch Language Server\" to change this and restart."
-        },
-        "dotnet-creator.roslyn.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the Roslyn Language Server executable. Leave empty to resolve it from PATH, or to use a copy downloaded via the \"Download Roslyn Language Server\" action."
-        },
-        "dotnet-creator.roslyn.extraArgs": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "dotnet-creator.offerDebugTaskSetup": {
+            "type": "boolean",
+            "default": true,
+            "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
           },
-          "default": [],
-          "description": "Extra command-line arguments passed to the Roslyn Language Server process."
-        },
-        "dotnet-creator.debugAdapter.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the netcoredbg executable. Leave empty to resolve 'netcoredbg' from PATH, or to use a copy downloaded via the \"Download netcoredbg\" action."
-        },
-        "dotnet-creator.debugAdapter.extraArgs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": [],
-          "description": "Extra command-line arguments passed to the netcoredbg process."
+          "dotnet-creator.useGlobalDebugTasks": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use global (User Tasks/launch) .NET debug/build configurations shared across every workspace, instead of setting them up per-workspace. Created automatically the first time they're needed. When enabled, the per-workspace setup prompt is skipped entirely."
+          },
+          "dotnet-creator.languageServer": {
+            "type": "string",
+            "enum": [
+              "sharpLsp",
+              "roslyn"
+            ],
+            "enumDescriptions": [
+              "SharpLsp - a third-party, MIT-licensed C#/F# language server.",
+              "Roslyn Language Server - Microsoft's own C# language server, the same one C# Dev Kit uses internally, driven standalone (not via C# Dev Kit)."
+            ],
+            "default": "sharpLsp",
+            "description": "Which C#/F# language server .NET Studio drives. Both can be installed at once, but only the selected one ever runs - use \".NET: Switch Language Server\" to change this and restart."
+          }
+        }
+      },
+      {
+        "title": "SharpLsp Language Server",
+        "order": 1,
+        "properties": {
+          "dotnet-creator.sharpLsp.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable C# and F# language features (diagnostics, completion, hover, go-to-definition) via a SharpLsp binary already installed on PATH. Disable if you're using another C# language extension."
+          },
+          "dotnet-creator.sharpLsp.path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to the SharpLsp executable. Leave empty to resolve 'sharplsp' from PATH, or to use a copy downloaded via the \"Download SharpLsp\" action."
+          },
+          "dotnet-creator.sharpLsp.extraArgs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Extra command-line arguments passed to the SharpLsp server process."
+          },
+          "dotnet-creator.sharpLsp.dotnetPath": {
+            "type": "string",
+            "default": "",
+            "description": "Path to a specific dotnet executable (e.g. a portable/user-local .NET SDK install not on PATH) for the SharpLsp language server to use."
+          },
+          "dotnet-creator.sharpLsp.trace.server": {
+            "type": "string",
+            "enum": [
+              "off",
+              "messages",
+              "verbose"
+            ],
+            "default": "off",
+            "description": "Trace communication between .NET Studio and the SharpLsp language server (for troubleshooting)."
+          }
+        }
+      },
+      {
+        "title": "Roslyn Language Server",
+        "order": 2,
+        "properties": {
+          "dotnet-creator.roslyn.path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to the Roslyn Language Server executable. Leave empty to resolve it from PATH, or to use a copy downloaded via the \"Download Roslyn Language Server\" action."
+          },
+          "dotnet-creator.roslyn.extraArgs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Extra command-line arguments passed to the Roslyn Language Server process."
+          }
+        }
+      },
+      {
+        "title": "Debugger (netcoredbg)",
+        "order": 3,
+        "properties": {
+          "dotnet-creator.debugAdapter.path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to the netcoredbg executable. Leave empty to resolve 'netcoredbg' from PATH, or to use a copy downloaded via the \"Download netcoredbg\" action."
+          },
+          "dotnet-creator.debugAdapter.extraArgs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "Extra command-line arguments passed to the netcoredbg process."
+          }
         }
       }
-    },
+    ],
     "menus": {
       "editor/title": [
         {

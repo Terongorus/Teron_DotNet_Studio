@@ -10,7 +10,8 @@ export function registerRoslynCommands(context: vscode.ExtensionContext, manager
         vscode.commands.registerCommand('dotnet-creator.roslyn.showOutput', () => {
             (manager.getRealOutputChannel() ?? getRoslynOutputChannel()).show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.showMenu', () => showMenu(manager))
+        vscode.commands.registerCommand('dotnet-creator.roslyn.showMenu', () => showMenu(manager)),
+        vscode.commands.registerCommand('dotnet-creator.roslyn.download', () => manager.downloadAndStart())
     );
 }
 

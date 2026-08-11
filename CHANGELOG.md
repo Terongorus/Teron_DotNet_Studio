@@ -1,6 +1,27 @@
 # Change Log
 
-All notable changes to the **.NET Project Creator** extension will be documented in this file.
+All notable changes to the **.NET Studio** extension will be documented in this file.
+
+## [1.10.1] - 2026-08-11
+
+* **Fix: Settings page showed the extension's old pre-rebrand name** (".NET Project Creator" /
+  the raw "Dotnet-creator" ID-derived heading) instead of ".NET Studio".
+* **Fix: all settings were jammed into one flat, unlabeled list.** Split into four labeled
+  sections: **.NET Studio** (general + the language server picker), **SharpLsp Language
+  Server**, **Roslyn Language Server**, and **Debugger (netcoredbg)**.
+* **Fix: switching to the Roslyn Language Server via the settings dropdown never actually
+  started it or offered to install it** - only the **.NET: Switch Language Server** command did.
+  Changing `dotnet-creator.languageServer` directly (Settings UI or `settings.json`) now starts
+  the newly selected server the same way the command does.
+* **Fix: no way to install Roslyn (or SharpLsp) directly from the Command Palette.** Both
+  "Download..." actions previously lived only inside a QuickPick reachable by clicking their
+  status bar item - and Roslyn's status bar item stays hidden until the server has started at
+  least once, a chicken-and-egg gap. Added standalone **.NET: Download Roslyn Language Server**
+  and **.NET: Download SharpLsp** commands.
+* **Fix: self-update silently never checked for updates.** `checkForExtensionUpdate()` looked up
+  the running extension by a hardcoded `publisher.name` string that no longer matched this
+  project's current publisher ID (changed since), so it silently found nothing every time. Now
+  reads its own identity from the extension context instead of a literal string.
 
 ## [1.10.0] - 2026-08-11
 

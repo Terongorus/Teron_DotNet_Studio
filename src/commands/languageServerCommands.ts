@@ -10,7 +10,8 @@ export function registerLanguageServerCommands(context: vscode.ExtensionContext,
         vscode.commands.registerCommand('dotnet-creator.sharpLsp.showOutput', () => {
             (manager.getRealOutputChannel() ?? getSharpLspOutputChannel()).show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.showMenu', () => showMenu(manager))
+        vscode.commands.registerCommand('dotnet-creator.sharpLsp.showMenu', () => showMenu(manager)),
+        vscode.commands.registerCommand('dotnet-creator.sharpLsp.download', () => manager.downloadAndStart())
     );
 }
 
