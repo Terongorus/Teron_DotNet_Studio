@@ -2,6 +2,17 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.11] - 2026-08-12
+
+* **Diagnostics: "Start Trace Recording" logs the exact request/error to the ".NET Language
+  Server" output channel.** Investigating a real report of `Failed to start trace recording:
+  invalid type: map, expected u32` - verified directly against SharpLsp's own real Rust source
+  (fetched at the exact `v0.18.0` tag) that the request this extension sends already matches the
+  server's `StartTraceParams` struct field-for-field, so the mismatch isn't visible from reading
+  either side's source alone. This isn't the fix yet - it's the instrumentation needed to catch
+  the actual wire payload on the next reproduction, since the failure only reveals itself once a
+  real trace-start request round-trips against a real SharpLsp server.
+
 ## [1.10.10] - 2026-08-12
 
 * **Fix: Resource Monitor never detected an active debug session, even while genuinely

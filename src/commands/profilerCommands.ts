@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { SharpLspClientManager } from '../languageServer/sharpLspClient';
 import { ResourceMonitorProvider } from '../resourceMonitor/resourceMonitorProvider';
 import { onDidChangePid } from '../utils/debugSessionTracker';
+import { getSharpLspOutputChannel } from '../languageServer/sharpLspNotifications';
 import {
     PROFILER_START_TRACE,
     PROFILER_STOP_TRACE,
@@ -69,13 +70,24 @@ async function startTrace(sharpLsp: SharpLspClientManager, resourceMonitor: Reso
     );
     if (!picked) { return; }
 
+    // Client-side shape verified against SharpLsp's own real Rust source (trace.rs's
+    // StartTraceParams, at the exact tag matching an installed 0.18.0 sidecar) - pid/profile/
+    // duration all match field-for-field. If "invalid type: map, expected u32" recurs, this dump
+    // (our own pre-spawn diagnostics channel, not the server's own LSP log) shows exactly what we
+    // sent, cross-reference against SharpLsp's own log (log_path in its startup line) to find
+    // whichever layer is actually transforming it before the server sees it.
+    const requestParams = { pid, profile: picked.profile, duration: 0 };
+    getSharpLspOutputChannel().appendLine(`[profiler] ${PROFILER_START_TRACE} request: ${JSON.stringify(requestParams)}`);
+
     try {
-        const result = await sharpLsp.sendRequest<StartTraceResult>(PROFILER_START_TRACE, { pid, profile: picked.profile, duration: 0 });
+        const result = await sharpLsp.sendRequest<StartTraceResult>(PROFILER_START_TRACE, requestParams);
         activeTrace = { sessionId: result.session_id, profile: picked.profile, outputPath: result.output_path };
         await vscode.commands.executeCommand('setContext', TRACING_CONTEXT_KEY, true);
         resourceMonitor.postTracingState(true, picked.profile);
     } catch (error) {
-        vscode.window.showErrorMessage(`Failed to start trace recording: ${(error as Error).message}`);
+        getSharpLspOutputChannel().appendLine(`[profiler] ${PROFILER_START_TRACE} error: ${JSON.stringify(error)}`);
+        void vscode.window.showErrorMessage(`Failed to start trace recording: ${(error as Error).message}`, 'Show Output')
+            .then(choice => { if (choice === 'Show Output') { getSharpLspOutputChannel().show(); } });
     }
 }
 
