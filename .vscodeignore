@@ -1,5 +1,6 @@
 .vscode/**
 .vscode-test/**
+.claude/**
 *.code-workspace
 out/**
 node_modules/**
