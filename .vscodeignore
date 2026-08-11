@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-test/**
 .claude/**
+SHARPLSP-STARTTRACE-BUG-REPORT.md
 *.code-workspace
 out/**
 node_modules/**
