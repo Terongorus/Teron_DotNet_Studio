@@ -2,6 +2,16 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.2] - 2026-08-11
+
+* **Fix: the Roslyn Language Server never actually started - it errored on every launch attempt
+  and looped restarting forever.** The real `Microsoft.CodeAnalysis.LanguageServer.exe` marks
+  `--logLevel` and `--extensionLogDirectory` as required command-line options (confirmed by
+  running the binary's own `--help`); neither was being passed, so the process printed its usage
+  text to stdout instead of starting, which the LSP client then failed trying to parse as
+  protocol frames ("Header must provide a Content-Length property"). Now passes both -
+  `--extensionLogDirectory` pointed at this extension's own per-install log directory.
+
 ## [1.10.1] - 2026-08-11
 
 * **Fix: Settings page showed the extension's old pre-rebrand name** (".NET Project Creator" /

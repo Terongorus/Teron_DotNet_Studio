@@ -146,9 +146,20 @@ export class RoslynClientManager implements vscode.Disposable {
     }
 
     private async spawnClient(command: string): Promise<void> {
+        // --logLevel and --extensionLogDirectory are both marked (REQUIRED) by the server's own
+        // `--help` output (confirmed by actually running the downloaded binary, not guessed from
+        // roslyn.nvim/nvim-lspconfig's source, which only pass --stdio) - omitting either makes
+        // the process print its usage text to stdout instead of starting, which the LSP client
+        // then fails trying to parse as protocol frames ("Header must provide a Content-Length
+        // property"). context.logUri is this extension's own per-install log directory - exactly
+        // what --extensionLogDirectory is for - but must exist before the server starts, hence
+        // creating it first.
+        const logDirectory = this.context.logUri;
+        await vscode.workspace.fs.createDirectory(logDirectory);
+
         const run: Executable = {
             command,
-            args: ['--stdio', ...getExtraArgs()],
+            args: ['--logLevel', 'Information', '--extensionLogDirectory', logDirectory.fsPath, '--stdio', ...getExtraArgs()],
             transport: TransportKind.stdio
         };
         const serverOptions: ServerOptions = { run, debug: run };
