@@ -2,6 +2,28 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.13.0] - 2026-08-12
+
+* **New: Test Explorer.** Discovers and runs xUnit, NUnit, and MSTest tests via VS Code's native
+  Testing view. Drives `vstest.console.dll` (bundled with the .NET SDK) directly over its own
+  design-mode protocol - the same JSON-RPC-over-socket protocol Visual Studio/Rider use - rather
+  than parsing `dotnet test`'s human-readable CLI output, which has no reliable file/line mapping.
+  Each test resolves to its real source file and line; results (including failure messages) stream
+  in as they complete, not only after the whole run finishes. Test projects are found via the real
+  `IsTestProject` MSBuild property (what `Microsoft.NET.Test.Sdk` itself sets), not filename
+  conventions, and built - skipping the build when already up to date, same as every other build
+  path in this extension - before every run.
+
+  The wire protocol (a 7-bit-encoded length-prefix framing with no off-the-shelf Node.js
+  equivalent) was verified against a real `vstest.console` process before writing the extension
+  code: real discovery and execution against real xUnit and NUnit projects, including a genuine
+  server-side crash found and fixed along the way (`TestExecution.RunSelectedWithDefaultHost`
+  needs an explicit `Sources` array, not just `TestCases` - omitting it crashes vstest.console's
+  own source-detection with a null-key exception in a fresh session).
+
+  Debugging an individual test isn't wired up yet - a deliberate, scoped-out follow-up, not an
+  oversight.
+
 ## [1.12.0] - 2026-08-12
 
 * **New: NuGet vulnerability and deprecated-package scanning.** The NuGet Package Manager now
