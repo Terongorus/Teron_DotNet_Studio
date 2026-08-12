@@ -2,6 +2,23 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.11.0] - 2026-08-12
+
+* **New: Publish.** An interactive Publish panel (**Publish...** on a project's Solution Explorer
+  context menu, or from the Project status bar item) for creating and managing folder publish
+  profiles - target framework, framework-dependent vs. self-contained, target runtime, target
+  location, and single-file/ReadyToRun/trimming options. Profiles are saved as real
+  `Properties/PublishProfiles/<name>.pubxml` files matching Visual Studio's own schema exactly
+  (verified via a byte-for-byte round-trip and a real `dotnet publish -p:PublishProfile=` run
+  against the generated file), so they're fully interoperable with VS's own Publish UI rather than
+  a parallel, extension-specific format. Publishing restores explicitly first (with the profile's
+  own `Configuration`/`RuntimeIdentifier`) before running `--no-restore` publish, the same fix
+  applied to Build/Rebuild in 1.10.13. Folder targets only - no Azure/IIS/container publish yet.
+* **New: built-in "JetBrains Rider Dark" color theme**, based on
+  [edsulaiman/jetbrains-rider-dark-theme](https://github.com/edsulaiman/jetbrains-rider-dark-theme)
+  (MIT) - previously only recommended as a separate marketplace install, now bundled directly
+  (Preferences: Color Theme).
+
 ## [1.10.13] - 2026-08-12
 
 * **Fixed: Release builds could fail with `NETSDK1047` for projects setting `<RuntimeIdentifier>`

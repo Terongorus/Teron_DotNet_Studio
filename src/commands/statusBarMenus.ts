@@ -20,6 +20,7 @@ import { parseSolutionProjects } from '../utils/solutionParser';
 import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 import { runBuildAction, runProject, BuildAction } from './buildActions';
 import { manageNugetPackages } from './manageNugetPackages';
+import { publishProjectCommand } from './publishProject';
 import { showMenu as showDebugAdapterMenu } from './debugAdapterCommands';
 import { NetcoredbgAdapterFactory } from '../debugAdapter/netcoredbgAdapterFactory';
 
@@ -82,7 +83,7 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
     const folder = getActiveWorkspaceFolder();
     if (!folder) { return; }
 
-    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string; manageNuget?: boolean; debuggerOptions?: boolean };
+    type Item = vscode.QuickPickItem & { action?: BuildAction | 'run'; projectPath?: string; manageNuget?: boolean; publish?: boolean; debuggerOptions?: boolean };
 
     const items: Item[] = [
         { label: 'Actions', kind: vscode.QuickPickItemKind.Separator },
@@ -91,6 +92,7 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
         { label: '$(sync) Rebuild Project', action: 'rebuild' },
         { label: '$(trash) Clean Project', action: 'clean' },
         { label: '$(package) Manage NuGet Packages...', manageNuget: true },
+        { label: '$(cloud-upload) Publish...', publish: true },
         { label: '$(debug-alt) Debugger Options...', debuggerOptions: true }
     ];
 
@@ -161,6 +163,13 @@ async function showProjectMenu(context: vscode.ExtensionContext, debugAdapterFac
         const projectPath = await getPickedCsprojFile(folder);
         if (!projectPath) { return; }
         await manageNugetPackages(context, projectPath);
+        return;
+    }
+
+    if (selection.publish) {
+        const projectPath = await getPickedCsprojFile(folder);
+        if (!projectPath) { return; }
+        await publishProjectCommand(context, projectPath);
         return;
     }
 

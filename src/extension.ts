@@ -19,6 +19,7 @@ import { registerDebugSessionTracker } from './utils/debugSessionTracker';
 import { registerResourceMonitorPanel } from './resourceMonitor/resourceMonitorProvider';
 import { registerProfilerCommands } from './commands/profilerCommands';
 import { registerManageNugetPackagesCommand } from './commands/manageNugetPackages';
+import { registerPublishProjectCommand } from './commands/publishProject';
 import { registerActiveWorkspaceFolderTracker } from './utils/activeWorkspaceFolder';
 import { warmFolderState, disposeFolderStateWatchers } from './utils/folderState';
 import { registerSolutionExplorerView } from './solutionExplorer/solutionExplorerProvider';
@@ -93,6 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
     void checkForExtensionUpdate(context);
     registerDebugSessionTracker(context);
     registerManageNugetPackagesCommand(context);
+    registerPublishProjectCommand(context);
     registerActiveWorkspaceFolderTracker(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);

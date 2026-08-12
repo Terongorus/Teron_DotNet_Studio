@@ -10,6 +10,7 @@ import { excludeFromProject, includeInProject } from '../utils/csprojItemEdits';
 import { isClassicSln, setProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
 import { runBuildAction, runProject, BuildAction } from '../commands/buildActions';
 import { manageNugetPackages } from '../commands/manageNugetPackages';
+import { publishProjectCommand } from '../commands/publishProject';
 import {
     ProjectNode,
     SolutionNode,
@@ -305,6 +306,10 @@ async function openNugetManager(node: ProjectNode | DependenciesNode | PackageNo
     await manageNugetPackages(context, projectPath);
 }
 
+async function openPublishPanel(node: ProjectNode, context: vscode.ExtensionContext): Promise<void> {
+    await publishProjectCommand(context, node.projectPath);
+}
+
 export function registerSolutionExplorerCommands(context: vscode.ExtensionContext, provider: SolutionExplorerProvider): void {
     const register = (id: string, handler: (...args: any[]) => unknown) => {
         context.subscriptions.push(vscode.commands.registerCommand(id, handler));
@@ -338,4 +343,5 @@ export function registerSolutionExplorerCommands(context: vscode.ExtensionContex
     register('dotnet-creator.solutionExplorer.clean', (node: ProjectNode | SolutionNode) => buildTarget(node, 'clean'));
     register('dotnet-creator.solutionExplorer.run', runTarget);
     register('dotnet-creator.solutionExplorer.openNugetManager', (node: ProjectNode | DependenciesNode | PackageNode) => openNugetManager(node, context));
+    register('dotnet-creator.solutionExplorer.publish', (node: ProjectNode) => openPublishPanel(node, context));
 }

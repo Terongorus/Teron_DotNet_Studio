@@ -22,7 +22,7 @@ const VERBS: Record<BuildAction, string> = {
  * previous plain-output-channel approach never did at all. Resolves to whether the process
  * exited 0.
  */
-function runDotnetTask(targetPath: string, args: string[], taskName: string): Promise<boolean> {
+export function runDotnetTask(targetPath: string, args: string[], taskName: string): Promise<boolean> {
     const cwd = path.dirname(targetPath);
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(targetPath)) ?? vscode.TaskScope.Workspace;
 
