@@ -2,6 +2,8 @@
 .vscode-test/**
 .claude/**
 SHARPLSP-STARTTRACE-BUG-REPORT.md
+KNOWN-LIMITATIONS.md
+logs/**
 *.code-workspace
 out/**
 node_modules/**
