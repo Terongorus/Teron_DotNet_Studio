@@ -80,7 +80,18 @@ export async function runBuildAction(
             return;
         }
 
-        const ok = await runDotnetTask(targetPath, ['build', targetPath, '-c', configuration], `.NET ${VERBS.build}: ${targetName}`);
+        // `dotnet build`'s own implicit restore doesn't reliably see Configuration-conditional
+        // MSBuild properties (e.g. a Release-only <RuntimeIdentifier>) - it can restore against
+        // the wrong (default) branch of the condition, leaving project.assets.json without the
+        // target this build actually needs and failing later with NETSDK1047. Restoring explicitly
+        // with the same -p:Configuration first, then building with --no-restore, avoids that.
+        const restored = await runDotnetTask(targetPath, ['restore', targetPath, `-p:Configuration=${configuration}`], `.NET Restore: ${targetName}`);
+        if (!restored) {
+            vscode.window.showErrorMessage(`${targetName}: restore failed (${configuration}).`);
+            return;
+        }
+
+        const ok = await runDotnetTask(targetPath, ['build', targetPath, '-c', configuration, '--no-restore'], `.NET ${VERBS.build}: ${targetName}`);
         if (!ok) {
             vscode.window.showErrorMessage(`${targetName}: ${action} failed (${configuration}).`);
             return;
@@ -110,8 +121,17 @@ export async function runProject(
     configuration: BuildConfiguration,
     noDebug: boolean = false
 ): Promise<void> {
-    const buildSucceeded = await isUpToDate(projectPath, configuration)
-        || await runDotnetTask(projectPath, ['build', projectPath, '-c', configuration], `.NET Build: ${projectName}`);
+    let buildSucceeded = await isUpToDate(projectPath, configuration);
+    if (!buildSucceeded) {
+        // See runBuildAction's identical restore step for why this can't just rely on `dotnet
+        // build`'s own implicit restore (NETSDK1047 on Configuration-conditional properties).
+        const restored = await runDotnetTask(projectPath, ['restore', projectPath, `-p:Configuration=${configuration}`], `.NET Restore: ${projectName}`);
+        if (!restored) {
+            vscode.window.showErrorMessage(`${projectName}: restore failed, not launching (${configuration}).`);
+            return;
+        }
+        buildSucceeded = await runDotnetTask(projectPath, ['build', projectPath, '-c', configuration, '--no-restore'], `.NET Build: ${projectName}`);
+    }
     if (!buildSucceeded) {
         vscode.window.showErrorMessage(`${projectName}: build failed, not launching (${configuration}).`);
         return;

@@ -9,13 +9,37 @@
 
 export const RECOMMENDED_TASKS: Record<string, unknown>[] = [
     {
+        // `dotnet build`'s own implicit restore doesn't reliably see Configuration-conditional
+        // MSBuild properties (e.g. a Release-only <RuntimeIdentifier>) - it can restore against
+        // the wrong (default) branch of the condition, leaving project.assets.json without the
+        // target the build actually needs and failing later with NETSDK1047. Each build task below
+        // depends on (dependsOrder: 'sequence') a hidden restore task passing the same
+        // -p:Configuration, then builds with --no-restore against that known-good restore.
+        label: '.NET Restore Solution Hidden',
+        type: 'shell',
+        command: 'dotnet',
+        args: ['restore', '-p:Configuration=${input:currentConfiguration}'],
+        presentation: { hidden: true },
+        problemMatcher: []
+    },
+    {
         label: '.NET Build Solution',
         type: 'shell',
         command: 'dotnet',
-        args: ['build', '-c', '${input:currentConfiguration}'],
+        args: ['build', '-c', '${input:currentConfiguration}', '--no-restore'],
+        dependsOn: ['.NET Restore Solution Hidden'],
+        dependsOrder: 'sequence',
         group: { kind: 'build', isDefault: true },
         presentation: { hidden: false, group: '.NET', order: 3 },
         problemMatcher: '$msCompile'
+    },
+    {
+        label: '.NET Restore Project Hidden (Debug)',
+        type: 'shell',
+        command: 'dotnet',
+        args: ['restore', '${input:selectedCsproj}', '-p:Configuration=Debug'],
+        presentation: { hidden: true },
+        problemMatcher: []
     },
     {
         // preLaunchTask for the ".NET Debug" launch config specifically - hardcodes -c Debug
@@ -25,26 +49,48 @@ export const RECOMMENDED_TASKS: Record<string, unknown>[] = [
         label: '.NET Build Project Hidden (Debug)',
         type: 'shell',
         command: 'dotnet',
-        args: ['build', '${input:selectedCsproj}', '-c', 'Debug'],
+        args: ['build', '${input:selectedCsproj}', '-c', 'Debug', '--no-restore'],
+        dependsOn: ['.NET Restore Project Hidden (Debug)'],
+        dependsOrder: 'sequence',
         group: { kind: 'build', isDefault: true },
         presentation: { hidden: true },
         problemMatcher: '$msCompile'
+    },
+    {
+        label: '.NET Restore Project Hidden (Release)',
+        type: 'shell',
+        command: 'dotnet',
+        args: ['restore', '${input:selectedCsproj}', '-p:Configuration=Release'],
+        presentation: { hidden: true },
+        problemMatcher: []
     },
     {
         // Same, for ".NET Release" - see above.
         label: '.NET Build Project Hidden (Release)',
         type: 'shell',
         command: 'dotnet',
-        args: ['build', '${input:selectedCsproj}', '-c', 'Release'],
+        args: ['build', '${input:selectedCsproj}', '-c', 'Release', '--no-restore'],
+        dependsOn: ['.NET Restore Project Hidden (Release)'],
+        dependsOrder: 'sequence',
         group: { kind: 'build', isDefault: true },
         presentation: { hidden: true },
         problemMatcher: '$msCompile'
     },
     {
+        label: '.NET Restore Project Hidden',
+        type: 'shell',
+        command: 'dotnet',
+        args: ['restore', '${input:pickCsproj}', '-p:Configuration=${input:currentConfiguration}'],
+        presentation: { hidden: true },
+        problemMatcher: []
+    },
+    {
         label: '.NET Build Project',
         type: 'shell',
         command: 'dotnet',
-        args: ['build', '${input:pickCsproj}', '-c', '${input:currentConfiguration}'],
+        args: ['build', '${input:pickCsproj}', '-c', '${input:currentConfiguration}', '--no-restore'],
+        dependsOn: ['.NET Restore Project Hidden'],
+        dependsOrder: 'sequence',
         group: { kind: 'build', isDefault: true },
         presentation: { hidden: false, group: '.NET', order: 1 },
         problemMatcher: '$msCompile'

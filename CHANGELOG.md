@@ -2,6 +2,20 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.10.13] - 2026-08-12
+
+* **Fixed: Release builds could fail with `NETSDK1047` for projects setting `<RuntimeIdentifier>`
+  (or other properties) inside a `Configuration`-conditional `PropertyGroup`.** `dotnet build`'s
+  own implicit restore doesn't reliably see Configuration-conditional MSBuild properties - it can
+  restore against the wrong (default) branch of the condition, leaving `project.assets.json`
+  without the target the build actually needs (e.g. `net10.0/win-x86`) and failing later with
+  `NETSDK1047`, even though the project itself is fine. Every build path this extension drives
+  (the Build/Rebuild status bar actions, F5's own build-then-launch, and the generated
+  `tasks.json` build tasks from ".NET: Set Up Debug/Build Tasks") now runs an explicit
+  `dotnet restore -p:Configuration=<config>` first, then builds with `--no-restore` against that
+  known-good restore - reported by a real user's build against a Release-only
+  `<RuntimeIdentifier>win-x86</RuntimeIdentifier>`.
+
 ## [1.10.12] - 2026-08-12
 
 * **New: `KNOWN-LIMITATIONS.md`, documenting verified (not guessed) limitations in the third-party
