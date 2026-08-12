@@ -2,6 +2,30 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.14.0] - 2026-08-12
+
+* **New: Code Coverage.** A **Run Tests with Coverage** profile alongside Test Explorer's plain
+  Run profile - collects real per-line coverage via `coverlet.collector` and highlights it in the
+  editor gutter (not just a summary percentage), using VS Code's native
+  `TestRunProfileKind.Coverage`/`FileCoverage.fromDetails` API. Offers to add the
+  `coverlet.collector` NuGet reference automatically if a test project doesn't have it yet -
+  nothing installs without an explicit confirmation, the same pattern already used for
+  SharpLsp/netcoredbg downloads.
+
+  Verified end-to-end against a real coverage run before shipping, which surfaced a real,
+  undocumented requirement: unlike a test adapter, `coverlet.collector.dll` is **not** copied into
+  a test project's own build output, so a design-mode session needs an explicit
+  `TestAdaptersPaths` (resolved from the project's own `obj/project.assets.json`, not hardcoded)
+  pointing at the collector's NuGet package folder - omitting it silently produces zero coverage
+  data with no error at all.
+
+* **Fixed: a real bug in the Test Explorer shipped in 1.13.0** - `vstest.console` was spawned
+  without an explicit working directory, so it silently inherited the extension host's own cwd
+  rather than the test project's directory. Harmless for plain test runs, but any data collector's
+  default output location (most notably coverage's own `TestResults/` folder) would land in the
+  wrong place entirely - caught during this release's own verification, where it left a stray
+  `TestResults/` folder in this very repo.
+
 ## [1.13.0] - 2026-08-12
 
 * **New: Test Explorer.** Discovers and runs xUnit, NUnit, and MSTest tests via VS Code's native

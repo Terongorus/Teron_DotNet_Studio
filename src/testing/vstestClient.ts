@@ -29,6 +29,16 @@ export interface VsTestResult {
     Duration: string;
 }
 
+export interface VsTestAttachment {
+    Uri: string;
+}
+
+export interface VsTestAttachmentSet {
+    Uri: string;
+    DisplayName: string;
+    Attachments: VsTestAttachment[];
+}
+
 /**
  * A live connection to one `vstest.console.exe --port:<port> --parentprocessid:<pid>` process -
  * the design-mode protocol used by Visual Studio/Rider (see vstestFraming.ts for the wire
@@ -81,7 +91,14 @@ export class VsTestSession {
         this.socket.write(frameMessage(payload === undefined ? { MessageType: messageType } : { MessageType: messageType, Payload: payload }));
     }
 
-    static async start(vstestConsolePath: string, outputChannel: vscode.OutputChannel): Promise<VsTestSession> {
+    /**
+     * `cwd` matters beyond tidiness: vstest.console defaults any relative output (most notably
+     * data collectors' `TestResults/` directory, used by code coverage) to its own working
+     * directory - omitting this left a stray `TestResults/` folder in this extension's own repo
+     * root during development, since the child process silently inherited the extension host's
+     * cwd instead of the test project's directory.
+     */
+    static async start(vstestConsolePath: string, outputChannel: vscode.OutputChannel, cwd: string): Promise<VsTestSession> {
         const server = net.createServer();
         const port = await new Promise<number>((resolve, reject) => {
             server.on('error', reject);
@@ -91,7 +108,7 @@ export class VsTestSession {
             });
         });
 
-        const child = cp.spawn('dotnet', [vstestConsolePath, `--port:${port}`, `--parentprocessid:${process.pid}`], { stdio: ['ignore', 'pipe', 'pipe'] });
+        const child = cp.spawn('dotnet', [vstestConsolePath, `--port:${port}`, `--parentprocessid:${process.pid}`], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
         child.stdout?.on('data', d => outputChannel.appendLine(d.toString().trimEnd()));
         child.stderr?.on('data', d => outputChannel.appendLine(d.toString().trimEnd()));
 
@@ -150,17 +167,23 @@ export class VsTestSession {
      * `TestRequestManager.RunTests` with a null-key `ArgumentNullException` when a run happens in
      * a fresh session (its `GetSources()` helper prefers `Sources` when present and otherwise
      * derives it from `TestCases`, and that derivation path is the one that crashes).
+     *
+     * `runSettings`, when provided, replaces the default empty settings document - used for code
+     * coverage, which needs a `<DataCollectionRunSettings>` section (see coverletCollector.ts).
+     * Returns whatever attachments the run produced (e.g. a coverage report) - `AttachmentSets`
+     * is empty unless RunSettings actually requested a data collector.
      */
-    async runTests(testCases: VsTestCase[], onResults: (results: VsTestResult[]) => void): Promise<void> {
+    async runTests(testCases: VsTestCase[], onResults: (results: VsTestResult[]) => void, runSettings: string = EMPTY_RUN_SETTINGS): Promise<{ attachmentSets: VsTestAttachmentSet[] }> {
         const sources = [...new Set(testCases.map(tc => tc.Source))];
-        return this.runOperation<void>(
-            () => this.send('TestExecution.RunSelectedWithDefaultHost', { TestCases: testCases, Sources: sources, RunSettings: EMPTY_RUN_SETTINGS }),
+        return this.runOperation<{ attachmentSets: VsTestAttachmentSet[] }>(
+            () => this.send('TestExecution.RunSelectedWithDefaultHost', { TestCases: testCases, Sources: sources, RunSettings: runSettings }),
             (message, resolve, reject) => {
                 if (message.MessageType === 'TestExecution.StatsChange') {
                     const payload = message.Payload as { NewTestResults?: VsTestResult[] };
                     if (payload.NewTestResults?.length) { onResults(payload.NewTestResults); }
                 } else if (message.MessageType === 'TestExecution.Completed') {
-                    resolve();
+                    const payload = message.Payload as { TestRunCompleteArgs?: { AttachmentSets?: VsTestAttachmentSet[] } };
+                    resolve({ attachmentSets: payload.TestRunCompleteArgs?.AttachmentSets ?? [] });
                 } else if (message.MessageType !== 'TestSession.Message') {
                     reject(new Error(`Unexpected message during test run: ${message.MessageType}`));
                 }

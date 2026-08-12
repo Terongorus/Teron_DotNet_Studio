@@ -1,11 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { findTestProjects, TestProjectInfo } from './testProjectFinder';
 import { resolveVsTestConsolePath } from './vstestConsoleLocator';
-import { VsTestSession, VsTestCase, VsTestResult } from './vstestClient';
+import { VsTestSession, VsTestCase, VsTestResult, VsTestAttachmentSet } from './vstestClient';
+import { resolveCoverletCollectorPath, hasCoverletCollectorReference, buildCoverageRunSettings } from './coverletCollector';
+import { parseCoberturaXml, resolveCoberturaFilePath } from './coberturaParser';
 import { runDotnetTask } from '../commands/buildActions';
 import { isUpToDate } from '../utils/buildUpToDateCheck';
 import { getCurrentConfiguration } from '../utils/configurationPicker';
+import { addOrUpdatePackage } from '../utils/nugetPackages';
 
 let outputChannel: vscode.OutputChannel | undefined;
 function getOutputChannel(): vscode.OutputChannel {
@@ -63,7 +67,7 @@ export function registerTestController(context: vscode.ExtensionContext): void {
         const channel = getOutputChannel();
         let session: VsTestSession | undefined;
         try {
-            session = await VsTestSession.start(vstestConsolePath, channel);
+            session = await VsTestSession.start(vstestConsolePath, channel, path.dirname(project.csprojPath));
             await session.discoverTests([project.targetPath], cases => {
                 for (const testCase of cases) {
                     addTestItem(projectItem, project, testCase, data, classItems);
@@ -119,7 +123,62 @@ export function registerTestController(context: vscode.ExtensionContext): void {
         item.children.forEach(child => collectTestCases(child, results));
     }
 
-    async function runHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken): Promise<void> {
+    /** Ensures `coverlet.collector` is referenced by the project before a coverage run - prompts to add it if missing, matching this extension's existing "nothing installs without an explicit action" pattern (SharpLsp/netcoredbg downloads, publish's own profile creation). Returns the resolved collector path to pass as TestAdaptersPaths, or undefined if it's missing and the user declined (or the add failed). */
+    async function ensureCoverletCollector(project: TestProjectInfo): Promise<string | undefined> {
+        const existing = await resolveCoverletCollectorPath(project.csprojPath);
+        if (existing) { return existing; }
+
+        const csprojContent = await fs.promises.readFile(project.csprojPath, 'utf8').catch(() => '');
+        if (!hasCoverletCollectorReference(csprojContent)) {
+            const projectName = path.basename(project.csprojPath, path.extname(project.csprojPath));
+            const choice = await vscode.window.showWarningMessage(
+                `Code coverage needs "coverlet.collector", which ${projectName} doesn't reference yet. Add it now?`,
+                'Add Package', 'Cancel'
+            );
+            if (choice !== 'Add Package') { return undefined; }
+
+            try {
+                await addOrUpdatePackage(project.csprojPath, 'coverlet.collector');
+            } catch (error: any) {
+                getOutputChannel().appendLine(`[${projectName}] Failed to add coverlet.collector: ${error.message}`);
+                return undefined;
+            }
+        }
+
+        // Either just added (dotnet add package restores automatically) or referenced but not yet
+        // resolved for some other reason (e.g. a stale/missing obj/project.assets.json) - one more
+        // restore covers both without assuming which case this is.
+        await runDotnetTask(project.csprojPath, ['restore', project.csprojPath], `.NET Test Restore: ${path.basename(project.csprojPath)}`);
+        return resolveCoverletCollectorPath(project.csprojPath);
+    }
+
+    /** Reads and applies a coverage.cobertura.xml's per-line data to the given TestRun, attributing it to whichever real files it actually resolves to on disk. */
+    async function applyCoverage(attachmentSets: VsTestAttachmentSet[], run: vscode.TestRun): Promise<void> {
+        const coverageAttachment = attachmentSets
+            .find(set => set.Uri.toLowerCase().startsWith('datacollector://microsoft/coverletcodecoverage/') || set.DisplayName === 'XPlat code coverage')
+            ?.Attachments.find(a => a.Uri.endsWith('.cobertura.xml'));
+        if (!coverageAttachment) { return; }
+
+        const reportPath = vscode.Uri.parse(coverageAttachment.Uri).fsPath;
+        let xmlContent: string;
+        try {
+            xmlContent = await fs.promises.readFile(reportPath, 'utf8');
+        } catch (error: any) {
+            getOutputChannel().appendLine(`Failed to read coverage report at ${reportPath}: ${error.message}`);
+            return;
+        }
+
+        const report = parseCoberturaXml(xmlContent);
+        for (const classCoverage of report.classes) {
+            const filePath = resolveCoberturaFilePath(report, classCoverage);
+            if (!filePath || classCoverage.lines.length === 0) { continue; }
+
+            const details = classCoverage.lines.map(l => new vscode.StatementCoverage(l.hits, new vscode.Position(l.line - 1, 0)));
+            run.addCoverage(vscode.FileCoverage.fromDetails(vscode.Uri.file(filePath), details));
+        }
+    }
+
+    async function runHandler(request: vscode.TestRunRequest, token: vscode.CancellationToken, withCoverage: boolean): Promise<void> {
         const run = controller.createTestRun(request);
         const channel = getOutputChannel();
 
@@ -173,12 +232,23 @@ export function registerTestController(context: vscode.ExtensionContext): void {
                 continue;
             }
 
+            let runSettings: string | undefined;
+            if (withCoverage) {
+                const collectorPath = await ensureCoverletCollector(project);
+                if (!collectorPath) {
+                    cases.forEach(c => { const item = itemsById.get(c.Id); if (item) { run.skipped(item); } });
+                    continue;
+                }
+                runSettings = buildCoverageRunSettings(collectorPath);
+            }
+
             cases.forEach(c => { const item = itemsById.get(c.Id); if (item) { run.started(item); } });
 
             let session: VsTestSession | undefined;
             try {
-                session = await VsTestSession.start(vstestConsolePath, channel);
-                await session.runTests(cases, (results: VsTestResult[]) => reportResults(results, itemsById, run));
+                session = await VsTestSession.start(vstestConsolePath, channel, path.dirname(project.csprojPath));
+                const { attachmentSets } = await session.runTests(cases, (results: VsTestResult[]) => reportResults(results, itemsById, run), runSettings);
+                if (withCoverage) { await applyCoverage(attachmentSets, run); }
             } catch (error: any) {
                 cases.forEach(c => { const item = itemsById.get(c.Id); if (item) { run.errored(item, new vscode.TestMessage(error.message)); } });
             } finally {
@@ -215,7 +285,8 @@ export function registerTestController(context: vscode.ExtensionContext): void {
         }
     }
 
-    controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, runHandler, true);
+    controller.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, (request, token) => runHandler(request, token, false), true);
+    controller.createRunProfile('Run Tests with Coverage', vscode.TestRunProfileKind.Coverage, (request, token) => runHandler(request, token, true), false);
 
     void discoverAllProjects();
 }
