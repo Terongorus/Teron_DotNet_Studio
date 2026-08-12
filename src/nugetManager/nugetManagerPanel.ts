@@ -1,6 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { listPackageReferences, addOrUpdatePackage, removePackage, PackageReference } from '../utils/nugetPackages';
+import {
+    listPackageReferences,
+    addOrUpdatePackage,
+    removePackage,
+    listVulnerablePackages,
+    listDeprecatedPackages,
+    PackageReference,
+    PackageVulnerability,
+    PackageDeprecation
+} from '../utils/nugetPackages';
 import { searchPackages, getPackageVersions } from '../utils/nugetRegistry';
 import { getNugetManagerHtml } from './nugetManagerHtml';
 
@@ -36,12 +45,15 @@ export function showNugetManager(context: vscode.ExtensionContext, projectPath: 
     panel.webview.html = getNugetManagerHtml(panel.webview, projectName);
 
     let installed: PackageReference[] = [];
+    let vulnerabilities = new Map<string, PackageVulnerability[]>();
+    let deprecations = new Map<string, PackageDeprecation>();
 
     const refreshInstalled = async (): Promise<void> => {
         try {
             installed = await listPackageReferences(projectPath);
             void panel.webview.postMessage({ command: 'installedPackages', packages: installed });
             void checkForUpdates();
+            void checkForAdvisories();
         } catch (error: any) {
             void panel.webview.postMessage({ command: 'searchError', message: error.message });
         }
@@ -64,6 +76,30 @@ export function showNugetManager(context: vscode.ExtensionContext, projectPath: 
         void panel.webview.postMessage({ command: 'updateAvailability', updates });
     };
 
+    /**
+     * Also runs after the installed list refreshes - unlike checkForUpdates() this is a single
+     * project-wide `dotnet list package --vulnerable`/`--deprecated` call each (NuGetAudit,
+     * GitHub Advisory Database-backed), not one request per package, and includes transitive
+     * packages since a vulnerability pulled in indirectly is exactly as real a risk as a direct
+     * one.
+     */
+    const checkForAdvisories = async (): Promise<void> => {
+        const currentInstalled = installed;
+        const [vulnResult, depResult] = await Promise.all([
+            listVulnerablePackages(projectPath),
+            listDeprecatedPackages(projectPath)
+        ]);
+
+        if (currentInstalled !== installed) { return; } // superseded by a newer refresh while this was in flight
+        vulnerabilities = vulnResult;
+        deprecations = depResult;
+        void panel.webview.postMessage({
+            command: 'packageAdvisories',
+            vulnerabilities: Object.fromEntries(vulnerabilities),
+            deprecations: Object.fromEntries(deprecations)
+        });
+    };
+
     const postDetails = async (packageId: string): Promise<void> => {
         const versions = await getPackageVersions(packageId);
         const installedRef = installed.find(p => p.id.toLowerCase() === packageId.toLowerCase());
@@ -71,7 +107,9 @@ export function showNugetManager(context: vscode.ExtensionContext, projectPath: 
             command: 'packageDetails',
             id: packageId,
             versions,
-            installedVersion: installedRef?.resolvedVersion
+            installedVersion: installedRef?.resolvedVersion,
+            vulnerabilities: vulnerabilities.get(packageId),
+            deprecation: deprecations.get(packageId)
         });
     };
 

@@ -2,6 +2,17 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.12.0] - 2026-08-12
+
+* **New: NuGet vulnerability and deprecated-package scanning.** The NuGet Package Manager now
+  checks every installed package (including transitive dependencies) against
+  `dotnet list package --vulnerable`/`--deprecated` (NuGetAudit, GitHub Advisory Database-backed)
+  alongside the existing outdated-version check. Vulnerable packages show a red dot in the list
+  and a severity + advisory link in the details panel; deprecated packages show an amber dot and
+  the deprecation reason, plus a suggested alternative package when NuGet publishes one. Verified
+  against real advisory data (a known-vulnerable `Newtonsoft.Json 6.0.1` and a known-deprecated
+  `Microsoft.Net.Compilers`), not just the documented JSON schema.
+
 ## [1.11.0] - 2026-08-12
 
 * **New: Publish.** An interactive Publish panel (**Publish...** on a project's Solution Explorer

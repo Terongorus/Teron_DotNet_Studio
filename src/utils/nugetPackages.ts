@@ -20,6 +20,34 @@ interface DotnetListPackageOutput {
     }>;
 }
 
+export interface PackageVulnerability {
+    severity: string;
+    advisoryUrl: string;
+}
+
+export interface PackageDeprecation {
+    reasons: string[];
+    alternativePackage?: string;
+}
+
+interface DotnetListVulnerableOutput {
+    projects?: Array<{
+        frameworks?: Array<{
+            topLevelPackages?: Array<{ id?: string; vulnerabilities?: Array<{ severity?: string; advisoryurl?: string }> }>;
+            transitivePackages?: Array<{ id?: string; vulnerabilities?: Array<{ severity?: string; advisoryurl?: string }> }>;
+        }>;
+    }>;
+}
+
+interface DotnetListDeprecatedOutput {
+    projects?: Array<{
+        frameworks?: Array<{
+            topLevelPackages?: Array<{ id?: string; deprecationReasons?: string[]; alternativePackage?: { id?: string; versionRange?: string } }>;
+            transitivePackages?: Array<{ id?: string; deprecationReasons?: string[]; alternativePackage?: { id?: string; versionRange?: string } }>;
+        }>;
+    }>;
+}
+
 /**
  * Uses `--format json` (a real structured contract, supported since .NET SDK
  * 7.0.200) rather than scraping the default human-formatted table - unlike
@@ -56,6 +84,82 @@ export async function listPackageReferences(projectPath: string): Promise<Packag
     }
 
     return [...byId.values()];
+}
+
+/**
+ * Runs `dotnet list package --vulnerable --include-transitive --format json` - a single
+ * project-wide advisory check (NuGetAudit, backed by GitHub Advisory Database data) rather than
+ * a per-package query, so unlike checkForUpdates() in nugetManagerPanel.ts this doesn't need to
+ * fan out one request per installed package. `--include-transitive` matters here specifically:
+ * a vulnerable package pulled in indirectly is exactly as real a risk as a direct one, and
+ * Rider/ReSharper's own equivalent doesn't limit itself to direct references either. Returns an
+ * empty map (never throws) on any failure - this is a "nice to know" security signal layered on
+ * top of the package list, not something that should block the panel from showing installed
+ * packages at all if the audit check itself fails (offline, SDK too old, registry unreachable).
+ */
+export async function listVulnerablePackages(projectPath: string): Promise<Map<string, PackageVulnerability[]>> {
+    const byId = new Map<string, PackageVulnerability[]>();
+
+    let output: string;
+    try {
+        output = await runDotnet(['list', projectPath, 'package', '--vulnerable', '--include-transitive', '--format', 'json']);
+    } catch {
+        return byId;
+    }
+
+    let parsed: DotnetListVulnerableOutput;
+    try {
+        parsed = JSON.parse(output) as DotnetListVulnerableOutput;
+    } catch {
+        return byId;
+    }
+
+    for (const project of parsed.projects ?? []) {
+        for (const framework of project.frameworks ?? []) {
+            for (const pkg of [...(framework.topLevelPackages ?? []), ...(framework.transitivePackages ?? [])]) {
+                if (!pkg.id || !pkg.vulnerabilities?.length) { continue; }
+                byId.set(pkg.id, pkg.vulnerabilities.map(v => ({
+                    severity: v.severity ?? 'Unknown',
+                    advisoryUrl: v.advisoryurl ?? ''
+                })));
+            }
+        }
+    }
+
+    return byId;
+}
+
+/** Same shape and reasoning as listVulnerablePackages, for `--deprecated` instead of `--vulnerable`. */
+export async function listDeprecatedPackages(projectPath: string): Promise<Map<string, PackageDeprecation>> {
+    const byId = new Map<string, PackageDeprecation>();
+
+    let output: string;
+    try {
+        output = await runDotnet(['list', projectPath, 'package', '--deprecated', '--include-transitive', '--format', 'json']);
+    } catch {
+        return byId;
+    }
+
+    let parsed: DotnetListDeprecatedOutput;
+    try {
+        parsed = JSON.parse(output) as DotnetListDeprecatedOutput;
+    } catch {
+        return byId;
+    }
+
+    for (const project of parsed.projects ?? []) {
+        for (const framework of project.frameworks ?? []) {
+            for (const pkg of [...(framework.topLevelPackages ?? []), ...(framework.transitivePackages ?? [])]) {
+                if (!pkg.id || !pkg.deprecationReasons?.length) { continue; }
+                byId.set(pkg.id, {
+                    reasons: pkg.deprecationReasons,
+                    alternativePackage: pkg.alternativePackage?.id
+                });
+            }
+        }
+    }
+
+    return byId;
 }
 
 export async function addOrUpdatePackage(projectPath: string, packageId: string, version?: string): Promise<void> {

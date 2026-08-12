@@ -125,6 +125,41 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
             margin-left: 6px;
             vertical-align: middle;
         }
+        .vuln-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--vscode-charts-red);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .deprecated-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--vscode-charts-yellow);
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .advisory-banner {
+            border: 1px solid var(--vscode-inputValidation-warningBorder, var(--vscode-panel-border));
+            background: var(--vscode-inputValidation-warningBackground, transparent);
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+        .advisory-banner.severe {
+            border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-panel-border));
+            background: var(--vscode-inputValidation-errorBackground, transparent);
+        }
+        .advisory-banner .advisory-title {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        .advisory-banner a { color: var(--vscode-textLink-foreground); }
         .details {
             display: none;
             border: 1px solid var(--vscode-panel-border);
@@ -211,6 +246,7 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
         <div class="details-column">
             <div class="details" id="details">
                 <div class="details-header" id="detailsId"></div>
+                <div id="detailsAdvisories"></div>
                 <div class="details-description" id="detailsDescription"></div>
                 <div class="details-row">
                     <label for="detailsVersions">Version</label>
@@ -243,12 +279,15 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
         const detailsInstall = document.getElementById('detailsInstall');
         const detailsRemove = document.getElementById('detailsRemove');
         const detailsStatus = document.getElementById('detailsStatus');
+        const detailsAdvisories = document.getElementById('detailsAdvisories');
 
         let selectedId = null;
         let lastInstalledVersion = undefined;
         const descriptionsById = {};
         let lastInstalledPackages = [];
         const updatesById = {};
+        let vulnerabilitiesById = {};
+        let deprecationsById = {};
 
         let activeTab = 'installed';
 
@@ -278,11 +317,21 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
             return n + ' downloads';
         }
 
-        function renderPackageRow(id, meta, description, hasUpdate) {
+        function renderPackageRow(id, meta, description, hasUpdate, vulnerabilities, deprecation) {
             const li = document.createElement('li');
             li.className = 'package-row' + (id === selectedId ? ' selected' : '');
             li.dataset.id = id;
-            li.innerHTML = '<div class="package-id">' + escapeHtml(id) + (hasUpdate ? '<span class="update-dot" title="Update available"></span>' : '') + '</div>' +
+
+            let badges = hasUpdate ? '<span class="update-dot" title="Update available"></span>' : '';
+            if (vulnerabilities && vulnerabilities.length) {
+                const summary = vulnerabilities.map(v => v.severity).join(', ');
+                badges += '<span class="vuln-dot" title="Vulnerable (' + escapeHtml(summary) + ') - see details"></span>';
+            }
+            if (deprecation) {
+                badges += '<span class="deprecated-dot" title="Deprecated (' + escapeHtml(deprecation.reasons.join(', ')) + ') - see details"></span>';
+            }
+
+            li.innerHTML = '<div class="package-id">' + escapeHtml(id) + badges + '</div>' +
                 '<div class="package-meta">' + escapeHtml(meta) + '</div>' +
                 (description ? '<div class="package-desc">' + escapeHtml(description) + '</div>' : '');
             li.addEventListener('click', () => selectPackage(id));
@@ -297,8 +346,30 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
             }
             installedStatus.textContent = '';
             lastInstalledPackages.forEach(p => {
-                installedListEl.appendChild(renderPackageRow(p.id, p.resolvedVersion, '', !!updatesById[p.id]));
+                installedListEl.appendChild(renderPackageRow(p.id, p.resolvedVersion, '', !!updatesById[p.id], vulnerabilitiesById[p.id], deprecationsById[p.id]));
             });
+        }
+
+        function renderAdvisoryBanner(vulnerabilities, deprecation) {
+            let html = '';
+            if (vulnerabilities && vulnerabilities.length) {
+                const severe = vulnerabilities.some(v => v.severity === 'High' || v.severity === 'Critical');
+                html += '<div class="advisory-banner' + (severe ? ' severe' : '') + '">' +
+                    '<div class="advisory-title">⚠ Vulnerable</div>' +
+                    vulnerabilities.map(v =>
+                        escapeHtml(v.severity) + ' severity' +
+                        (v.advisoryUrl ? ' — <a href="' + escapeHtml(v.advisoryUrl) + '" target="_blank" rel="noopener">advisory</a>' : '')
+                    ).join('<br>') +
+                    '</div>';
+            }
+            if (deprecation) {
+                html += '<div class="advisory-banner">' +
+                    '<div class="advisory-title">Deprecated</div>' +
+                    escapeHtml(deprecation.reasons.join(', ')) +
+                    (deprecation.alternativePackage ? ' — consider <strong>' + escapeHtml(deprecation.alternativePackage) + '</strong> instead' : '') +
+                    '</div>';
+            }
+            return html;
         }
 
         function selectPackage(id) {
@@ -307,6 +378,7 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
                 el.classList.toggle('selected', el.dataset.id === id);
             });
             detailsStatus.textContent = '';
+            detailsAdvisories.innerHTML = renderAdvisoryBanner(vulnerabilitiesById[id], deprecationsById[id]);
             vscode.postMessage({ command: 'selectPackage', id });
         }
 
@@ -384,10 +456,20 @@ export function getNugetManagerHtml(webview: vscode.Webview, projectName: string
                     renderInstalledList();
                     break;
                 }
+                case 'packageAdvisories': {
+                    vulnerabilitiesById = message.vulnerabilities || {};
+                    deprecationsById = message.deprecations || {};
+                    renderInstalledList();
+                    if (selectedId) {
+                        detailsAdvisories.innerHTML = renderAdvisoryBanner(vulnerabilitiesById[selectedId], deprecationsById[selectedId]);
+                    }
+                    break;
+                }
                 case 'packageDetails': {
                     if (message.id !== selectedId) { break; }
                     detailsEl.style.display = 'block';
                     detailsId.textContent = message.id;
+                    detailsAdvisories.innerHTML = renderAdvisoryBanner(message.vulnerabilities, message.deprecation);
                     detailsDescription.textContent = descriptionsById[message.id] || '';
                     detailsVersions.innerHTML = '';
                     message.versions.forEach(v => {
