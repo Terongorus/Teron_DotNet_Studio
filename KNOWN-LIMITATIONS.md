@@ -46,6 +46,12 @@ language server just for this capability, without changing that selection.
 
 ## SharpLsp
 
+**No code formatting.** SharpLsp disables its own document/range/on-type formatters entirely -
+confirmed by design, not a bug: its own documentation states it prefers CSharpier/Fantomas over a
+built-in formatter. Not a real gap for this extension though - it drives CSharpier/Fantomas
+directly itself (see the **Code Formatting** feature in the README), independent of which
+language server is selected.
+
 **Trace recording (`Start Recording Trace`) fails with `invalid type: map, expected u32`.**
 Verified against SharpLsp's own real Rust source at the exact version tag matching a real install
 (`v0.18.0`): the request this extension sends matches the server's expected `StartTraceParams`

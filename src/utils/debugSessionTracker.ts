@@ -52,6 +52,14 @@ export function registerDebugSessionTracker(context: vscode.ExtensionContext): v
 
     context.subscriptions.push(disposable);
 
+    // Only for this extension's own debug type - starting an unrelated debug session (another
+    // extension entirely) shouldn't steal focus away to a panel that has nothing to show for it.
+    context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => {
+        if (session.type === 'dotnet-creator-debug') {
+            void vscode.commands.executeCommand('dotnet-creator.resourceMonitorView.focus');
+        }
+    }));
+
     context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(() => {
         _onDidChangePid.fire(undefined);
     }));

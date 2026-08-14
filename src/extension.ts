@@ -37,6 +37,7 @@ import { registerDebugAdapterCommands } from './commands/debugAdapterCommands';
 import { registerNetcoredbgConfigurationProvider } from './debugAdapter/netcoredbgConfigurationProvider';
 import { registerExtensionUpdateCommands, checkForExtensionUpdate } from './utils/extensionUpdateCheck';
 import { registerTestController } from './testing/testController';
+import { registerFormatters } from './formatting/registerFormatters';
 
 const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
@@ -97,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerManageNugetPackagesCommand(context);
     registerPublishProjectCommand(context);
     registerTestController(context);
+    registerFormatters(context);
     registerActiveWorkspaceFolderTracker(context);
     registerSolutionStatusBarItem(context);
     registerProjectStatusBarItem(context);

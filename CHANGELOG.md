@@ -2,6 +2,38 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.15.0] - 2026-08-15
+
+* **New: Code Formatting.** Drives [CSharpier](https://csharpier.com/) (C#) and
+  [Fantomas](https://fsprojects.github.io/fantomas/) (F#) directly - both plain `dotnet tool`
+  global tools, not a downloaded binary release - registered as real VS Code document formatters,
+  so **Format Document** and `editor.formatOnSave` both work. CSharpier is driven through its own
+  persistent `server` mode (the same HTTP protocol its official VS Code extension uses, confirmed
+  against that extension's real source) and Fantomas through its own `--daemon` JSON-RPC mode
+  (confirmed to interoperate with `vscode-jsonrpc` against a real spawned daemon) - not a slow
+  one-shot CLI call per format. Entirely opt-in: formatting a file for the first time when the
+  tool isn't installed offers **Install** (`dotnet tool install -g csharpier`/`fantomas`) or
+  **Install Instructions**, the same pattern as every other optional tool this extension drives.
+
+  Registered unconditionally, regardless of which language server is selected. SharpLsp disables
+  its own formatter entirely by design; the Roslyn Language Server, confirmed via a real
+  `initialize` handshake against the actual installed binary, *does* format C# on its own via LSP,
+  so with Roslyn selected, two formatters are now registered for `.cs` files, and VS Code will
+  prompt once to pick a default (or set `editor.defaultFormatter` yourself) rather than silently
+  picking one.
+
+* **Fixed: Resource Monitor panel doesn't focus when a debug session starts.** Starting one of
+  this extension's own debug sessions now reveals/focuses the Resource Monitor panel tab
+  automatically, scoped to this extension's own debug type only - starting an unrelated debug
+  session (a different extension entirely) no longer steals focus to a panel that has nothing to
+  show for it.
+
+* **Fixed: README overclaimed SharpLsp's formatting support.** Corrected "C#-aware Code
+  Formatting" (SharpLsp disables its own formatter by design) - superseded by the new Code
+  Formatting feature above, which fills the gap directly rather than just disclaiming it. Also
+  removed a stale Roadmap entry still listing Test Explorer as "planned, not yet started" a full
+  two releases after it shipped.
+
 ## [1.14.0] - 2026-08-12
 
 * **New: Code Coverage.** A **Run Tests with Coverage** profile alongside Test Explorer's plain

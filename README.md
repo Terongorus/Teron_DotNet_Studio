@@ -22,6 +22,7 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
   * **Roslyn Language Server** — Microsoft's own C# language server, the same binary C# Dev Kit uses internally, driven standalone here instead. Downloaded from Microsoft's own public feed, the same approach the `roslyn.nvim` Neovim plugin uses to drive it outside Visual Studio/C# Dev Kit.
 
   Either way you get diagnostics, completions, hover, go-to-definition, the Outline panel/breadcrumbs, and code folding. Entirely opt-in: if the selected server isn't found, opening a C#/F# file offers a one-click **Download** (checksum-verified against SharpLsp's own published hashes for SharpLsp; downloaded directly from Microsoft's official feed for Roslyn, which doesn't publish a checksum for this specific feed) or **Install Instructions** — nothing is ever installed automatically. A status bar item shows the active server's state, with Restart/Show Output actions.
+* **Code Formatting (C# via CSharpier, F# via Fantomas):** this extension drives [CSharpier](https://csharpier.com/) and [Fantomas](https://fsprojects.github.io/fantomas/) directly, the same "no dependency on another VS Code extension" approach as everywhere else here. Both are plain `dotnet tool` global tools, not a downloaded binary release. Registered unconditionally as a real VS Code document formatter for `.cs`/`.fs` files (not just when a gap exists) — SharpLsp disables its own formatter entirely by design, while the Roslyn Language Server does format C# on its own via LSP, so with Roslyn selected two formatters are now registered for `.cs`; VS Code will prompt once to pick a default (or set `editor.defaultFormatter` yourself) rather than silently picking one. CSharpier is driven through its own persistent `server` mode (the same HTTP protocol its official VS Code extension uses) and Fantomas through its own `--daemon` JSON-RPC mode — not a slow one-shot CLI call per format. Entirely opt-in: if the tool isn't installed, formatting a file for the first time offers **Install** (`dotnet tool install -g csharpier`/`fantomas`) or **Install Instructions** — nothing is ever installed automatically.
 * **Standalone Debugging (netcoredbg):** this extension's own debug type, **`.NET (netcoredbg)`**, backed by [netcoredbg](https://github.com/Samsung/netcoredbg) (MIT-licensed, Samsung) — real breakpoints, stepping, call stacks, and variable inspection via the Debug Adapter Protocol, without installing Microsoft's C# extension (whose `vsdbg` debugger is proprietary and license-locked to official Microsoft VS Code builds). **.NET: Set Up Debug/Build Tasks** generates `launch.json` entries using this type by default, scoped to the current workspace — set `dotnet-creator.useGlobalDebugTasks` to use one shared global configuration for every workspace instead, created automatically the first time it's needed. Entirely opt-in, same pattern as the language server: if netcoredbg isn't found, pressing F5 offers **Download netcoredbg** (checksum-verified against GitHub's own published digest for the release asset) or **Install Instructions** — nothing is ever installed automatically. Handles an x86 `PlatformTarget` project correctly (points the debug host at the 32-bit .NET runtime automatically), supports multiple concurrent debug sessions via F5 (each named after its actual project, not a generic label), and doesn't block F5 while another session is already running.
 * **.NET Resource Monitor:** a panel showing a running debuggee's live CPU%/memory charts (OS-level, always available, no dependencies). When SharpLsp (above) is running, it also shows live GC heap/ThreadPool runtime counters and a title-bar **Start/Stop Recording Trace** action that records a CPU-sampling or Memory/GC EventPipe trace to a file via SharpLsp's own `dotnet-trace`/`dotnet-counters` integration — an explicit **Start SharpLsp** button appears in its place if SharpLsp isn't running yet, never started automatically just by opening the panel.
 * **Update Notifications:** SharpLsp, the Roslyn Language Server, and netcoredbg all periodically (once per day) check for a newer release once resolved, and show a quiet, dismissible notice — never auto-switching — so a previously-downloaded copy doesn't silently go stale.
@@ -198,24 +199,23 @@ This split exists because of a VS Code quirk: `${input:someId}` only resolves ag
 
 **Switching projects:** run **.NET: Change Debug Project** from the Command Palette, or click the project name in the status bar — either updates the stored selection, and the next F5 or build picks it up automatically with no further prompting.
 
-## Roadmap
+## Delegated to the Optional Language Server
 
-Planned, not yet started:
-
-* **Test Explorer** — discover and run `dotnet test` (NUnit/xUnit/MSTest) through VS Code's
-  native Testing API, with results and failure navigation, no semantic C# analysis required.
-
-The items below are no longer a silent gap — this extension now provides the plumbing (see the
-**Optional C#/F# Language Server** feature above) to drive **[SharpLsp](https://github.com/Nimblesite/SharpLsp)**
-(MIT licensed, editor-agnostic, Roslyn for C# + FSharp.Compiler.Service for F#) directly, rather
-than building a Roslyn-hosting language server of its own:
+This extension provides the plumbing (see the **Optional C#/F# Language Server** feature above)
+to drive **[SharpLsp](https://github.com/Nimblesite/SharpLsp)** (MIT licensed, editor-agnostic,
+Roslyn for C# + FSharp.Compiler.Service for F#) directly, rather than building a Roslyn-hosting
+language server of its own:
 
 * **Code Analysis & Inspections**, **Navigation & Search**, **Code Completion / IntelliSense**,
-  **Code Refactoring**, and **C#-aware Code Formatting** — provided by SharpLsp once it's
-  installed (via the built-in **Download SharpLsp** action or your own `cargo install
-  sharplsp`), to whatever extent SharpLsp itself implements each one. It's early (v0.18.0 as of
-  writing, requires .NET SDK 10+) but actively developed, so coverage and polish will keep
-  improving over time rather than being a mature drop-in for ReSharper/C# Dev Kit on day one.
+  and **Code Refactoring** — provided by SharpLsp once it's installed (via the built-in
+  **Download SharpLsp** action or your own `cargo install sharplsp`), to whatever extent SharpLsp
+  itself implements each one. It's early (v0.18.0 as of writing, requires .NET SDK 10+) but
+  actively developed, so coverage and polish will keep improving over time rather than being a
+  mature drop-in for ReSharper/C# Dev Kit on day one.
+* **Not code formatting** — SharpLsp disables its own document/range/on-type formatters by
+  design (its own docs say "prefer CSharpier/Fantomas" instead; see
+  [KNOWN-LIMITATIONS.md](KNOWN-LIMITATIONS.md)). This extension provides formatting itself
+  instead — see **Code Formatting** below.
 * Deliberately not using SharpLsp's own VS Code extension: it ships its own Solution Explorer
   and profiler UI, which would overlap with this extension's own Solution Explorer and the
   Resource Monitor's SharpLsp-driven runtime diagnostics (see **Features** above) if both were
