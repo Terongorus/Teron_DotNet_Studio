@@ -3,6 +3,7 @@ import * as path from 'path';
 import { BuildConfiguration } from '../utils/configurationPicker';
 import { resolveProjectInfo, findX86DotnetHost } from '../utils/projectAssemblyResolver';
 import { isUpToDate } from '../utils/buildUpToDateCheck';
+import { resolveDotnetEnv } from '../utils/dotnetPath';
 
 export type BuildAction = 'build' | 'rebuild' | 'clean';
 
@@ -143,10 +144,18 @@ export async function runProject(
         return;
     }
 
+    // netcoredbg launches the debuggee (a .dll) using its own inherited environment, unlike this
+    // extension's other dotnet CLI invocations which all route through runDotnet() - so
+    // dotnet-creator.dotnetPath needs its own explicit application here too, or a debug session
+    // silently fails to find the runtime on a machine where the Extension Host can't see it (see
+    // dotnetPath.ts's own comment on why the Extension Host and a terminal can disagree about this).
+    let env: NodeJS.ProcessEnv | undefined = resolveDotnetEnv();
+
     // PlatformTarget=x86 needs the 32-bit .NET host - the system-default (x64) host faults
     // trying to load an x86-only IL image with an opaque CLR error (0x80004005) during the debug
-    // adapter's configurationDone handshake, before any user code runs.
-    let env: Record<string, string> | undefined;
+    // adapter's configurationDone handshake, before any user code runs. Takes priority over the
+    // dotnetPath override above for DOTNET_ROOT specifically - a configured dotnetPath is very
+    // unlikely to itself be the distinct 32-bit host this needs.
     if (platformTarget === 'x86') {
         const x86Host = findX86DotnetHost();
         if (!x86Host) {
@@ -155,7 +164,7 @@ export async function runProject(
             );
             return;
         }
-        env = { DOTNET_ROOT: path.dirname(x86Host) };
+        env = { ...env, DOTNET_ROOT: path.dirname(x86Host) };
     }
 
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectPath));

@@ -2,6 +2,29 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.16.0] - 2026-08-15
+
+* **New: `dotnet-creator.dotnetPath` setting.** A specific `dotnet` executable to use for every
+  dotnet CLI invocation this extension makes - build/restore/publish, NuGet, Test Explorer, and
+  debug launches - instead of resolving `dotnet` from `PATH`. Fixes a real class of failure: the
+  VS Code Extension Host inherits the machine's own environment variables directly, unlike an
+  integrated terminal, so a user-local SDK install that only a terminal has been manually
+  redirected to (a real scenario on a machine without admin rights, where a system-wide install
+  under `Program Files` isn't possible) stays completely invisible to the Extension Host even
+  though every terminal command resolves `dotnet` correctly. Previously this override only existed
+  as `dotnet-creator.sharpLsp.dotnetPath`, scoped to the SharpLsp sidecar alone - removed in favor
+  of this one extension-wide setting, since nothing else about SharpLsp's dotnet needs differ from
+  anywhere else in the extension.
+
+  The debug launch path (`buildActions.ts`) needed its own explicit fix beyond the shared
+  `runDotnet()` helper - netcoredbg launches the actual debuggee using its own inherited
+  environment, not through `runDotnet()` at all, so it was silently exempt from every other
+  dotnet-resolution fix already in the extension until now.
+
+  Verified against the real compiled resolver and `runDotnet()` before shipping: pointed the
+  setting at a real (different) `dotnet.exe` path and confirmed both the resolved command and a
+  live `dotnet --version` invocation actually used it, not just that the code compiled.
+
 ## [1.15.1] - 2026-08-15
 
 * **New: two more single-file publish options.** The Publish panel's Advanced section now offers

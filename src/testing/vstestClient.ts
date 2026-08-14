@@ -2,6 +2,7 @@ import * as net from 'net';
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
 import { frameMessage, VsTestMessage, VsTestMessageDecoder } from './vstestFraming';
+import { resolveDotnetCommand, resolveDotnetEnv } from '../utils/dotnetPath';
 
 const PROTOCOL_VERSION = 7;
 /** Matches VSTest's own documented "generic bag" for an empty settings document - required (not optional/null) per the protocol's own examples. */
@@ -108,7 +109,12 @@ export class VsTestSession {
             });
         });
 
-        const child = cp.spawn('dotnet', [vstestConsolePath, `--port:${port}`, `--parentprocessid:${process.pid}`], { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+        const dotnetEnv = resolveDotnetEnv();
+        const child = cp.spawn(resolveDotnetCommand(), [vstestConsolePath, `--port:${port}`, `--parentprocessid:${process.pid}`], {
+            cwd,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: dotnetEnv ? { ...process.env, ...dotnetEnv } : undefined
+        });
         child.stdout?.on('data', d => outputChannel.appendLine(d.toString().trimEnd()));
         child.stderr?.on('data', d => outputChannel.appendLine(d.toString().trimEnd()));
 

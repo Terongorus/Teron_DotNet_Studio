@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
+import { resolveDotnetCommand, resolveDotnetEnv } from '../utils/dotnetPath';
 
 /**
  * Resolves `vstest.console.dll`, bundled with every .NET SDK install (found directly under the
@@ -14,7 +15,8 @@ export async function resolveVsTestConsolePath(cwd: string): Promise<string | un
     let output: string;
     try {
         output = await new Promise<string>((resolve, reject) => {
-            cp.execFile('dotnet', ['--info'], { cwd }, (error, stdout, stderr) => {
+            const env = resolveDotnetEnv();
+            cp.execFile(resolveDotnetCommand(), ['--info'], { cwd, env: env ? { ...process.env, ...env } : undefined }, (error, stdout, stderr) => {
                 if (error) { reject(new Error(stderr || error.message)); } else { resolve(stdout); }
             });
         });

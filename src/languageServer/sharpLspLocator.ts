@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cp from 'child_process';
+import { resolveGlobalDotnetPath } from '../utils/dotnetPath';
 
 /** context.globalState key holding the path to a binary previously fetched via sharpLspInstaller.ts. */
 export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedPath';
@@ -92,10 +93,9 @@ export function resolveSidecarEnv(command: string): Record<string, string> {
     return env;
 }
 
-/** Path to a specific `dotnet` executable for the SharpLsp sidecar (portable/user-local SDK installs not on PATH). Same trust gate as resolveSharpLspCommand. */
+/** Path to a specific `dotnet` executable for the SharpLsp sidecar - just the extension-wide `dotnet-creator.dotnetPath` (dotnetPath.ts); SharpLsp has no dotnet-resolution needs distinct from anything else this extension drives. */
 export function resolveDotnetPath(): string | undefined {
-    const dotnetPath = getTrustedConfig('sharpLsp.dotnetPath', '');
-    return dotnetPath && fs.existsSync(dotnetPath) ? dotnetPath : undefined;
+    return resolveGlobalDotnetPath();
 }
 
 export function getExtraArgs(): string[] {

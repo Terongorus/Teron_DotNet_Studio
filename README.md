@@ -33,6 +33,8 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 
 You must have the official [.NET SDK](https://dotnet.microsoft.com/download) installed on your system and accessible in your system's `PATH`. .NET SDK 8.0 or later is recommended: debug session launching resolves the built assembly to run by asking MSBuild for the project's real output path, which correctly handles a custom `OutputPath`/`Directory.Build.props` setup on SDK 8+, and falls back to a best-effort `bin/` folder search (standard layouts only) on older SDKs.
 
+If `dotnet` genuinely works in your terminal but .NET Studio still can't find it (build/publish/debug/test all fail as if the SDK weren't installed at all), set **`dotnet-creator.dotnetPath`** to the full path of your `dotnet` executable. This happens on a machine without admin rights, using a user-local SDK install that only your terminal has been manually redirected to - the VS Code Extension Host inherits the machine's own environment variables directly, not your terminal's, so it never sees that redirection even though every terminal command works fine.
+
 ## Looks Great With
 
 This extension's UI (status bar, Solution Explorer, NuGet Manager, Start Page) is built
