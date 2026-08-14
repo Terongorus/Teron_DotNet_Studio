@@ -20,6 +20,10 @@ export interface PublishProfile {
     publishSingleFile: boolean;
     publishReadyToRun: boolean;
     publishTrimmed: boolean;
+    /** Only meaningful when publishSingleFile is true - both are read exclusively inside the SDK's single-file bundling step (Microsoft.NET.Publish.targets), a no-op otherwise. Confirmed against that target's real source, not assumed from the property names alone. */
+    includeAllContentForSelfExtract: boolean;
+    /** Also requires selfContained - the SDK raises a real build error (CompressionInSingleFileRequiresSelfContained) otherwise, not just a no-op. */
+    enableCompressionInSingleFile: boolean;
 }
 
 /** Runtime identifiers offered in the UI - the common desktop/server targets, matching Visual Studio's own Folder publish dropdown rather than every RID the .NET SDK recognizes. */
@@ -78,7 +82,9 @@ export async function readPublishProfile(csprojPath: string, name: string): Prom
         publishDir: extractElement(xml, 'PublishDir') ?? '',
         publishSingleFile: extractElement(xml, 'PublishSingleFile') === 'true',
         publishReadyToRun: extractElement(xml, 'PublishReadyToRun') === 'true',
-        publishTrimmed: extractElement(xml, 'PublishTrimmed') === 'true'
+        publishTrimmed: extractElement(xml, 'PublishTrimmed') === 'true',
+        includeAllContentForSelfExtract: extractElement(xml, 'IncludeAllContentForSelfExtract') === 'true',
+        enableCompressionInSingleFile: extractElement(xml, 'EnableCompressionInSingleFile') === 'true'
     };
 }
 
@@ -99,6 +105,8 @@ function renderPublishProfileXml(profile: PublishProfile): string {
         lines.push(`    <RuntimeIdentifier>${profile.runtimeIdentifier}</RuntimeIdentifier>`);
     }
     if (profile.publishSingleFile) { lines.push('    <PublishSingleFile>true</PublishSingleFile>'); }
+    if (profile.includeAllContentForSelfExtract) { lines.push('    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>'); }
+    if (profile.enableCompressionInSingleFile) { lines.push('    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>'); }
     if (profile.publishReadyToRun) { lines.push('    <PublishReadyToRun>true</PublishReadyToRun>'); }
     if (profile.publishTrimmed) { lines.push('    <PublishTrimmed>true</PublishTrimmed>'); }
     lines.push('  </PropertyGroup>', '</Project>', '');
@@ -137,7 +145,9 @@ export function defaultPublishProfile(name: string, targetFramework: string): Pu
         publishDir: defaultPublishDir(targetFramework),
         publishSingleFile: false,
         publishReadyToRun: false,
-        publishTrimmed: false
+        publishTrimmed: false,
+        includeAllContentForSelfExtract: false,
+        enableCompressionInSingleFile: false
     };
 }
 

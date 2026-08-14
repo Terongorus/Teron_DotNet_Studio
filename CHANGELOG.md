@@ -2,6 +2,21 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.15.1] - 2026-08-15
+
+* **New: two more single-file publish options.** The Publish panel's Advanced section now offers
+  **Compress single file** (`EnableCompressionInSingleFile`) and **Include all content in single
+  file** (`IncludeAllContentForSelfExtract`, flagged as legacy - the .NET SDK itself emits a
+  deprecation warning for it). Both are only ever read by the SDK inside its single-file bundling
+  step (confirmed against `Microsoft.NET.Publish.targets` directly) - a no-op without **Produce
+  single file** enabled, so both are disabled/unchecked in the UI until then; compression is
+  further gated on **Self-Contained**, since the SDK raises a real build error
+  (`CompressionInSingleFileRequiresSelfContained`) otherwise rather than silently ignoring it.
+
+  Verified against a real `dotnet publish` run before shipping: a self-contained single-file
+  publish with compression enabled produced a 37.6 MB executable versus 73.5 MB uncompressed for
+  the identical app - roughly half the size, not just a flag that compiles.
+
 ## [1.15.0] - 2026-08-15
 
 * **New: Code Formatting.** Drives [CSharpier](https://csharpier.com/) (C#) and
