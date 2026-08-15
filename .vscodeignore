@@ -3,6 +3,7 @@
 .claude/**
 SHARPLSP-STARTTRACE-BUG-REPORT.md
 KNOWN-LIMITATIONS.md
+docs/**
 logs/**
 *.code-workspace
 out/**
