@@ -28,7 +28,7 @@ import {
 const IGNORED_DIR_NAMES = new Set(['bin', 'obj']);
 const HIDDEN_DIR_NAMES = new Set(['.git', '.vs', '.vscode', '.idea']);
 const DEBOUNCE_MS = 250;
-export const DRAG_MIME_TYPE = 'application/vnd.dotnet-creator.solutionexplorer';
+export const DRAG_MIME_TYPE = 'application/vnd.dotnet-studio.solutionexplorer';
 
 /**
  * Filename-convention approximation of VS/ReSharper's "dependent file" nesting (e.g.
@@ -414,7 +414,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
                 item.id = element.id;
                 item.iconPath = new vscode.ThemeIcon('package');
                 item.contextValue = 'dotnetPackage';
-                item.command = { command: 'dotnet-creator.solutionExplorer.openNugetManager', title: 'Manage NuGet Packages', arguments: [element] };
+                item.command = { command: 'dotnet-studio.solutionExplorer.openNugetManager', title: 'Manage NuGet Packages', arguments: [element] };
                 return item;
             }
             case 'packageAssembly': {
@@ -653,7 +653,7 @@ export class SolutionExplorerProvider implements vscode.TreeDataProvider<Solutio
 
 export function registerSolutionExplorerView(context: vscode.ExtensionContext): SolutionExplorerProvider {
     const provider = new SolutionExplorerProvider();
-    const treeView = vscode.window.createTreeView('dotnet-creator.solutionExplorerView', {
+    const treeView = vscode.window.createTreeView('dotnet-studio.solutionExplorerView', {
         treeDataProvider: provider,
         showCollapseAll: true,
         canSelectMany: true,

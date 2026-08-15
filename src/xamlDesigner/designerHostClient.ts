@@ -128,7 +128,7 @@ export class DesignerHostClient {
     private async start(): Promise<void> {
         await this.checkDesktopRuntime();
 
-        const pipeName = `dotnet-creator-designer-${crypto.randomUUID()}`;
+        const pipeName = `dotnet-studio-designer-${crypto.randomUUID()}`;
         const pipePath = `\\\\.\\pipe\\${pipeName}`;
         const exePath = this.context.asAbsolutePath(path.join('dist', 'designer-host', `win-${this.platform}`, 'DesignerHost.exe'));
 

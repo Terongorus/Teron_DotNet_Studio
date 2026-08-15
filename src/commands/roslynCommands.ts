@@ -6,14 +6,14 @@ const ROSLYN_README_URL = 'https://github.com/dotnet/roslyn/blob/main/src/Langua
 
 export function registerRoslynCommands(context: vscode.ExtensionContext, manager: RoslynClientManager): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.roslyn.restart', () => manager.restart()),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.start', () => manager.ensureStarted()),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.stop', () => manager.stop()),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.showOutput', () => {
+        vscode.commands.registerCommand('dotnet-studio.roslyn.restart', () => manager.restart()),
+        vscode.commands.registerCommand('dotnet-studio.roslyn.start', () => manager.ensureStarted()),
+        vscode.commands.registerCommand('dotnet-studio.roslyn.stop', () => manager.stop()),
+        vscode.commands.registerCommand('dotnet-studio.roslyn.showOutput', () => {
             (manager.getRealOutputChannel() ?? getRoslynOutputChannel()).show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.showMenu', () => showMenu(manager)),
-        vscode.commands.registerCommand('dotnet-creator.roslyn.download', () => manager.downloadAndStart())
+        vscode.commands.registerCommand('dotnet-studio.roslyn.showMenu', () => showMenu(manager)),
+        vscode.commands.registerCommand('dotnet-studio.roslyn.download', () => manager.downloadAndStart())
     );
 }
 
@@ -60,7 +60,7 @@ async function showMenu(manager: RoslynClientManager): Promise<void> {
             await vscode.env.openExternal(vscode.Uri.parse(ROSLYN_README_URL));
             break;
         case 'openSettings':
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-creator.roslyn');
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-studio.roslyn');
             break;
     }
 }

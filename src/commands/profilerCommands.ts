@@ -11,7 +11,7 @@ import {
     TraceProfile
 } from '../languageServer/profilerProtocol';
 
-const TRACING_CONTEXT_KEY = 'dotnet-creator.resourceMonitor.tracing';
+const TRACING_CONTEXT_KEY = 'dotnet-studio.resourceMonitor.tracing';
 
 interface ActiveTrace {
     sessionId: string;
@@ -23,8 +23,8 @@ let activeTrace: ActiveTrace | undefined;
 
 export function registerProfilerCommands(context: vscode.ExtensionContext, sharpLsp: SharpLspClientManager, resourceMonitor: ResourceMonitorProvider): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.profiler.startTrace', () => startTrace(sharpLsp, resourceMonitor)),
-        vscode.commands.registerCommand('dotnet-creator.profiler.stopTrace', () => stopTrace(sharpLsp)),
+        vscode.commands.registerCommand('dotnet-studio.profiler.startTrace', () => startTrace(sharpLsp, resourceMonitor)),
+        vscode.commands.registerCommand('dotnet-studio.profiler.stopTrace', () => stopTrace(sharpLsp)),
         resourceMonitor.onDidResolveView(() => resourceMonitor.postTracingState(!!activeTrace, activeTrace?.profile)),
         onDidChangePid(() => {
             if (activeTrace) { void stopTrace(sharpLsp, 'the debug session changed'); }

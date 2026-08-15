@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * `dotnet-creator.dotnetPath` - a specific `dotnet` executable to use for every dotnet CLI
+ * `dotnet-studio.dotnetPath` - a specific `dotnet` executable to use for every dotnet CLI
  * invocation this extension makes, instead of resolving 'dotnet' from PATH. Exists because the VS
  * Code Extension Host inherits the machine's own environment variables directly, unlike an
  * integrated terminal - a user-local SDK install that only the user's terminal has been manually
@@ -16,7 +16,7 @@ import * as path from 'path';
  */
 function getTrustedGlobalDotnetPath(): string {
     if (!vscode.workspace.isTrusted) { return ''; }
-    return vscode.workspace.getConfiguration('dotnet-creator').get<string>('dotnetPath', '');
+    return vscode.workspace.getConfiguration('dotnet-studio').get<string>('dotnetPath', '');
 }
 
 /** Resolves the configured dotnet executable path, or undefined if unset/missing (falls back to PATH resolution). */

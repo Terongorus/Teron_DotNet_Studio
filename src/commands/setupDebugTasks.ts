@@ -17,17 +17,17 @@ const inputId = (entry: Record<string, unknown>) => entry.id as string;
 const launchConfigName = (entry: Record<string, unknown>) => entry.name as string;
 
 function useGlobalDebugTasks(): boolean {
-    return vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('useGlobalDebugTasks', false);
+    return vscode.workspace.getConfiguration('dotnet-studio').get<boolean>('useGlobalDebugTasks', false);
 }
 
 export function registerSetupDebugTasksCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.setupDebugTasks', () => setupDebugTasks(context));
+    const disposable = vscode.commands.registerCommand('dotnet-studio.setupDebugTasks', () => setupDebugTasks(context));
     context.subscriptions.push(disposable);
 }
 
 /**
  * No more interactive "This Workspace Only / Global" prompt - which scope this uses is now
- * driven entirely by the dotnet-creator.useGlobalDebugTasks setting, so both the manual command
+ * driven entirely by the dotnet-studio.useGlobalDebugTasks setting, so both the manual command
  * and the automatic one-time-per-workspace prompt (below) behave consistently without asking.
  */
 async function setupDebugTasks(context: vscode.ExtensionContext): Promise<void> {
@@ -261,12 +261,12 @@ async function hasGlobalTasksSetup(context: vscode.ExtensionContext): Promise<bo
  * is no cross-workspace suppression flag anymore, since a completed or declined setup in one
  * workspace must not silently skip the prompt in a different, unrelated one.
  *
- * When dotnet-creator.useGlobalDebugTasks is on, this whole per-workspace flow is skipped -
+ * When dotnet-studio.useGlobalDebugTasks is on, this whole per-workspace flow is skipped -
  * global configs cover every workspace already, so there's nothing to prompt for. The global
  * configs are created once (silently, no prompt) if they don't already exist yet.
  */
 export async function maybeShowSetupDebugTasksPrompt(context: vscode.ExtensionContext): Promise<void> {
-    const offerSetup = vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('offerDebugTaskSetup', true);
+    const offerSetup = vscode.workspace.getConfiguration('dotnet-studio').get<boolean>('offerDebugTaskSetup', true);
     if (!offerSetup) { return; }
 
     if (useGlobalDebugTasks()) {
@@ -293,6 +293,6 @@ export async function maybeShowSetupDebugTasksPrompt(context: vscode.ExtensionCo
     if (choice === 'Set Up') {
         await applyWorkspaceSetup();
     } else if (choice === "Don't Ask Again") {
-        await vscode.workspace.getConfiguration('dotnet-creator').update('offerDebugTaskSetup', false, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration('dotnet-studio').update('offerDebugTaskSetup', false, vscode.ConfigurationTarget.Global);
     }
 }

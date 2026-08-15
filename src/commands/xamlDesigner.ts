@@ -29,7 +29,7 @@ export function registerXamlDesignerCommand(context: vscode.ExtensionContext) {
     // own resourceUri - github.com/microsoft/vscode/issues/45067), so it's
     // deliberately shown on every file there; a wrong-extension click here is
     // reported directly rather than falling through to a surprising file-picker.
-    const disposable = vscode.commands.registerCommand('dotnet-creator.previewXamlDesigner', async (clickedArg?: unknown) => {
+    const disposable = vscode.commands.registerCommand('dotnet-studio.previewXamlDesigner', async (clickedArg?: unknown) => {
         const clickedUri = resolveClickedUri(clickedArg);
 
         if (clickedArg && !clickedUri) {

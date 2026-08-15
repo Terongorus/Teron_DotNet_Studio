@@ -34,18 +34,18 @@ interface PickAssemblyArgs extends PickCsprojArgs {
  * Example:
  *
  *   // launch.json
- *   { "id": "pickCsproj", "type": "command", "command": "dotnet-creator.getPickedCsprojFile" }
+ *   { "id": "pickCsproj", "type": "command", "command": "dotnet-studio.getPickedCsprojFile" }
  *
  *   // tasks.json
- *   { "id": "selectedCsproj", "type": "command", "command": "dotnet-creator.getPickedCsprojFile" }
+ *   { "id": "selectedCsproj", "type": "command", "command": "dotnet-studio.getPickedCsprojFile" }
  */
 export function registerPickCsprojFileCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.pickCsprojFile', (args?: PickCsprojArgs) => {
+        vscode.commands.registerCommand('dotnet-studio.pickCsprojFile', (args?: PickCsprojArgs) => {
             const folder = getActiveWorkspaceFolder();
             return folder ? pickCsprojFile(folder, args) : undefined;
         }),
-        vscode.commands.registerCommand('dotnet-creator.getPickedCsprojFile', (args?: PickCsprojArgs) => {
+        vscode.commands.registerCommand('dotnet-studio.getPickedCsprojFile', (args?: PickCsprojArgs) => {
             const folder = getActiveWorkspaceFolder();
             return folder ? getPickedCsprojFile(folder, args) : undefined;
         }),
@@ -53,7 +53,7 @@ export function registerPickCsprojFileCommand(context: vscode.ExtensionContext) 
         // .csproj path itself, unlike VS Code's own "dotnet" debug type which resolved that
         // internally - see utils/projectAssemblyResolver.ts (already proven by the XAML
         // Designer's own "find the built DLL for a project" need).
-        vscode.commands.registerCommand('dotnet-creator.getPickedAssemblyPath', async (args?: PickAssemblyArgs) => {
+        vscode.commands.registerCommand('dotnet-studio.getPickedAssemblyPath', async (args?: PickAssemblyArgs) => {
             const folder = getActiveWorkspaceFolder();
             if (!folder) { return undefined; }
             const csprojPath = await getPickedCsprojFile(folder, args);

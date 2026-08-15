@@ -106,6 +106,6 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
 
 export function registerExtensionUpdateCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.checkForUpdates', () => checkForExtensionUpdate(context, true))
+        vscode.commands.registerCommand('dotnet-studio.checkForUpdates', () => checkForExtensionUpdate(context, true))
     );
 }

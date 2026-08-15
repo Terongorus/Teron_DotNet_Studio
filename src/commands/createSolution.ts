@@ -61,7 +61,7 @@ export async function promptCreateSolution(presetName?: string): Promise<string 
 }
 
 export function registerCreateSolutionCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.createSolution', async () => {
+    const disposable = vscode.commands.registerCommand('dotnet-studio.createSolution', async () => {
         const slnPath = await promptCreateSolution();
         if (!slnPath) {
             return;

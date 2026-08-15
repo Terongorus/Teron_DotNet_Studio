@@ -179,7 +179,7 @@ export class SharpLspClientManager implements vscode.Disposable {
             errorHandler: this.makeErrorHandler()
         };
 
-        const client = new LanguageClient('dotnet-creator.sharpLsp', 'SharpLsp (C#/F#)', serverOptions, clientOptions);
+        const client = new LanguageClient('dotnet-studio.sharpLsp', 'SharpLsp (C#/F#)', serverOptions, clientOptions);
         this.client = client;
 
         for (const [method, handler] of this.notificationHandlers) {

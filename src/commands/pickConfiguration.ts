@@ -4,7 +4,7 @@ import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 
 export function registerPickConfigurationCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.pickConfiguration', () => {
+        vscode.commands.registerCommand('dotnet-studio.pickConfiguration', () => {
             const folder = getActiveWorkspaceFolder();
             return folder ? pickConfiguration(folder) : undefined;
         }),
@@ -12,7 +12,7 @@ export function registerPickConfigurationCommand(context: vscode.ExtensionContex
         // purpose build tasks (see debugTaskDefinitions.ts) - matches getPickedCsprojFile's
         // never-prompts convention, so build/rebuild via a task always uses the status bar's
         // current configuration without asking.
-        vscode.commands.registerCommand('dotnet-creator.getCurrentConfiguration', () => {
+        vscode.commands.registerCommand('dotnet-studio.getCurrentConfiguration', () => {
             const folder = getActiveWorkspaceFolder();
             return folder ? getCurrentConfiguration(folder) : 'Debug';
         })

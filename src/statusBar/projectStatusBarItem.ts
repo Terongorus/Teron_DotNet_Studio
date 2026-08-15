@@ -10,13 +10,13 @@ import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
  * Middle of the three .NET status bar segments (Solution › Project ›
  * Configuration). Solution name no longer appears here - it has its own
  * segment. Clicking it opens the combined Run/Build/Rebuild/Clean +
- * project-picker menu (dotnet-creator.showProjectMenu), not the raw picker
+ * project-picker menu (dotnet-studio.showProjectMenu), not the raw picker
  * directly - see commands/statusBarMenus.ts.
  */
 export function registerProjectStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.projectStatus', vscode.StatusBarAlignment.Left, 4);
+    const item = vscode.window.createStatusBarItem('dotnet-studio.projectStatus', vscode.StatusBarAlignment.Left, 4);
     item.name = '.NET: Project';
-    item.command = 'dotnet-creator.showProjectMenu';
+    item.command = 'dotnet-studio.showProjectMenu';
 
     const refresh = () => {
         updateStatusBarItem(item);

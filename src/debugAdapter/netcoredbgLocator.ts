@@ -4,9 +4,9 @@ import * as cp from 'child_process';
 import { detectPlatform } from '../languageServer/sharpLspLocator';
 
 /** context.globalState key holding the path to a netcoredbg binary previously downloaded. */
-export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.debugAdapter.resolvedPath';
+export const RESOLVED_PATH_STATE_KEY = 'dotnet-studio.debugAdapter.resolvedPath';
 /** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
-export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.debugAdapter.resolvedVersion';
+export const RESOLVED_VERSION_STATE_KEY = 'dotnet-studio.debugAdapter.resolvedVersion';
 
 const BINARY_NAME = process.platform === 'win32' ? 'netcoredbg.exe' : 'netcoredbg';
 
@@ -39,7 +39,7 @@ export function detectNetcoredbgAssetSuffix(): string | undefined {
 /** A workspace-scoped setting selecting a spawned executable is a real code-execution vector via a malicious repo's .vscode/settings.json - same [DIST-WORKSPACE-TRUST]-style guard as sharpLspLocator.ts. */
 function getTrustedConfig<T>(key: string, defaultValue: T): T {
     if (!vscode.workspace.isTrusted) { return defaultValue; }
-    return vscode.workspace.getConfiguration('dotnet-creator').get<T>(key, defaultValue);
+    return vscode.workspace.getConfiguration('dotnet-studio').get<T>(key, defaultValue);
 }
 
 /**
@@ -55,7 +55,7 @@ export function resolveNetcoredbgCommand(context: vscode.ExtensionContext): Reso
         if (fs.existsSync(configuredPath)) {
             return { command: configuredPath, source: 'configured' };
         }
-        return { misconfigured: true, detail: `dotnet-creator.debugAdapter.path is set to "${configuredPath}", but no file exists there.` };
+        return { misconfigured: true, detail: `dotnet-studio.debugAdapter.path is set to "${configuredPath}", but no file exists there.` };
     }
 
     const envPath = process.env.NETCOREDBG_EXECUTABLE_PATH;

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { showStartPage } from '../startPage/startPagePanel';
 
 export function registerStartPageCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.showStartPage', () => showStartPage(context));
+    const disposable = vscode.commands.registerCommand('dotnet-studio.showStartPage', () => showStartPage(context));
     context.subscriptions.push(disposable);
 }
 
@@ -12,7 +12,7 @@ export function registerStartPageCommand(context: vscode.ExtensionContext) {
  * disabled it.
  */
 export function maybeShowStartPageOnStartup(context: vscode.ExtensionContext) {
-    const enabled = vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('showStartPageOnStartup', true);
+    const enabled = vscode.workspace.getConfiguration('dotnet-studio').get<boolean>('showStartPageOnStartup', true);
     const hasFolder = (vscode.workspace.workspaceFolders?.length ?? 0) > 0;
 
     if (enabled && !hasFolder) {

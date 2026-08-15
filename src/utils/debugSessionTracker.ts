@@ -15,7 +15,7 @@ const _onDidChangePid = new vscode.EventEmitter<TrackedDebugProcess | undefined>
 export const onDidChangePid = _onDidChangePid.event;
 
 /**
- * Watches DAP traffic for sessions of type 'dotnet-creator-debug' (this extension's own
+ * Watches DAP traffic for sessions of type 'dotnet-studio-debug' (this extension's own
  * netcoredbg-backed debug adapter - see extension.ts's registerDebugAdapterDescriptorFactory and
  * runProject in commands/buildActions.ts) to recover the debuggee's real OS process id from the
  * standard DAP 'process' event. Any fresh 'process' event re-fires with the new pid, which covers
@@ -32,7 +32,7 @@ export const onDidChangePid = _onDidChangePid.event;
  * running, Resource Monitor still showing "No active .NET debug session."
  */
 export function registerDebugSessionTracker(context: vscode.ExtensionContext): void {
-    const disposable = vscode.debug.registerDebugAdapterTrackerFactory('dotnet-creator-debug', {
+    const disposable = vscode.debug.registerDebugAdapterTrackerFactory('dotnet-studio-debug', {
         createDebugAdapterTracker(session: vscode.DebugSession) {
             return {
                 onDidSendMessage(message: DapEvent) {
@@ -55,8 +55,8 @@ export function registerDebugSessionTracker(context: vscode.ExtensionContext): v
     // Only for this extension's own debug type - starting an unrelated debug session (another
     // extension entirely) shouldn't steal focus away to a panel that has nothing to show for it.
     context.subscriptions.push(vscode.debug.onDidStartDebugSession(session => {
-        if (session.type === 'dotnet-creator-debug') {
-            void vscode.commands.executeCommand('dotnet-creator.resourceMonitorView.focus');
+        if (session.type === 'dotnet-studio-debug') {
+            void vscode.commands.executeCommand('dotnet-studio.resourceMonitorView.focus');
         }
     }));
 

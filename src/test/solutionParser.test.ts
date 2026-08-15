@@ -5,7 +5,7 @@ import * as path from 'path';
 import { parseSolutionProjects, findNearestSolutionFile } from '../utils/solutionParser';
 
 function makeTempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), 'dotnet-creator-sln-test-'));
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'dotnet-studio-sln-test-'));
 }
 
 suite('solutionParser', () => {

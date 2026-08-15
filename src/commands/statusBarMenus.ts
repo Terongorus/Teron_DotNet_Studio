@@ -26,8 +26,8 @@ import { NetcoredbgAdapterFactory } from '../debugAdapter/netcoredbgAdapterFacto
 
 export function registerStatusBarMenuCommands(context: vscode.ExtensionContext, debugAdapterFactory: NetcoredbgAdapterFactory) {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.showSolutionMenu', () => showSolutionMenu(context)),
-        vscode.commands.registerCommand('dotnet-creator.showProjectMenu', () => showProjectMenu(context, debugAdapterFactory))
+        vscode.commands.registerCommand('dotnet-studio.showSolutionMenu', () => showSolutionMenu(context)),
+        vscode.commands.registerCommand('dotnet-studio.showProjectMenu', () => showProjectMenu(context, debugAdapterFactory))
     );
 }
 

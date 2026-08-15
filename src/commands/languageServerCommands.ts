@@ -6,14 +6,14 @@ const SHARPLSP_README_URL = 'https://github.com/Nimblesite/SharpLsp#readme';
 
 export function registerLanguageServerCommands(context: vscode.ExtensionContext, manager: SharpLspClientManager): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.restart', () => manager.restart()),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.start', () => manager.ensureStarted()),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.stop', () => manager.stop()),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.showOutput', () => {
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.restart', () => manager.restart()),
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.start', () => manager.ensureStarted()),
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.stop', () => manager.stop()),
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.showOutput', () => {
             (manager.getRealOutputChannel() ?? getSharpLspOutputChannel()).show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.showMenu', () => showMenu(manager)),
-        vscode.commands.registerCommand('dotnet-creator.sharpLsp.download', () => manager.downloadAndStart())
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.showMenu', () => showMenu(manager)),
+        vscode.commands.registerCommand('dotnet-studio.sharpLsp.download', () => manager.downloadAndStart())
     );
 }
 
@@ -60,7 +60,7 @@ async function showMenu(manager: SharpLspClientManager): Promise<void> {
             await vscode.env.openExternal(vscode.Uri.parse(SHARPLSP_README_URL));
             break;
         case 'openSettings':
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-creator.sharpLsp');
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-studio.sharpLsp');
             break;
     }
 }

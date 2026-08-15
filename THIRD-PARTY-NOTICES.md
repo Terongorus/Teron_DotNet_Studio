@@ -85,7 +85,7 @@ SOFTWARE.
 ## netcoredbg
 
 A standalone Debug Adapter Protocol server for .NET, used by this extension's own debug type
-(`dotnet-creator-debug`) so breakpoint/stepping debugging works without Microsoft's C# extension.
+(`dotnet-studio-debug`) so breakpoint/stepping debugging works without Microsoft's C# extension.
 
 Copyright (c) 2017 Samsung Electronics Co., LTD
 

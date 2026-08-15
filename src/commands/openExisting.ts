@@ -3,7 +3,7 @@ import * as path from 'path';
 import { addRecentItem, RecentItemKind } from '../startPage/recentItems';
 
 export function registerOpenExistingCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.openExisting', async () => {
+    const disposable = vscode.commands.registerCommand('dotnet-studio.openExisting', async () => {
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,

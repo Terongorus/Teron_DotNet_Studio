@@ -26,7 +26,7 @@ interface TestItemData {
 }
 
 export function registerTestController(context: vscode.ExtensionContext): void {
-    const controller = vscode.tests.createTestController('dotnet-creator.tests', '.NET Tests');
+    const controller = vscode.tests.createTestController('dotnet-studio.tests', '.NET Tests');
     context.subscriptions.push(controller);
 
     const itemData = new WeakMap<vscode.TestItem, TestItemData>();

@@ -2,21 +2,21 @@ import * as vscode from 'vscode';
 import { RoslynClientManager, RoslynStatus } from './roslynClient';
 
 function isRoslynSelected(): boolean {
-    return vscode.workspace.getConfiguration('dotnet-creator').get<string>('languageServer', 'sharpLsp') === 'roslyn';
+    return vscode.workspace.getConfiguration('dotnet-studio').get<string>('languageServer', 'sharpLsp') === 'roslyn';
 }
 
 /**
  * Same status-bar slot as sharpLspStatusBarItem.ts (Right, priority 2) - the two are mutually
- * exclusive (dotnet-creator.languageServer selects exactly one), so they never actually compete
+ * exclusive (dotnet-studio.languageServer selects exactly one), so they never actually compete
  * for the same visible spot at the same time. Stays hidden until both (a) Roslyn is the selected
  * server and (b) its status has changed at least once (only happens once a C# file is opened and
  * ensureStarted() runs) - matches sharpLspStatusBarItem.ts's own "never shown until relevant"
  * behavior, plus reacting to the setting itself changing (switching servers).
  */
 export function registerRoslynStatusBarItem(context: vscode.ExtensionContext, manager: RoslynClientManager): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.roslynStatus', vscode.StatusBarAlignment.Right, 2);
+    const item = vscode.window.createStatusBarItem('dotnet-studio.roslynStatus', vscode.StatusBarAlignment.Right, 2);
     item.name = '.NET: Roslyn Language Server';
-    item.command = 'dotnet-creator.roslyn.showMenu';
+    item.command = 'dotnet-studio.roslyn.showMenu';
 
     let everShown = false;
     const refreshVisibility = () => {
@@ -31,7 +31,7 @@ export function registerRoslynStatusBarItem(context: vscode.ExtensionContext, ma
             refreshVisibility();
         }),
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('dotnet-creator.languageServer')) { refreshVisibility(); }
+            if (e.affectsConfiguration('dotnet-studio.languageServer')) { refreshVisibility(); }
         })
     );
 }

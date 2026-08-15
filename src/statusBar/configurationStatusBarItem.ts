@@ -7,9 +7,9 @@ import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../u
  * clicking goes directly to the Debug/Release QuickPick - no intermediate menu.
  */
 export function registerConfigurationStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.configurationStatus', vscode.StatusBarAlignment.Left, 3);
+    const item = vscode.window.createStatusBarItem('dotnet-studio.configurationStatus', vscode.StatusBarAlignment.Left, 3);
     item.name = '.NET: Build Configuration';
-    item.command = 'dotnet-creator.pickConfiguration';
+    item.command = 'dotnet-studio.pickConfiguration';
 
     const refresh = () => updateStatusBarItem(item);
 

@@ -15,7 +15,7 @@ interface TemplatePickItem extends vscode.QuickPickItem {
 }
 
 export function registerNewProjectCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.newProject', async () => {
+    const disposable = vscode.commands.registerCommand('dotnet-studio.newProject', async () => {
         // 1. Fetch available project templates (scaffold-only templates like
         // .gitignore/.editorconfig/sln are excluded - see Manage Solution Files)
         const templates = await getProjectTemplates();

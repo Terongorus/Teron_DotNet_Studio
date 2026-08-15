@@ -26,7 +26,7 @@ export function showStartPage(context: vscode.ExtensionContext): void {
 
     const refresh = () => {
         const items = getRecentItems(context.globalState).filter(i => fs.existsSync(i.folderPath));
-        const showOnStartup = vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('showStartPageOnStartup', true);
+        const showOnStartup = vscode.workspace.getConfiguration('dotnet-studio').get<boolean>('showStartPageOnStartup', true);
         panel.webview.html = getStartPageHtml(panel.webview, items, iconUri, showOnStartup);
     };
 
@@ -38,7 +38,7 @@ export function showStartPage(context: vscode.ExtensionContext): void {
             case 'createSolution':
             case 'manageSolution':
             case 'openExisting':
-                vscode.commands.executeCommand(`dotnet-creator.${message.command}`);
+                vscode.commands.executeCommand(`dotnet-studio.${message.command}`);
                 break;
             case 'openRecent':
                 vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(message.folderPath), false);
@@ -47,7 +47,7 @@ export function showStartPage(context: vscode.ExtensionContext): void {
                 await removeRecentItem(context.globalState, message.folderPath);
                 break;
             case 'toggleShowOnStartup':
-                await vscode.workspace.getConfiguration('dotnet-creator').update('showStartPageOnStartup', message.checked, vscode.ConfigurationTarget.Global);
+                await vscode.workspace.getConfiguration('dotnet-studio').update('showStartPageOnStartup', message.checked, vscode.ConfigurationTarget.Global);
                 break;
         }
     });

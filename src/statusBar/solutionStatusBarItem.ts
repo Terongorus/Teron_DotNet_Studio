@@ -11,9 +11,9 @@ import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../u
  * visually fuse multiple StatusBarItems into one "pill").
  */
 export function registerSolutionStatusBarItem(context: vscode.ExtensionContext): void {
-    const item = vscode.window.createStatusBarItem('dotnet-creator.solutionStatus', vscode.StatusBarAlignment.Left, 5);
+    const item = vscode.window.createStatusBarItem('dotnet-studio.solutionStatus', vscode.StatusBarAlignment.Left, 5);
     item.name = '.NET: Solution';
-    item.command = 'dotnet-creator.showSolutionMenu';
+    item.command = 'dotnet-studio.showSolutionMenu';
 
     const refresh = () => updateStatusBarItem(item);
 

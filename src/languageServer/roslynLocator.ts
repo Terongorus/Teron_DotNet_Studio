@@ -3,9 +3,9 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 
 /** context.globalState key holding the path to a binary previously fetched via roslynInstaller.ts. */
-export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.roslyn.resolvedPath';
+export const RESOLVED_PATH_STATE_KEY = 'dotnet-studio.roslyn.resolvedPath';
 /** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
-export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.roslyn.resolvedVersion';
+export const RESOLVED_VERSION_STATE_KEY = 'dotnet-studio.roslyn.resolvedVersion';
 
 const BINARY_NAME = process.platform === 'win32' ? 'Microsoft.CodeAnalysis.LanguageServer.exe' : 'Microsoft.CodeAnalysis.LanguageServer';
 
@@ -41,7 +41,7 @@ export function detectPlatform(): string {
  */
 function getTrustedConfig<T>(key: string, defaultValue: T): T {
     if (!vscode.workspace.isTrusted) { return defaultValue; }
-    return vscode.workspace.getConfiguration('dotnet-creator').get<T>(key, defaultValue);
+    return vscode.workspace.getConfiguration('dotnet-studio').get<T>(key, defaultValue);
 }
 
 /**
@@ -59,7 +59,7 @@ export function resolveRoslynCommand(context: vscode.ExtensionContext): Resolved
         if (fs.existsSync(configuredPath)) {
             return { command: configuredPath, source: 'configured' };
         }
-        return { misconfigured: true, detail: `dotnet-creator.roslyn.path is set to "${configuredPath}", but no file exists there.` };
+        return { misconfigured: true, detail: `dotnet-studio.roslyn.path is set to "${configuredPath}", but no file exists there.` };
     }
 
     const cachedPath = context.globalState.get<string>(RESOLVED_PATH_STATE_KEY);

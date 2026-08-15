@@ -15,7 +15,7 @@ export interface FolderState {
     unloadedProjects?: string[];
 }
 
-const STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-creator.state.json'];
+const STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-studio.state.json'];
 
 const cache = new Map<string, FolderState>();
 const watchers = new Map<string, vscode.Disposable>();
@@ -58,7 +58,7 @@ function ensureWatcher(folder: vscode.WorkspaceFolder): void {
     const k = key(folder);
     if (watchers.has(k)) { return; }
 
-    const pattern = new vscode.RelativePattern(folder, '.vscode/dotnet-creator.state.json');
+    const pattern = new vscode.RelativePattern(folder, '.vscode/dotnet-studio.state.json');
     const watcher = vscode.workspace.createFileSystemWatcher(pattern);
     const reload = () => { void loadIntoCache(folder); };
     watcher.onDidChange(reload);
@@ -68,7 +68,7 @@ function ensureWatcher(folder: vscode.WorkspaceFolder): void {
 }
 
 /**
- * Populates the in-memory cache for a folder from its `.vscode/dotnet-creator.state.json` -
+ * Populates the in-memory cache for a folder from its `.vscode/dotnet-studio.state.json` -
  * call once per known folder at activation, and whenever a folder is added, before relying on
  * peekFolderState's synchronous reads. Matches this codebase's existing fire-and-forget
  * activation convention (e.g. extension.ts's updateWorkspaceHasProjectContext) - callers that

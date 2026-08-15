@@ -38,8 +38,9 @@ import { registerNetcoredbgConfigurationProvider } from './debugAdapter/netcored
 import { registerExtensionUpdateCommands, checkForExtensionUpdate } from './utils/extensionUpdateCheck';
 import { registerTestController } from './testing/testController';
 import { registerFormatters } from './formatting/registerFormatters';
+import { migrateLegacySettings, registerLegacyCommandAliases } from './utils/legacyPrefixMigration';
 
-const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-creator.workspaceHasProject';
+const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-studio.workspaceHasProject';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
 
 let sharpLsp: SharpLspClientManager | undefined;
@@ -54,13 +55,13 @@ async function updateWorkspaceHasProjectContext(): Promise<void> {
 }
 
 function getSelectedLanguageServer(): LanguageServerChoice {
-    return vscode.workspace.getConfiguration('dotnet-creator').get<LanguageServerChoice>('languageServer', 'sharpLsp');
+    return vscode.workspace.getConfiguration('dotnet-studio').get<LanguageServerChoice>('languageServer', 'sharpLsp');
 }
 
-/** Mutually exclusive with maybeStartRoslyn() via dotnet-creator.languageServer - both managers exist so either can be restarted/switched to, but only the selected one's ensureStarted() ever actually runs here. */
+/** Mutually exclusive with maybeStartRoslyn() via dotnet-studio.languageServer - both managers exist so either can be restarted/switched to, but only the selected one's ensureStarted() ever actually runs here. */
 async function maybeStartSharpLsp(manager: SharpLspClientManager, doc: vscode.TextDocument): Promise<void> {
     if (getSelectedLanguageServer() !== 'sharpLsp') { return; }
-    if (!vscode.workspace.getConfiguration('dotnet-creator').get<boolean>('sharpLsp.enabled', true)) { return; }
+    if (!vscode.workspace.getConfiguration('dotnet-studio').get<boolean>('sharpLsp.enabled', true)) { return; }
     if (!SHARPLSP_LANGUAGE_IDS.includes(doc.languageId)) { return; }
     if (!(await hasAnyDotnetProject())) { return; }
     await manager.ensureStarted();
@@ -73,7 +74,11 @@ async function maybeStartRoslyn(manager: RoslynClientManager, doc: vscode.TextDo
     await manager.ensureStarted();
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+    // Must run before anything below reads a dotnet-studio.* setting, so a value the user had
+    // under the pre-rename dotnet-creator.* prefix is already visible under its new key.
+    await migrateLegacySettings(context);
+
     registerNewProjectCommand(context);
     registerCreateSolutionCommand(context);
     registerManageSolutionCommand(context);
@@ -84,6 +89,10 @@ export function activate(context: vscode.ExtensionContext) {
     registerPickConfigurationCommand(context);
 
     const debugAdapterFactory = new NetcoredbgAdapterFactory(context);
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('dotnet-studio-debug', debugAdapterFactory));
+    // Legacy alias for launch.json entries generated before the dotnet-creator. -> dotnet-studio.
+    // rename - same factory, so an old "type": "dotnet-creator-debug" entry still just works
+    // rather than failing with "debug type not supported" until the user re-runs setup.
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('dotnet-creator-debug', debugAdapterFactory));
     registerDebugAdapterCommands(context, debugAdapterFactory);
     registerNetcoredbgConfigurationProvider(context);
@@ -132,7 +141,7 @@ export function activate(context: vscode.ExtensionContext) {
             // setting. Stop whichever is no longer selected, then start the newly selected one
             // (mirrors switchLanguageServer.ts's own stop-then-start pair) so switching via
             // settings offers the same install prompt switching via the command does.
-            if (!e.affectsConfiguration('dotnet-creator.languageServer')) { return; }
+            if (!e.affectsConfiguration('dotnet-studio.languageServer')) { return; }
             const selected = getSelectedLanguageServer();
             if (selected === 'roslyn') {
                 void sharpLsp?.stop();
@@ -159,6 +168,10 @@ export function activate(context: vscode.ExtensionContext) {
         void updateWorkspaceHasProjectContext();
         void Promise.all(event.added.map(folder => warmFolderState(folder)));
     }));
+
+    // Must run after every command registration above - it aliases whatever's actually
+    // registered at this point, not a hand-maintained list.
+    await registerLegacyCommandAliases(context);
 }
 
 export function deactivate() {

@@ -5,9 +5,9 @@ import * as cp from 'child_process';
 import { resolveGlobalDotnetPath } from '../utils/dotnetPath';
 
 /** context.globalState key holding the path to a binary previously fetched via sharpLspInstaller.ts. */
-export const RESOLVED_PATH_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedPath';
+export const RESOLVED_PATH_STATE_KEY = 'dotnet-studio.sharpLsp.resolvedPath';
 /** Sibling to RESOLVED_PATH_STATE_KEY - the version of whatever's stored there, for update-awareness comparisons on later sessions. */
-export const RESOLVED_VERSION_STATE_KEY = 'dotnet-creator.sharpLsp.resolvedVersion';
+export const RESOLVED_VERSION_STATE_KEY = 'dotnet-studio.sharpLsp.resolvedVersion';
 
 const BINARY_NAME = process.platform === 'win32' ? 'sharplsp.exe' : 'sharplsp';
 
@@ -38,7 +38,7 @@ export function detectPlatform(): string {
  */
 function getTrustedConfig<T>(key: string, defaultValue: T): T {
     if (!vscode.workspace.isTrusted) { return defaultValue; }
-    return vscode.workspace.getConfiguration('dotnet-creator').get<T>(key, defaultValue);
+    return vscode.workspace.getConfiguration('dotnet-studio').get<T>(key, defaultValue);
 }
 
 /**
@@ -55,7 +55,7 @@ export function resolveSharpLspCommand(context: vscode.ExtensionContext): Resolv
         if (fs.existsSync(configuredPath)) {
             return { command: configuredPath, source: 'configured' };
         }
-        return { misconfigured: true, detail: `dotnet-creator.sharpLsp.path is set to "${configuredPath}", but no file exists there.` };
+        return { misconfigured: true, detail: `dotnet-studio.sharpLsp.path is set to "${configuredPath}", but no file exists there.` };
     }
 
     const envPath = process.env.SHARPLSP_EXECUTABLE_PATH;
@@ -93,7 +93,7 @@ export function resolveSidecarEnv(command: string): Record<string, string> {
     return env;
 }
 
-/** Path to a specific `dotnet` executable for the SharpLsp sidecar - just the extension-wide `dotnet-creator.dotnetPath` (dotnetPath.ts); SharpLsp has no dotnet-resolution needs distinct from anything else this extension drives. */
+/** Path to a specific `dotnet` executable for the SharpLsp sidecar - just the extension-wide `dotnet-studio.dotnetPath` (dotnetPath.ts); SharpLsp has no dotnet-resolution needs distinct from anything else this extension drives. */
 export function resolveDotnetPath(): string | undefined {
     return resolveGlobalDotnetPath();
 }

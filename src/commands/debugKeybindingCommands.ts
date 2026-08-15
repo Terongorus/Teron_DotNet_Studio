@@ -7,15 +7,15 @@ import { runProject } from './buildActions';
 
 /**
  * F5/Ctrl+F5 entry points, scoped to .NET workspaces only via the
- * "dotnet-creator.workspaceHasProject" context key on the keybindings
+ * "dotnet-studio.workspaceHasProject" context key on the keybindings
  * themselves (see package.json) - these commands are inert no-ops outside
  * that scope since the keybinding simply won't fire, letting VS Code's own
  * defaults take over.
  */
 export function registerDebugKeybindingCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.debugStart', () => runViaKeybinding(false)),
-        vscode.commands.registerCommand('dotnet-creator.runWithoutDebugging', () => runViaKeybinding(true))
+        vscode.commands.registerCommand('dotnet-studio.debugStart', () => runViaKeybinding(false)),
+        vscode.commands.registerCommand('dotnet-studio.runWithoutDebugging', () => runViaKeybinding(true))
     );
 }
 

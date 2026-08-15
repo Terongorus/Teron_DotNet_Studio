@@ -4,7 +4,7 @@ import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { showNugetManager } from '../nugetManager/nugetManagerPanel';
 
 export function registerManageNugetPackagesCommand(context: vscode.ExtensionContext): void {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.manageNugetPackages', () => manageNugetPackages(context));
+    const disposable = vscode.commands.registerCommand('dotnet-studio.manageNugetPackages', () => manageNugetPackages(context));
     context.subscriptions.push(disposable);
 }
 

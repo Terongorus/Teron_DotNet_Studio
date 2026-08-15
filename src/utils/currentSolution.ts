@@ -13,7 +13,7 @@ export interface SolutionChangeEvent {
 const _onDidChangeCurrentSolution = new vscode.EventEmitter<SolutionChangeEvent>();
 export const onDidChangeCurrentSolution = _onDidChangeCurrentSolution.event;
 
-// Folder state loads asynchronously (from a .vscode/dotnet-creator.state.json read) - anything
+// Folder state loads asynchronously (from a .vscode/dotnet-studio.state.json read) - anything
 // that already synchronously peeked an empty default before this resolves (e.g. a status bar
 // item's own registration-time refresh) needs a nudge once the real value is in. Re-firing here
 // means every existing onDidChangeCurrentSolution subscriber (status bar, Solution Explorer)

@@ -3,7 +3,7 @@ import { fetchLatestRelease } from './githubReleaseInstaller';
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
-function lastCheckedKey(toolKey: string): string { return `dotnet-creator.${toolKey}.lastVersionCheck`; }
+function lastCheckedKey(toolKey: string): string { return `dotnet-studio.${toolKey}.lastVersionCheck`; }
 
 /**
  * Throttled to once per 24h per tool, so this never hammers GitHub's API on every activation.
@@ -61,7 +61,7 @@ export async function maybeNotifyUpdate(
 
     // force skips the per-version dismissal too - an explicit re-check should always be able to
     // surface an update, even one the user previously dismissed.
-    const dontAskKey = `dotnet-creator.${toolKey}.updateDismissed.${latestVersion}`;
+    const dontAskKey = `dotnet-studio.${toolKey}.updateDismissed.${latestVersion}`;
     if (!force && context.globalState.get<boolean>(dontAskKey, false)) { return; }
 
     const UPDATE = 'Update';

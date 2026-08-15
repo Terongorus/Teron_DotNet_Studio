@@ -6,10 +6,10 @@ const NETCOREDBG_README_URL = 'https://github.com/Samsung/netcoredbg#readme';
 
 export function registerDebugAdapterCommands(context: vscode.ExtensionContext, factory: NetcoredbgAdapterFactory): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.debugAdapter.showOutput', () => {
+        vscode.commands.registerCommand('dotnet-studio.debugAdapter.showOutput', () => {
             getNetcoredbgOutputChannel().show();
         }),
-        vscode.commands.registerCommand('dotnet-creator.debugAdapter.showMenu', () => showMenu(factory))
+        vscode.commands.registerCommand('dotnet-studio.debugAdapter.showMenu', () => showMenu(factory))
     );
 }
 
@@ -37,7 +37,7 @@ export async function showMenu(factory: NetcoredbgAdapterFactory): Promise<void>
             await vscode.env.openExternal(vscode.Uri.parse(NETCOREDBG_README_URL));
             break;
         case 'openSettings':
-            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-creator.debugAdapter');
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'dotnet-studio.debugAdapter');
             break;
     }
 }

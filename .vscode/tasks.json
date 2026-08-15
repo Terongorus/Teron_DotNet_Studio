@@ -120,7 +120,7 @@
         {
             "id": "pickCsproj",
             "type": "command",
-            "command": "dotnet-creator.getPickedCsprojFile",
+            "command": "dotnet-studio.getPickedCsprojFile",
             "args": {
                 "include": "**/*.csproj",
                 "acceptIfOneFile": true
@@ -129,12 +129,12 @@
         {
             "id": "selectedCsproj",
             "type": "command",
-            "command": "dotnet-creator.getPickedCsprojFile"
+            "command": "dotnet-studio.getPickedCsprojFile"
         },
         {
             "id": "currentConfiguration",
             "type": "command",
-            "command": "dotnet-creator.getCurrentConfiguration"
+            "command": "dotnet-studio.getCurrentConfiguration"
         }
     ]
 }

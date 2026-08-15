@@ -2,6 +2,37 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.17.0] - 2026-08-15
+
+* **Renamed the `dotnet-creator.` command/settings prefix to `dotnet-studio.`.** The extension's
+  display name was corrected to ".NET Studio" a while back, but every command id, setting key,
+  keybinding, and the debug type itself were still registered under the old `dotnet-creator.`
+  name from before that rebrand. All ~150 identifiers across commands, settings, views, and the
+  debug type are renamed - e.g. `dotnet-creator.newProject` is now `dotnet-studio.newProject`,
+  `dotnet-creator.dotnetPath` is now `dotnet-studio.dotnetPath`.
+
+  Existing setups keep working automatically, not just via documentation:
+  * **Settings**: on first activation after upgrading, any value explicitly set under the old
+    `dotnet-creator.*` prefix (Global or Workspace scope) is copied to the new `dotnet-studio.*`
+    key and the old one cleared - a one-time migration, not a permanent dual-setting.
+  * **Commands**: every real `dotnet-studio.*` command also gets a forwarding alias registered
+    under its old `dotnet-creator.*` id, so a `keybindings.json` entry or a generated
+    `tasks.json`/`launch.json` `"input"` block written before this rename keeps working rather
+    than failing with "command not found." Built by enumerating the actual registered command
+    list at activation, not a hand-maintained one.
+  * **Debug type**: `"type": "dotnet-creator-debug"` in an already-generated `launch.json` still
+    resolves to the same debug adapter as the new `dotnet-studio-debug` type, so existing debug
+    configurations don't need to be regenerated.
+
+  View layout (Solution Explorer/Resource Monitor panel position/size) resets once, since VS Code
+  ties that state to the view id itself and there's no view-id aliasing mechanism - cosmetic only,
+  not a functional break.
+
+  Verified against the real compiled migration/aliasing modules before shipping: simulated a user
+  with settings under the old prefix and commands already registered, confirmed values moved to
+  the new keys with the old ones cleared, and that invoking an old command id actually reached the
+  new implementation - not just that the code compiled.
+
 ## [1.16.0] - 2026-08-15
 
 * **New: `dotnet-creator.dotnetPath` setting.** A specific `dotnet` executable to use for every

@@ -4,7 +4,7 @@ import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { showPublishPanel } from '../publish/publishPanel';
 
 export function registerPublishProjectCommand(context: vscode.ExtensionContext): void {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.publishProject', () => publishProjectCommand(context));
+    const disposable = vscode.commands.registerCommand('dotnet-studio.publishProject', () => publishProjectCommand(context));
     context.subscriptions.push(disposable);
 }
 

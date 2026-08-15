@@ -15,12 +15,12 @@ import { runBuildAction, BuildAction } from './buildActions';
  */
 export function registerBuildShortcutCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('dotnet-creator.buildProject', () => runProjectAction('build')),
-        vscode.commands.registerCommand('dotnet-creator.rebuildProject', () => runProjectAction('rebuild')),
-        vscode.commands.registerCommand('dotnet-creator.cleanProject', () => runProjectAction('clean')),
-        vscode.commands.registerCommand('dotnet-creator.buildSolution', () => runSolutionAction('build')),
-        vscode.commands.registerCommand('dotnet-creator.rebuildSolution', () => runSolutionAction('rebuild')),
-        vscode.commands.registerCommand('dotnet-creator.cleanSolution', () => runSolutionAction('clean'))
+        vscode.commands.registerCommand('dotnet-studio.buildProject', () => runProjectAction('build')),
+        vscode.commands.registerCommand('dotnet-studio.rebuildProject', () => runProjectAction('rebuild')),
+        vscode.commands.registerCommand('dotnet-studio.cleanProject', () => runProjectAction('clean')),
+        vscode.commands.registerCommand('dotnet-studio.buildSolution', () => runSolutionAction('build')),
+        vscode.commands.registerCommand('dotnet-studio.rebuildSolution', () => runSolutionAction('rebuild')),
+        vscode.commands.registerCommand('dotnet-studio.cleanSolution', () => runSolutionAction('clean'))
     );
 }
 

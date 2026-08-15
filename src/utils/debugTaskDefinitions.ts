@@ -101,13 +101,13 @@ export const RECOMMENDED_TASK_INPUTS: Record<string, unknown>[] = [
     {
         id: 'pickCsproj',
         type: 'command',
-        command: 'dotnet-creator.getPickedCsprojFile',
+        command: 'dotnet-studio.getPickedCsprojFile',
         args: { include: '**/*.csproj', acceptIfOneFile: true }
     },
     {
         id: 'selectedCsproj',
         type: 'command',
-        command: 'dotnet-creator.getPickedCsprojFile'
+        command: 'dotnet-studio.getPickedCsprojFile'
     },
     {
         // Silent - never prompts, always resolves to the status bar's current Debug/Release
@@ -115,12 +115,12 @@ export const RECOMMENDED_TASK_INPUTS: Record<string, unknown>[] = [
         // tasks hardcode their own configuration instead (see their own comments).
         id: 'currentConfiguration',
         type: 'command',
-        command: 'dotnet-creator.getCurrentConfiguration'
+        command: 'dotnet-studio.getCurrentConfiguration'
     }
 ];
 
 /**
- * `type: 'dotnet-creator-debug'` is this extension's own debug adapter (backed by netcoredbg,
+ * `type: 'dotnet-studio-debug'` is this extension's own debug adapter (backed by netcoredbg,
  * see src/debugAdapter/) - not VS Code's built-in "dotnet" type, which is actually contributed
  * by Microsoft's C# extension and does nothing at all without it installed. Unlike that type's
  * convenience `projectPath` field (which it resolves to a built DLL internally), a
@@ -132,7 +132,7 @@ export const RECOMMENDED_TASK_INPUTS: Record<string, unknown>[] = [
 export const RECOMMENDED_LAUNCH_CONFIGS: Record<string, unknown>[] = [
     {
         name: '.NET Debug',
-        type: 'dotnet-creator-debug',
+        type: 'dotnet-studio-debug',
         request: 'launch',
         preLaunchTask: '.NET Build Project Hidden (Debug)',
         program: '${input:pickAssemblyDebug}',
@@ -145,7 +145,7 @@ export const RECOMMENDED_LAUNCH_CONFIGS: Record<string, unknown>[] = [
     },
     {
         name: '.NET Release',
-        type: 'dotnet-creator-debug',
+        type: 'dotnet-studio-debug',
         request: 'launch',
         preLaunchTask: '.NET Build Project Hidden (Release)',
         program: '${input:pickAssemblyRelease}',
@@ -166,13 +166,13 @@ export const RECOMMENDED_LAUNCH_INPUTS: Record<string, unknown>[] = [
         // "Release" silently launch a Debug build (or vice versa) whenever they disagree.
         id: 'pickAssemblyDebug',
         type: 'command',
-        command: 'dotnet-creator.getPickedAssemblyPath',
+        command: 'dotnet-studio.getPickedAssemblyPath',
         args: { include: '**/*.csproj', acceptIfOneFile: true, configuration: 'Debug' }
     },
     {
         id: 'pickAssemblyRelease',
         type: 'command',
-        command: 'dotnet-creator.getPickedAssemblyPath',
+        command: 'dotnet-studio.getPickedAssemblyPath',
         args: { include: '**/*.csproj', acceptIfOneFile: true, configuration: 'Release' }
     }
 ];

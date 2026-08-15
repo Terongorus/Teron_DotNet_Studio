@@ -26,7 +26,7 @@ import { BuildConfiguration } from '../utils/configurationPicker';
  */
 export function registerNetcoredbgConfigurationProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.debug.registerDebugConfigurationProvider('dotnet-creator-debug', {
+        vscode.debug.registerDebugConfigurationProvider('dotnet-studio-debug', {
             async resolveDebugConfiguration(folder, config) {
                 if (typeof config.program !== 'string' || !config.program) { return config; }
 

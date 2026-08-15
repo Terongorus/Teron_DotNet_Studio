@@ -110,7 +110,7 @@ export async function runBuildAction(
  * "selected" in the native Run and Debug dropdown, so this is a second,
  * self-sufficient launch path through our own tracked project+configuration
  * state rather than an attempt to drive that UI. Uses this extension's own
- * `dotnet-creator-debug` type (netcoredbg) - not VS Code's built-in `dotnet`
+ * `dotnet-studio-debug` type (netcoredbg) - not VS Code's built-in `dotnet`
  * type, which is contributed by Microsoft's C# extension and isn't installed
  * here at all (see debugTaskDefinitions.ts's own comment on this exact
  * distinction). That debugger needs the built assembly path via `program`,
@@ -146,7 +146,7 @@ export async function runProject(
 
     // netcoredbg launches the debuggee (a .dll) using its own inherited environment, unlike this
     // extension's other dotnet CLI invocations which all route through runDotnet() - so
-    // dotnet-creator.dotnetPath needs its own explicit application here too, or a debug session
+    // dotnet-studio.dotnetPath needs its own explicit application here too, or a debug session
     // silently fails to find the runtime on a machine where the Extension Host can't see it (see
     // dotnetPath.ts's own comment on why the Extension Host and a terminal can disagree about this).
     let env: NodeJS.ProcessEnv | undefined = resolveDotnetEnv();
@@ -171,7 +171,7 @@ export async function runProject(
 
     const started = await vscode.debug.startDebugging(workspaceFolder, {
         name: `${projectName} (${configuration})`,
-        type: 'dotnet-creator-debug',
+        type: 'dotnet-studio-debug',
         request: 'launch',
         program: assemblyPath,
         cwd: path.dirname(projectPath),

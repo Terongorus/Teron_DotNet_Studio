@@ -10,7 +10,7 @@ interface BatchResult {
 }
 
 export function registerManageSolutionCommand(context: vscode.ExtensionContext) {
-    const disposable = vscode.commands.registerCommand('dotnet-creator.manageSolution', async () => {
+    const disposable = vscode.commands.registerCommand('dotnet-studio.manageSolution', async () => {
         const folderUri = await vscode.window.showOpenDialog({
             canSelectFiles: false,
             canSelectFolders: true,

@@ -12,7 +12,7 @@ import {
     CounterValue
 } from '../languageServer/profilerProtocol';
 
-const VIEW_TYPE = 'dotnet-creator.resourceMonitorView';
+const VIEW_TYPE = 'dotnet-studio.resourceMonitorView';
 
 /**
  * OS-level CPU/memory telemetry is read-only with no buttons - VS Code's own floating debug

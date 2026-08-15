@@ -54,7 +54,7 @@ function getRecentCsprojFiles(folder: vscode.WorkspaceFolder): string[] {
  * Bucketed by whichever solution is current right now (see solutionKey()) - a workspace folder
  * can host many different solutions over its lifetime, and a project recently used under one
  * shouldn't linger in another's "Recently Used" list once you switch. Still stored in the same
- * single per-workspace-folder state file (.vscode/dotnet-creator.state.json), just partitioned
+ * single per-workspace-folder state file (.vscode/dotnet-studio.state.json), just partitioned
  * internally - not a separate file per solution.
  */
 async function addRecentCsprojFile(folder: vscode.WorkspaceFolder, filePath: string): Promise<void> {

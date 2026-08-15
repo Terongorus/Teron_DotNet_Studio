@@ -179,7 +179,7 @@ export class RoslynClientManager implements vscode.Disposable {
             // (e.g. Neovim's built-in client, per nvim-lspconfig's own source) doesn't apply here.
         };
 
-        const client = new LanguageClient('dotnet-creator.roslyn', 'Roslyn Language Server (C#)', serverOptions, clientOptions);
+        const client = new LanguageClient('dotnet-studio.roslyn', 'Roslyn Language Server (C#)', serverOptions, clientOptions);
         this.client = client;
 
         client.onDidChangeState(event => {

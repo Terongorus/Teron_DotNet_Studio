@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -38,371 +38,371 @@
     "untrustedWorkspaces": {
       "supported": true,
       "restrictedConfigurations": [
-        "dotnet-creator.dotnetPath",
-        "dotnet-creator.sharpLsp.path",
-        "dotnet-creator.sharpLsp.extraArgs",
-        "dotnet-creator.roslyn.path",
-        "dotnet-creator.roslyn.extraArgs",
-        "dotnet-creator.debugAdapter.path",
-        "dotnet-creator.debugAdapter.extraArgs"
+        "dotnet-studio.dotnetPath",
+        "dotnet-studio.sharpLsp.path",
+        "dotnet-studio.sharpLsp.extraArgs",
+        "dotnet-studio.roslyn.path",
+        "dotnet-studio.roslyn.extraArgs",
+        "dotnet-studio.debugAdapter.path",
+        "dotnet-studio.debugAdapter.extraArgs"
       ]
     }
   },
   "contributes": {
     "commands": [
       {
-        "command": "dotnet-creator.newProject",
+        "command": "dotnet-studio.newProject",
         "icon": "resources/appicon.png",
         "title": "Create New Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.createSolution",
+        "command": "dotnet-studio.createSolution",
         "icon": "resources/appicon.png",
         "title": "Create Solution",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.manageSolution",
+        "command": "dotnet-studio.manageSolution",
         "icon": "resources/appicon.png",
         "title": "Manage Solution Files",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.openExisting",
+        "command": "dotnet-studio.openExisting",
         "icon": "resources/appicon.png",
         "title": "Open Existing Solution/Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.showStartPage",
+        "command": "dotnet-studio.showStartPage",
         "icon": "resources/appicon.png",
         "title": "Show Start Page",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.previewXamlDesigner",
+        "command": "dotnet-studio.previewXamlDesigner",
         "icon": "resources/appicon.png",
         "title": "Preview XAML (Live)",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.pickCsprojFile",
+        "command": "dotnet-studio.pickCsprojFile",
         "icon": "resources/appicon.png",
         "title": "Change Debug Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.pickConfiguration",
+        "command": "dotnet-studio.pickConfiguration",
         "icon": "resources/appicon.png",
         "title": "Change Build Configuration",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.setupDebugTasks",
+        "command": "dotnet-studio.setupDebugTasks",
         "icon": "resources/appicon.png",
         "title": "Set Up Debug/Build Tasks",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.debugStart",
+        "command": "dotnet-studio.debugStart",
         "icon": "resources/appicon.png",
         "title": "Start Debugging",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.runWithoutDebugging",
+        "command": "dotnet-studio.runWithoutDebugging",
         "icon": "resources/appicon.png",
         "title": "Run Without Debugging",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.buildProject",
+        "command": "dotnet-studio.buildProject",
         "icon": "resources/appicon.png",
         "title": "Build Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.rebuildProject",
+        "command": "dotnet-studio.rebuildProject",
         "icon": "resources/appicon.png",
         "title": "Rebuild Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.cleanProject",
+        "command": "dotnet-studio.cleanProject",
         "icon": "resources/appicon.png",
         "title": "Clean Project",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.buildSolution",
+        "command": "dotnet-studio.buildSolution",
         "icon": "resources/appicon.png",
         "title": "Build Solution",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.rebuildSolution",
+        "command": "dotnet-studio.rebuildSolution",
         "icon": "resources/appicon.png",
         "title": "Rebuild Solution",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.cleanSolution",
+        "command": "dotnet-studio.cleanSolution",
         "icon": "resources/appicon.png",
         "title": "Clean Solution",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.checkForUpdates",
+        "command": "dotnet-studio.checkForUpdates",
         "icon": "resources/appicon.png",
         "title": "Check for Updates",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.manageNugetPackages",
+        "command": "dotnet-studio.manageNugetPackages",
         "icon": "resources/appicon.png",
         "title": "Manage NuGet Packages",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.sharpLsp.restart",
+        "command": "dotnet-studio.sharpLsp.restart",
         "icon": "resources/appicon.png",
         "title": "Restart Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.sharpLsp.start",
+        "command": "dotnet-studio.sharpLsp.start",
         "icon": "resources/appicon.png",
         "title": "Start Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.sharpLsp.stop",
+        "command": "dotnet-studio.sharpLsp.stop",
         "icon": "resources/appicon.png",
         "title": "Stop Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.sharpLsp.showOutput",
+        "command": "dotnet-studio.sharpLsp.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Language Server Output",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.sharpLsp.download",
+        "command": "dotnet-studio.sharpLsp.download",
         "icon": "resources/appicon.png",
         "title": "Download SharpLsp",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.roslyn.restart",
+        "command": "dotnet-studio.roslyn.restart",
         "icon": "resources/appicon.png",
         "title": "Restart Roslyn Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.roslyn.start",
+        "command": "dotnet-studio.roslyn.start",
         "icon": "resources/appicon.png",
         "title": "Start Roslyn Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.roslyn.stop",
+        "command": "dotnet-studio.roslyn.stop",
         "icon": "resources/appicon.png",
         "title": "Stop Roslyn Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.roslyn.showOutput",
+        "command": "dotnet-studio.roslyn.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Roslyn Language Server Output",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.roslyn.download",
+        "command": "dotnet-studio.roslyn.download",
         "icon": "resources/appicon.png",
         "title": "Download Roslyn Language Server",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.switchLanguageServer",
+        "command": "dotnet-studio.switchLanguageServer",
         "icon": "resources/appicon.png",
         "title": "Switch Language Server (SharpLsp / Roslyn)",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.debugAdapter.showOutput",
+        "command": "dotnet-studio.debugAdapter.showOutput",
         "icon": "resources/appicon.png",
         "title": "Show Debugger Output",
         "category": ".NET"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.refresh",
+        "command": "dotnet-studio.solutionExplorer.refresh",
         "icon": "$(refresh)",
         "title": "Refresh",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.profiler.startTrace",
+        "command": "dotnet-studio.profiler.startTrace",
         "icon": "$(record)",
         "title": "Start Recording Trace",
         "category": ".NET Resource Monitor"
       },
       {
-        "command": "dotnet-creator.profiler.stopTrace",
+        "command": "dotnet-studio.profiler.stopTrace",
         "icon": "$(debug-stop)",
         "title": "Stop Recording Trace",
         "category": ".NET Resource Monitor"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.newFile",
+        "command": "dotnet-studio.solutionExplorer.newFile",
         "title": "New File...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.newClass",
+        "command": "dotnet-studio.solutionExplorer.newClass",
         "title": "New Class...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.newFolder",
+        "command": "dotnet-studio.solutionExplorer.newFolder",
         "title": "New Folder...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.addExistingFile",
+        "command": "dotnet-studio.solutionExplorer.addExistingFile",
         "title": "Add Existing File...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.rename",
+        "command": "dotnet-studio.solutionExplorer.rename",
         "title": "Rename",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.delete",
+        "command": "dotnet-studio.solutionExplorer.delete",
         "title": "Delete",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.copy",
+        "command": "dotnet-studio.solutionExplorer.copy",
         "title": "Copy",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.cut",
+        "command": "dotnet-studio.solutionExplorer.cut",
         "title": "Cut",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.paste",
+        "command": "dotnet-studio.solutionExplorer.paste",
         "title": "Paste",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.copyPath",
+        "command": "dotnet-studio.solutionExplorer.copyPath",
         "title": "Copy Path",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.copyRelativePath",
+        "command": "dotnet-studio.solutionExplorer.copyRelativePath",
         "title": "Copy Relative Path",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.exclude",
+        "command": "dotnet-studio.solutionExplorer.exclude",
         "title": "Exclude From Project",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.include",
+        "command": "dotnet-studio.solutionExplorer.include",
         "title": "Include In Project",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
+        "command": "dotnet-studio.solutionExplorer.revealInFileExplorer",
         "title": "Reveal in File Explorer",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
+        "command": "dotnet-studio.solutionExplorer.openInIntegratedTerminal",
         "title": "Open in Integrated Terminal",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.editProjectFile",
+        "command": "dotnet-studio.solutionExplorer.editProjectFile",
         "title": "Edit Project File",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.editSolutionFile",
+        "command": "dotnet-studio.solutionExplorer.editSolutionFile",
         "title": "Edit Solution File",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.removeFromSolution",
+        "command": "dotnet-studio.solutionExplorer.removeFromSolution",
         "title": "Remove",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.unloadProject",
+        "command": "dotnet-studio.solutionExplorer.unloadProject",
         "title": "Unload Project",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.reloadProject",
+        "command": "dotnet-studio.solutionExplorer.reloadProject",
         "title": "Reload Project",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
+        "command": "dotnet-studio.solutionExplorer.manageProjectReferences",
         "title": "Manage Project References",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
+        "command": "dotnet-studio.solutionExplorer.setAsStartupProject",
         "title": "Set as Startup Project",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.build",
+        "command": "dotnet-studio.solutionExplorer.build",
         "title": "Build",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.rebuild",
+        "command": "dotnet-studio.solutionExplorer.rebuild",
         "title": "Rebuild",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.clean",
+        "command": "dotnet-studio.solutionExplorer.clean",
         "title": "Clean",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.run",
+        "command": "dotnet-studio.solutionExplorer.run",
         "title": "Run",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.openNugetManager",
+        "command": "dotnet-studio.solutionExplorer.openNugetManager",
         "title": "Manage NuGet Packages...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.solutionExplorer.publish",
+        "command": "dotnet-studio.solutionExplorer.publish",
         "title": "Publish...",
         "category": ".NET Solution Explorer"
       },
       {
-        "command": "dotnet-creator.publishProject",
+        "command": "dotnet-studio.publishProject",
         "title": "Publish...",
         "category": ".NET"
       }
     ],
     "debuggers": [
       {
-        "type": "dotnet-creator-debug",
+        "type": "dotnet-studio-debug",
         "label": ".NET (netcoredbg)",
         "languages": ["csharp"],
         "configurationAttributes": {
@@ -446,7 +446,7 @@
         "initialConfigurations": [
           {
             "name": ".NET Debug",
-            "type": "dotnet-creator-debug",
+            "type": "dotnet-studio-debug",
             "request": "launch",
             "program": "${input:pickAssembly}",
             "cwd": "${workspaceFolder}",
@@ -459,7 +459,7 @@
             "description": "Launch a .NET project with netcoredbg.",
             "body": {
               "name": ".NET Debug",
-              "type": "dotnet-creator-debug",
+              "type": "dotnet-studio-debug",
               "request": "launch",
               "program": "^\"\\${input:pickAssembly}\"",
               "cwd": "^\"\\${workspaceFolder}\"",
@@ -467,6 +467,11 @@
             }
           }
         ]
+      },
+      {
+        "type": "dotnet-creator-debug",
+        "label": ".NET (netcoredbg) [Legacy]",
+        "languages": ["csharp"]
       }
     ],
     "configuration": [
@@ -474,27 +479,27 @@
         "title": ".NET Studio",
         "order": 0,
         "properties": {
-          "dotnet-creator.showStartPageOnStartup": {
+          "dotnet-studio.showStartPageOnStartup": {
             "type": "boolean",
             "default": true,
             "description": "Automatically show the .NET Studio start page on launch when no folder or workspace is open."
           },
-          "dotnet-creator.dotnetPath": {
+          "dotnet-studio.dotnetPath": {
             "type": "string",
             "default": "",
             "description": "Path to a specific dotnet executable to use for every dotnet CLI invocation this extension makes - build/restore/publish, NuGet, Test Explorer, debug launches, and both language servers (unless a component has its own more specific dotnetPath set, which takes priority for that component). Set this if the VS Code Extension Host can't see your real .NET SDK: it inherits the machine's own environment variables directly, so a user-local SDK install that only your terminal has been manually redirected to (common without admin rights, where a system-wide install isn't possible) stays invisible to it even though your terminal resolves 'dotnet' correctly. Leave empty to resolve 'dotnet' from PATH as normal."
           },
-          "dotnet-creator.offerDebugTaskSetup": {
+          "dotnet-studio.offerDebugTaskSetup": {
             "type": "boolean",
             "default": true,
             "description": "Offer to set up .NET debug/build tasks.json and launch.json entries when a .NET workspace doesn't have them yet."
           },
-          "dotnet-creator.useGlobalDebugTasks": {
+          "dotnet-studio.useGlobalDebugTasks": {
             "type": "boolean",
             "default": false,
             "description": "Use global (User Tasks/launch) .NET debug/build configurations shared across every workspace, instead of setting them up per-workspace. Created automatically the first time they're needed. When enabled, the per-workspace setup prompt is skipped entirely."
           },
-          "dotnet-creator.languageServer": {
+          "dotnet-studio.languageServer": {
             "type": "string",
             "enum": [
               "sharpLsp",
@@ -513,17 +518,17 @@
         "title": "SharpLsp Language Server",
         "order": 1,
         "properties": {
-          "dotnet-creator.sharpLsp.enabled": {
+          "dotnet-studio.sharpLsp.enabled": {
             "type": "boolean",
             "default": true,
             "description": "Enable C# and F# language features (diagnostics, completion, hover, go-to-definition) via a SharpLsp binary already installed on PATH. Disable if you're using another C# language extension."
           },
-          "dotnet-creator.sharpLsp.path": {
+          "dotnet-studio.sharpLsp.path": {
             "type": "string",
             "default": "",
             "description": "Path to the SharpLsp executable. Leave empty to resolve 'sharplsp' from PATH, or to use a copy downloaded via the \"Download SharpLsp\" action."
           },
-          "dotnet-creator.sharpLsp.extraArgs": {
+          "dotnet-studio.sharpLsp.extraArgs": {
             "type": "array",
             "items": {
               "type": "string"
@@ -531,7 +536,7 @@
             "default": [],
             "description": "Extra command-line arguments passed to the SharpLsp server process."
           },
-          "dotnet-creator.sharpLsp.trace.server": {
+          "dotnet-studio.sharpLsp.trace.server": {
             "type": "string",
             "enum": [
               "off",
@@ -547,12 +552,12 @@
         "title": "Roslyn Language Server",
         "order": 2,
         "properties": {
-          "dotnet-creator.roslyn.path": {
+          "dotnet-studio.roslyn.path": {
             "type": "string",
             "default": "",
             "description": "Path to the Roslyn Language Server executable. Leave empty to resolve it from PATH, or to use a copy downloaded via the \"Download Roslyn Language Server\" action."
           },
-          "dotnet-creator.roslyn.extraArgs": {
+          "dotnet-studio.roslyn.extraArgs": {
             "type": "array",
             "items": {
               "type": "string"
@@ -566,12 +571,12 @@
         "title": "Debugger (netcoredbg)",
         "order": 3,
         "properties": {
-          "dotnet-creator.debugAdapter.path": {
+          "dotnet-studio.debugAdapter.path": {
             "type": "string",
             "default": "",
             "description": "Path to the netcoredbg executable. Leave empty to resolve 'netcoredbg' from PATH, or to use a copy downloaded via the \"Download netcoredbg\" action."
           },
-          "dotnet-creator.debugAdapter.extraArgs": {
+          "dotnet-studio.debugAdapter.extraArgs": {
             "type": "array",
             "items": { "type": "string" },
             "default": [],
@@ -583,312 +588,312 @@
     "menus": {
       "editor/title": [
         {
-          "command": "dotnet-creator.previewXamlDesigner",
+          "command": "dotnet-studio.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
         }
       ],
       "explorer/context": [
         {
-          "command": "dotnet-creator.previewXamlDesigner",
+          "command": "dotnet-studio.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
-          "command": "dotnet-creator.previewXamlDesigner",
+          "command": "dotnet-studio.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
         }
       ],
       "editor/title/context": [
         {
-          "command": "dotnet-creator.previewXamlDesigner",
+          "command": "dotnet-studio.previewXamlDesigner",
           "when": "resourceExtname == .xaml",
           "group": "navigation"
         }
       ],
       "commandPalette": [
         {
-          "command": "dotnet-creator.solutionExplorer.newFile",
+          "command": "dotnet-studio.solutionExplorer.newFile",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.newClass",
+          "command": "dotnet-studio.solutionExplorer.newClass",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.newFolder",
+          "command": "dotnet-studio.solutionExplorer.newFolder",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.addExistingFile",
+          "command": "dotnet-studio.solutionExplorer.addExistingFile",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.rename",
+          "command": "dotnet-studio.solutionExplorer.rename",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.delete",
+          "command": "dotnet-studio.solutionExplorer.delete",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copy",
+          "command": "dotnet-studio.solutionExplorer.copy",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.cut",
+          "command": "dotnet-studio.solutionExplorer.cut",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.paste",
+          "command": "dotnet-studio.solutionExplorer.paste",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copyPath",
+          "command": "dotnet-studio.solutionExplorer.copyPath",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copyRelativePath",
+          "command": "dotnet-studio.solutionExplorer.copyRelativePath",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.exclude",
+          "command": "dotnet-studio.solutionExplorer.exclude",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.include",
+          "command": "dotnet-studio.solutionExplorer.include",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
+          "command": "dotnet-studio.solutionExplorer.revealInFileExplorer",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
+          "command": "dotnet-studio.solutionExplorer.openInIntegratedTerminal",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.editProjectFile",
+          "command": "dotnet-studio.solutionExplorer.editProjectFile",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.editSolutionFile",
+          "command": "dotnet-studio.solutionExplorer.editSolutionFile",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.removeFromSolution",
+          "command": "dotnet-studio.solutionExplorer.removeFromSolution",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.unloadProject",
+          "command": "dotnet-studio.solutionExplorer.unloadProject",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.reloadProject",
+          "command": "dotnet-studio.solutionExplorer.reloadProject",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
+          "command": "dotnet-studio.solutionExplorer.manageProjectReferences",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
+          "command": "dotnet-studio.solutionExplorer.setAsStartupProject",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.build",
+          "command": "dotnet-studio.solutionExplorer.build",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.rebuild",
+          "command": "dotnet-studio.solutionExplorer.rebuild",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.clean",
+          "command": "dotnet-studio.solutionExplorer.clean",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.run",
+          "command": "dotnet-studio.solutionExplorer.run",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.openNugetManager",
+          "command": "dotnet-studio.solutionExplorer.openNugetManager",
           "when": "false"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.publish",
+          "command": "dotnet-studio.solutionExplorer.publish",
           "when": "false"
         }
       ],
       "view/title": [
         {
-          "command": "dotnet-creator.solutionExplorer.refresh",
-          "when": "view == dotnet-creator.solutionExplorerView",
+          "command": "dotnet-studio.solutionExplorer.refresh",
+          "when": "view == dotnet-studio.solutionExplorerView",
           "group": "navigation"
         },
         {
-          "command": "dotnet-creator.profiler.startTrace",
-          "when": "view == dotnet-creator.resourceMonitorView && !dotnet-creator.resourceMonitor.tracing",
+          "command": "dotnet-studio.profiler.startTrace",
+          "when": "view == dotnet-studio.resourceMonitorView && !dotnet-studio.resourceMonitor.tracing",
           "group": "navigation"
         },
         {
-          "command": "dotnet-creator.profiler.stopTrace",
-          "when": "view == dotnet-creator.resourceMonitorView && dotnet-creator.resourceMonitor.tracing",
+          "command": "dotnet-studio.profiler.stopTrace",
+          "when": "view == dotnet-studio.resourceMonitorView && dotnet-studio.resourceMonitor.tracing",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "dotnet-creator.previewXamlDesigner",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetFile && resourceExtname == .xaml",
+          "command": "dotnet-studio.previewXamlDesigner",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem == dotnetFile && resourceExtname == .xaml",
           "group": "navigation"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.newFile",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
+          "command": "dotnet-studio.solutionExplorer.newFile",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.newClass",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
+          "command": "dotnet-studio.solutionExplorer.newClass",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.newFolder",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
+          "command": "dotnet-studio.solutionExplorer.newFolder",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.addExistingFile",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
+          "command": "dotnet-studio.solutionExplorer.addExistingFile",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "1_new@4"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.revealInFileExplorer",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "command": "dotnet-studio.solutionExplorer.revealInFileExplorer",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
           "group": "2_open@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.openInIntegratedTerminal",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
+          "command": "dotnet-studio.solutionExplorer.openInIntegratedTerminal",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution || viewItem =~ /^dotnet(Folder|File)\\b/)",
           "group": "2_open@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.editProjectFile",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "command": "dotnet-studio.solutionExplorer.editProjectFile",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
           "group": "2_open@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.editSolutionFile",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetSolution",
+          "command": "dotnet-studio.solutionExplorer.editSolutionFile",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem == dotnetSolution",
           "group": "2_open@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.openNugetManager",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
+          "command": "dotnet-studio.solutionExplorer.openNugetManager",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem == dotnetDependencies",
           "group": "3_deps@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.manageProjectReferences",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem == dotnetDependencies",
+          "command": "dotnet-studio.solutionExplorer.manageProjectReferences",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem == dotnetDependencies",
           "group": "3_deps@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.openNugetManager",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "command": "dotnet-studio.solutionExplorer.openNugetManager",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
           "group": "3_deps@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.cut",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanCut\\b/",
+          "command": "dotnet-studio.solutionExplorer.cut",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanCut\\b/",
           "group": "4_clipboard@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copy",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanCopy\\b/",
+          "command": "dotnet-studio.solutionExplorer.copy",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanCopy\\b/",
           "group": "4_clipboard@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.paste",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
+          "command": "dotnet-studio.solutionExplorer.paste",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem =~ /\\bcanNew\\b/)",
           "group": "4_clipboard@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copyPath",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
+          "command": "dotnet-studio.solutionExplorer.copyPath",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
           "group": "5_copyPath@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.copyRelativePath",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
+          "command": "dotnet-studio.solutionExplorer.copyRelativePath",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnet(Folder|File)\\b/",
           "group": "5_copyPath@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.run",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "command": "dotnet-studio.solutionExplorer.run",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
           "group": "6_build@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.build",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "command": "dotnet-studio.solutionExplorer.build",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
           "group": "6_build@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.rebuild",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "command": "dotnet-studio.solutionExplorer.rebuild",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
           "group": "6_build@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.clean",
-          "when": "view == dotnet-creator.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
+          "command": "dotnet-studio.solutionExplorer.clean",
+          "when": "view == dotnet-studio.solutionExplorerView && (viewItem =~ /^dotnetProject\\b/ || viewItem == dotnetSolution)",
           "group": "6_build@4"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.publish",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "command": "dotnet-studio.solutionExplorer.publish",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
           "group": "6b_publish@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.setAsStartupProject",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
+          "command": "dotnet-studio.solutionExplorer.setAsStartupProject",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /^dotnetProject\\b/",
           "group": "7_startup@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.exclude",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanExclude\\b/",
+          "command": "dotnet-studio.solutionExplorer.exclude",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanExclude\\b/",
           "group": "8_modify@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.include",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanInclude\\b/",
+          "command": "dotnet-studio.solutionExplorer.include",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanInclude\\b/",
           "group": "8_modify@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.rename",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanRename\\b/",
+          "command": "dotnet-studio.solutionExplorer.rename",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanRename\\b/",
           "group": "8_modify@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.delete",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bcanDelete\\b/",
+          "command": "dotnet-studio.solutionExplorer.delete",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bcanDelete\\b/",
           "group": "8_modify@3"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.removeFromSolution",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\binSolution\\b/",
+          "command": "dotnet-studio.solutionExplorer.removeFromSolution",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\binSolution\\b/",
           "group": "9_remove@1"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.unloadProject",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\binSolution\\b/ && !(viewItem =~ /\\bunloaded\\b/)",
+          "command": "dotnet-studio.solutionExplorer.unloadProject",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\binSolution\\b/ && !(viewItem =~ /\\bunloaded\\b/)",
           "group": "9_remove@2"
         },
         {
-          "command": "dotnet-creator.solutionExplorer.reloadProject",
-          "when": "view == dotnet-creator.solutionExplorerView && viewItem =~ /\\bunloaded\\b/",
+          "command": "dotnet-studio.solutionExplorer.reloadProject",
+          "when": "view == dotnet-studio.solutionExplorerView && viewItem =~ /\\bunloaded\\b/",
           "group": "9_remove@2"
         }
       ]
@@ -896,43 +901,43 @@
     "keybindings": [
       {
         "key": "f5",
-        "command": "dotnet-creator.debugStart",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.debugStart",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+f5",
-        "command": "dotnet-creator.runWithoutDebugging",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.runWithoutDebugging",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k b",
-        "command": "dotnet-creator.buildProject",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.buildProject",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k shift+b",
-        "command": "dotnet-creator.rebuildProject",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.rebuildProject",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k c",
-        "command": "dotnet-creator.cleanProject",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.cleanProject",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k ctrl+b",
-        "command": "dotnet-creator.buildSolution",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.buildSolution",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k ctrl+shift+b",
-        "command": "dotnet-creator.rebuildSolution",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.rebuildSolution",
+        "when": "dotnet-studio.workspaceHasProject"
       },
       {
         "key": "ctrl+k ctrl+c",
-        "command": "dotnet-creator.cleanSolution",
-        "when": "dotnet-creator.workspaceHasProject"
+        "command": "dotnet-studio.cleanSolution",
+        "when": "dotnet-studio.workspaceHasProject"
       }
     ],
     "viewsContainers": {
@@ -954,7 +959,7 @@
     "views": {
       "dotnetResourceMonitor": [
         {
-          "id": "dotnet-creator.resourceMonitorView",
+          "id": "dotnet-studio.resourceMonitorView",
           "name": "Resource Monitor",
           "type": "webview",
           "icon": "resources/debug-monitor-icon.svg"
@@ -962,10 +967,10 @@
       ],
       "dotnetSolutionExplorerContainer": [
         {
-          "id": "dotnet-creator.solutionExplorerView",
+          "id": "dotnet-studio.solutionExplorerView",
           "name": "Solution Explorer",
           "icon": "resources/solution-explorer-icon.svg",
-          "when": "dotnet-creator.workspaceHasProject"
+          "when": "dotnet-studio.workspaceHasProject"
         }
       ]
     },

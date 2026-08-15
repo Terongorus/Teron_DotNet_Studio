@@ -3,7 +3,7 @@ import { resolveDotnetCommand, resolveDotnetEnv } from './dotnetPath';
 
 /**
  * Runs `dotnet <args>` without a shell, so arguments never need manual quoting
- * and can't be interpreted as shell metacharacters. Uses dotnet-creator.dotnetPath's resolved
+ * and can't be interpreted as shell metacharacters. Uses dotnet-studio.dotnetPath's resolved
  * command/env when configured (see dotnetPath.ts), PATH resolution otherwise - the single choke
  * point almost every other dotnet CLI invocation in this extension already routes through.
  */
