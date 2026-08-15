@@ -2,6 +2,17 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.19.1] - 2026-08-15
+
+* **Publish panel Advanced section cleanup.** Removed the "Include all content in single file"
+  checkbox - a legacy option the .NET SDK itself has deprecated, so it no longer belongs as a
+  first-class control. An existing profile that already has it set (from before this change, or
+  authored by real Visual Studio) still round-trips through Save Profile unchanged - it's just no
+  longer settable from this UI. Reordered the remaining Advanced checkboxes to
+  Produce single file → Enable ReadyToRun compilation → Compress single file → Trim unused
+  assemblies, and dropped the "(requires self-contained)" note from Compress single file's label
+  (the checkbox already disables itself when that requirement isn't met).
+
 ## [1.19.0] - 2026-08-15
 
 * **The status bar, Resource Monitor, Solution Explorer, and F5/build keybindings no longer

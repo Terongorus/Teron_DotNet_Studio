@@ -220,17 +220,13 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                 <input type="checkbox" id="publishSingleFile">
                 <label for="publishSingleFile">Produce single file</label>
             </div>
-            <div class="checkbox-row" id="compressionRow">
-                <input type="checkbox" id="enableCompressionInSingleFile">
-                <label for="enableCompressionInSingleFile">Compress single file (requires self-contained)</label>
-            </div>
-            <div class="checkbox-row" id="includeAllContentRow">
-                <input type="checkbox" id="includeAllContentForSelfExtract">
-                <label for="includeAllContentForSelfExtract">Include all content in single file (legacy - the .NET SDK deprecated this option)</label>
-            </div>
             <div class="checkbox-row" id="readyToRunRow">
                 <input type="checkbox" id="publishReadyToRun">
                 <label for="publishReadyToRun">Enable ReadyToRun compilation</label>
+            </div>
+            <div class="checkbox-row" id="compressionRow">
+                <input type="checkbox" id="enableCompressionInSingleFile">
+                <label for="enableCompressionInSingleFile">Compress single file</label>
             </div>
             <div class="checkbox-row" id="trimmedRow">
                 <input type="checkbox" id="publishTrimmed">
@@ -261,17 +257,19 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
         const readyToRunEl = document.getElementById('publishReadyToRun');
         const trimmedEl = document.getElementById('publishTrimmed');
         const compressionEl = document.getElementById('enableCompressionInSingleFile');
-        const includeAllContentEl = document.getElementById('includeAllContentForSelfExtract');
         const singleFileRow = document.getElementById('singleFileRow');
         const readyToRunRow = document.getElementById('readyToRunRow');
         const trimmedRow = document.getElementById('trimmedRow');
         const compressionRow = document.getElementById('compressionRow');
-        const includeAllContentRow = document.getElementById('includeAllContentRow');
         const statusLine = document.getElementById('statusLine');
 
         let profiles = [];
         let selectedName = null;
         let currentConfiguration = 'Release';
+        // No UI control for this anymore (legacy, SDK-deprecated) - preserved only so an existing
+        // profile that already has it set (from before this option was removed, or from real VS)
+        // round-trips through Save Profile unchanged instead of silently losing the value.
+        let currentIncludeAllContent = false;
 
         function escapeHtml(value) {
             return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -309,12 +307,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
             trimmedEl.disabled = !isSelfContained;
             if (!isSelfContained) { trimmedEl.checked = false; }
 
-            // Both are only ever read inside the SDK's single-file bundling step - a no-op
-            // without publishSingleFile, so there's nothing for either to actually do.
             const isSingleFile = singleFileEl.checked && !isPortable;
-            includeAllContentRow.classList.toggle('disabled', !isSingleFile);
-            includeAllContentEl.disabled = !isSingleFile;
-            if (!isSingleFile) { includeAllContentEl.checked = false; }
 
             // Compression additionally requires self-contained - the SDK raises a real build
             // error otherwise, not just a no-op.
@@ -346,7 +339,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                 publishSingleFile: singleFileEl.checked,
                 publishReadyToRun: readyToRunEl.checked,
                 publishTrimmed: trimmedEl.checked,
-                includeAllContentForSelfExtract: includeAllContentEl.checked,
+                includeAllContentForSelfExtract: currentIncludeAllContent,
                 enableCompressionInSingleFile: compressionEl.checked
             };
         }
@@ -419,7 +412,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                     singleFileEl.checked = p.publishSingleFile;
                     readyToRunEl.checked = p.publishReadyToRun;
                     trimmedEl.checked = p.publishTrimmed;
-                    includeAllContentEl.checked = p.includeAllContentForSelfExtract;
+                    currentIncludeAllContent = !!p.includeAllContentForSelfExtract;
                     compressionEl.checked = p.enableCompressionInSingleFile;
                     updateConditionalRows();
                     formColumn.style.display = 'block';
