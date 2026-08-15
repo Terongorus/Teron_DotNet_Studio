@@ -10,3 +10,4 @@ dotnet-project-creator.code-workspace
 .claude/
 SHARPLSP-STARTTRACE-BUG-REPORT.md
 logs/*.*
+docs/resharper-parity-gap-analysis.html
