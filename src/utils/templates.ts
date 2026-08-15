@@ -9,6 +9,77 @@ export interface DotnetTemplate {
     tags: string;
 }
 
+export interface ClassifiedTemplate {
+    name: string;
+    shortName: string;
+    /** Every language the template supports, brackets stripped (e.g. ["C#", "F#", "VB"]). */
+    languages: string[];
+    /** The language `dotnet new list` marks as the default via [brackets] - falls back to the first language if none is bracketed. */
+    primaryLanguage: string;
+    /** Recognized platform restrictions (Windows, Android, iOS, ...). Empty when the template doesn't declare one - treated as "runs everywhere" by callers, not "unknown". */
+    platforms: string[];
+    /** Every Tags token that isn't a recognized platform word (Console, Web, Test, MAUI, ...). */
+    types: string[];
+}
+
+/**
+ * `dotnet new list`'s Language column wraps the default/recommended language in brackets and
+ * comma-separates the rest, e.g. "[C#],F#,VB". Splits it into a clean list with brackets removed.
+ */
+export function parseTemplateLanguages(rawLanguage: string): string[] {
+    return rawLanguage.split(',').map(part => part.trim().replace(/^\[|\]$/g, '')).filter(Boolean);
+}
+
+/** The bracketed (default) language, or the first listed language if none is bracketed. */
+export function primaryTemplateLanguage(rawLanguage: string): string {
+    const bracketed = rawLanguage.match(/\[([^\]]+)\]/);
+    if (bracketed) { return bracketed[1]; }
+    return parseTemplateLanguages(rawLanguage)[0] ?? '';
+}
+
+/** `dotnet new list`'s Tags column is a flat "/"-joined list, e.g. "Web/gRPC/API/Service". */
+export function parseTemplateTags(rawTags: string): string[] {
+    return rawTags.split('/').map(t => t.trim()).filter(Boolean);
+}
+
+/**
+ * Recognized platform-restriction words, sourced from Visual Studio's own "Create a new
+ * project" Platform dropdown (Android/Azure/iOS/Linux/macOS/tvOS/Windows/Xbox) plus two tokens
+ * confirmed present in real `dotnet new list` Tags output that VS's dropdown groups under macOS/
+ * doesn't surface separately (Mac Catalyst, Tizen). This is a fixed vocabulary of platform
+ * *names*, not derived from any one machine's installed templates, so a template installed later
+ * classifies correctly as long as it uses one of these words - only a genuinely novel platform
+ * name would fall through to the Type bucket instead.
+ */
+const PLATFORM_TAG_WORDS = new Set(['Windows', 'Linux', 'macOS', 'Mac Catalyst', 'Android', 'iOS', 'tvOS', 'Xbox', 'Azure', 'Tizen']);
+
+/**
+ * `dotnet new list` doesn't tag WinForms/WPF templates with "Windows" at all (unlike MAUI, which
+ * does) despite them being unambiguously Windows-only - these short names are stable, official
+ * .NET SDK template identifiers, so this closes that specific, known gap without guessing at
+ * platform words for templates that haven't been seen yet.
+ */
+const KNOWN_WINDOWS_ONLY_SHORT_NAMES = new Set([
+    'winforms', 'winformslib', 'winformscontrollib',
+    'wpf', 'wpflib', 'wpfcustomcontrollib', 'wpfusercontrollib'
+]);
+
+export function classifyTemplate(template: DotnetTemplate): ClassifiedTemplate {
+    const shortName = firstShortName(template);
+    const tagTokens = parseTemplateTags(template.tags);
+    const platforms = new Set(tagTokens.filter(tag => PLATFORM_TAG_WORDS.has(tag)));
+    if (KNOWN_WINDOWS_ONLY_SHORT_NAMES.has(shortName)) { platforms.add('Windows'); }
+
+    return {
+        name: template.name,
+        shortName,
+        languages: parseTemplateLanguages(template.language),
+        primaryLanguage: primaryTemplateLanguage(template.language),
+        platforms: [...platforms],
+        types: tagTokens.filter(tag => !PLATFORM_TAG_WORDS.has(tag))
+    };
+}
+
 /**
  * Parses the tabular output of `dotnet new list`. Columns are separated by
  * 2+ spaces; the header/data split is marked by a line of dashes.

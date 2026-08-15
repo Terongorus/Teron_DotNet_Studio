@@ -1,6 +1,6 @@
 # .NET Studio
 
-A clean, lightweight Visual Studio Code extension for generating C# and F# .NET projects directly from the command palette.
+A clean, lightweight Visual Studio Code extension for generating C# and F# .NET projects directly inside VS Code.
 
 Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper for the official `.NET CLI`, allowing you to scaffold projects and solutions without unnecessary bloat.
 
@@ -8,7 +8,7 @@ Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper fo
 
 * **Dynamic Template Loading:** Automatically detects and lists all available `.NET` project templates installed on your machine (`dotnet new list --type project`) — scaffold-only templates like `.gitignore` or `.editorconfig` are kept out of this list.
 * **Install Templates from NuGet:** Download and install third-party or custom company templates directly via the extension UI.
-* **Solution-Aware Project Creation:** Optionally add your new project to an existing solution, or create a brand new one on the spot, as part of the project creation flow.
+* **Solution-Aware Project Creation:** A two-step visual wizard (**.NET: Create New Project**) — template gallery, then name and location — mirroring Visual Studio's own "Create a new project" flow. Optionally add your new project to an existing solution, or create a brand new one on the spot, as part of the same flow.
 * **Standalone Solution Creation:** Create an empty `.slnx` solution on its own via **.NET: Create Solution**.
 * **Solution Scaffold File Management:** Add or permanently delete solution-level scaffold files (`.gitignore`, `.editorconfig`, `NuGet.Config`, `global.json`, `.sln`/`.slnx`, etc.) in any folder via **.NET: Manage Solution Files**.
 * **NuGet Package Manager:** A dedicated panel (**.NET: Manage NuGet Packages**, or from the Project status bar item) to browse NuGet.org, and install, update, or remove package references for a project — no typing exact package IDs required. Installed packages are also checked for known **vulnerabilities** (NuGetAudit, GitHub Advisory Database-backed) and **deprecation**, including transitive dependencies — flagged with a colored dot in the list and full advisory links/alternative-package suggestions in the details panel. Requires .NET SDK 7.0.200 or later.
@@ -37,7 +37,7 @@ If `dotnet` genuinely works in your terminal but .NET Studio still can't find it
 
 ## Looks Great With
 
-This extension's UI (status bar, Solution Explorer, NuGet Manager, Start Page) is built
+This extension's UI (status bar, Solution Explorer, NuGet Manager, Start Page, Create New Project) is built
 entirely on VS Code's own theme color variables, so it adapts automatically to whatever color
 theme you're running — no configuration needed. Given the Visual Studio/Rider-inspired workflow
 this extension goes for, it ships a built-in **JetBrains Rider Dark** color theme (Preferences:
@@ -49,12 +49,27 @@ Color Theme) — a fitting, purely cosmetic pairing if you want the look to matc
 
 ### Create New Project
 
-1. Open the Command Palette (`Ctrl+Shift+P` on Windows/Linux, `Cmd+Shift+P` on macOS).
-2. Type **.NET: Create New Project** and press Enter.
-3. Select your project template, and name your project.
-4. Choose whether to add the project to a solution:
-   * **No** — pick a destination folder and create a standalone project.
-   * **Yes** — either pick an existing `.sln`/`.slnx` file to add the project to, or create a new solution on the spot; the project is placed alongside it and linked automatically.
+Run **.NET: Create New Project** from the Command Palette (or the Start Page) to open a
+two-step wizard, mirroring Visual Studio's own "Create a new project" flow:
+
+1. **Choose a template** — search and filter by Language, Platform, and Project Type in a
+   template gallery (matching Visual Studio's own filter row), each with a distinct icon for its
+   project type. A **Recent project templates** rail (once you've created at least one project)
+   lets you jump straight back to a template you've used before. Don't see what you need? Install
+   a new template from NuGet without leaving the page.
+2. **Configure your new project** — a 3-way selector switches between three forms matching Visual
+   Studio's own layout for each case, with a live preview of the exact path the project will be
+   created at:
+   * **Standalone** — project name and a destination folder.
+   * **New Solution** — project name, destination folder, and a solution name, plus a "Place
+     solution and project in the same directory" toggle (off by default, matching VS, but
+     remembers whatever you last set it to) — checked forces the solution name to match the
+     project name and keeps them together in one folder; unchecked gives the project its own
+     subfolder inside a dedicated solution folder, ready for more projects later.
+   * **Existing Solution** — pick an existing `.sln`/`.slnx` file; its location and name are shown
+     read-only and the project is added and linked to it automatically.
+
+The wizard closes itself once the project is created.
 
 ### Create Solution
 

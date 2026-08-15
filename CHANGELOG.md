@@ -2,6 +2,93 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.18.0] - 2026-08-15
+
+* **"Create New Project" is now a visual, two-step wizard instead of a chain of Command Palette
+  prompts.** Mirrors Visual Studio's own "Create a new project" flow: a searchable template
+  gallery filterable by Language, Platform, and Project Type (matching VS's own 3-dropdown row),
+  then a "Configure your new project" page with a labeled 3-way pill selector - a standalone
+  segmented control, not a tab strip physically attached to the panel below it - switching between
+  three purpose-built forms matching Visual Studio's own layout for each case, rather than one
+  generic form:
+  * **Standalone** - just a project name and a Location field.
+  * **New Solution** - project name, Location, Solution name, and a **"Place solution and project
+    in the same directory"** toggle, unchecked by default (matching VS's own default - not
+    checked) but persisted afterward, same as VS: whichever way you last left it is how the wizard
+    opens next time, not reset to the default. Checked forces Solution name to track the project
+    name and disables it (a single-project solution takes the project's own name, matching VS);
+    unchecked makes it independently editable again and gives the project its own subfolder inside
+    a dedicated solution folder, ready for more projects later.
+  * **Existing Solution** - pick a `.sln`/`.slnx` file via a Browse button next to the Location
+    field itself (previously a separate, redundant "Solution" row showing the same path twice);
+    Location and Solution name are then shown read-only (inherited from the picked solution,
+    matching VS) and only the project name is editable.
+
+  The Project name and Solution name fields now consistently fill the available width instead of
+  Solution name rendering at its cramped default browser size.
+
+  A live preview at the bottom always shows the exact path the project will be created at. Nothing
+  is created until the final Create click - picking "New Solution" no longer eagerly creates the
+  `.slnx` the moment you choose a location; the solution and project are now created together in
+  one atomic step, exactly mirroring when Visual Studio's own dialog actually touches disk. Reuses
+  the same `dotnet new`/`dotnet sln add`/`dotnet new sln` calls and the same native
+  `pickExistingSolution` file picker the original flow used - only the front end and the ordering
+  of *when* things get created changed, not the underlying CLI commands. The panel disposes itself
+  automatically once creation succeeds, and stays open (with the failure surfaced inline) if it
+  doesn't, so a failed attempt can be corrected without restarting the wizard.
+
+  Each template row shows its real tags (e.g. `MAUI · Android · iOS · macOS · Windows`) and a
+  distinct per-type [Codicon](https://github.com/microsoft/vscode-codicons) icon (the same icon
+  set VS Code's own Explorer/Extensions view uses) - `terminal` for Console, `library` for Class
+  Library, `beaker` for MSTest/NUnit/xUnit, `window` for WinForms vs. `layout` for WPF, `globe` for
+  Web/Blazor, `radio-tower` for gRPC, `device-mobile` for MAUI/Android/iOS, and so on - not just an
+  identical colored circle. `dotnet new list`'s `Language` column is bracket-wrapped and often
+  multi-valued (`[C#],F#,VB`) and its `Tags` column is a flat `/`-joined list
+  (`Web/gRPC/API/Service`) with no built-in platform/type split; a new `classifyTemplate()` parses
+  both properly and splits Tags into Platform vs. Project Type using a fixed vocabulary of real
+  platform names (sourced from Visual Studio's own Platform dropdown -
+  Android/Azure/iOS/Linux/macOS/tvOS/Windows/Xbox - plus Mac Catalyst/Tizen, confirmed present in
+  real CLI output), with a manual override for WinForms/WPF specifically since `dotnet new list`
+  doesn't tag those as Windows-only despite them being unambiguously so. Since that vocabulary is
+  necessarily hand-maintained, not derived from real per-template platform metadata (the CLI
+  doesn't expose that), template tags that don't match a known platform word and land in the
+  Project Type bucket are logged once per session to a new **.NET Studio: Create New Project**
+  output channel the first time they're seen, so a genuinely new platform word (e.g. from a
+  workload installed later) surfaces instead of silently blending in unnoticed.
+
+  A **Recent project templates** rail (also matching Visual Studio's dialog) appears to the left
+  of the gallery once at least one project has been created through the wizard, letting you jump
+  straight back to a template you've used before instead of re-searching for it; it re-resolves
+  against the live template list each time, so a since-uninstalled template just quietly drops out
+  rather than showing a dead entry. The gallery itself is a scrollable list of full-width rows
+  (matching VS's actual dialog layout), not a card grid. Once a Language filter is active, each
+  row shows only the filtered language instead of the template's full language list, so a
+  C#-filtered view doesn't read as if F#/VB support is still being advertised back at you.
+
+  Verified against the real compiled panel module (not just type-checked): a message-flow harness
+  drives `ready` → `templates`, `validateName`, `browseFolder` → a real `showOpenDialog` call, all
+  three `create` variants (standalone, new-solution with both `placeTogether` settings, and
+  existing-solution), the unfamiliar-tag logger (fires once per new tag, not on repeat loads), the
+  recent-templates round trip (a successful create records a recent entry, newest first, surfaced
+  back on the next `templates` load), and the `placeTogether` preference round trip (defaults to
+  `false`, persists to `globalState` on change, and a genuinely fresh panel instance sees the
+  persisted value rather than the default) - asserting the exact `dotnet` CLI arguments and their
+  call order (`sln new` before `dotnet new` before `sln add` for the new-solution case), the
+  recent-items entry, and that the panel disposes on success but stays open when the user declines
+  the overwrite-confirmation warning. `classifyTemplate()` itself has real unit tests
+  (`src/test/templateClassification.test.ts`) covering bracket/multi-language parsing and the real
+  MAUI/ASP.NET Core/WinForms tag shapes pulled from an actual `dotnet new list --type project`
+  run, not synthetic data, plus a real classifier pass against this machine's full 39-template
+  installed set as an end-to-end sanity check. `recentTemplates.ts` has its own unit tests
+  (`src/test/recentTemplates.test.ts`) mirroring the existing `recentItems.ts` coverage. The
+  generated webview script was checked for syntax validity; its Windows path-separator,
+  tag-separator (·), and (new) solution-name-from-filename/path-split regex escaping were each
+  traced through the Node-side template literal and the browser-side string/regex literal parsing
+  to confirm they render correctly rather than as literal escape text or a doubled/dropped
+  character; and the Configure page's live path-preview logic (`locationDisplay()`) was extracted
+  from the real compiled output and executed directly against all four mode branches, matching the
+  exact same folder math the create step itself uses.
+
 ## [1.17.0] - 2026-08-15
 
 * **Renamed the `dotnet-creator.` command/settings prefix to `dotnet-studio.`.** The extension's

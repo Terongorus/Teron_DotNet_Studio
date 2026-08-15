@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -404,10 +404,14 @@
       {
         "type": "dotnet-studio-debug",
         "label": ".NET (netcoredbg)",
-        "languages": ["csharp"],
+        "languages": [
+          "csharp"
+        ],
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -431,7 +435,11 @@
               },
               "console": {
                 "type": "string",
-                "enum": ["internalConsole", "integratedTerminal", "externalTerminal"],
+                "enum": [
+                  "internalConsole",
+                  "integratedTerminal",
+                  "externalTerminal"
+                ],
                 "description": "Where to launch the debug target's console output.",
                 "default": "internalConsole"
               },
@@ -471,7 +479,9 @@
       {
         "type": "dotnet-creator-debug",
         "label": ".NET (netcoredbg) [Legacy]",
-        "languages": ["csharp"]
+        "languages": [
+          "csharp"
+        ]
       }
     ],
     "configuration": [
@@ -578,7 +588,9 @@
           },
           "dotnet-studio.debugAdapter.extraArgs": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "default": [],
             "description": "Extra command-line arguments passed to the netcoredbg process."
           }
@@ -1002,6 +1014,7 @@
     "@types/tar-stream": "^3.1.4",
     "@types/vscode": "^1.125.0",
     "@types/yauzl": "^3.4.0",
+    "@vscode/codicons": "^0.0.46-24",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.0.0",
     "eslint": "^10.5.0",

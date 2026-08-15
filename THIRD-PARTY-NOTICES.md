@@ -6,10 +6,11 @@ debugging features for how each is detected, downloaded, or bundled. Both are fe
 official, checksum-verified release binaries (never built from source by this extension), so no
 third-party source code is vendored in this repository for either of them.
 
-One third-party asset **is** vendored directly in this repository: the built-in "JetBrains Rider
-Dark" color theme, a single static JSON file copied from its upstream source (see below) rather
-than downloaded at runtime, since VS Code color themes must be declared in `package.json` at
-package time.
+Two third-party assets **are** vendored directly in this repository: the built-in "JetBrains
+Rider Dark" color theme, a single static JSON file copied from its upstream source (see below)
+rather than downloaded at runtime, since VS Code color themes must be declared in `package.json`
+at package time; and the Codicon icon font, used to give Create New Project's template gallery
+distinct per-type icons in a webview.
 
 ## SharpLsp
 
@@ -81,6 +82,20 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Codicons
+
+An icon font (`resources/codicons/codicon.css`, `codicon.ttf`), vendored as static files copied
+from the `@vscode/codicons` npm package - the same icon set VS Code's own UI (Explorer,
+Extensions view, etc.) uses. Used in the Create New Project template gallery to give each
+template a distinct per-type icon instead of a generic badge.
+
+Copyright (c) Microsoft Corporation
+
+Homepage: [https://github.com/microsoft/vscode-codicons](https://github.com/microsoft/vscode-codicons)
+
+Licensed under the Creative Commons Attribution 4.0 International License (CC-BY-4.0):
+[https://github.com/microsoft/vscode-codicons/blob/main/LICENSE](https://github.com/microsoft/vscode-codicons/blob/main/LICENSE)
 
 ## netcoredbg
 
