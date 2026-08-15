@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -914,42 +914,42 @@
       {
         "key": "f5",
         "command": "dotnet-studio.debugStart",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+f5",
         "command": "dotnet-studio.runWithoutDebugging",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k b",
         "command": "dotnet-studio.buildProject",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k shift+b",
         "command": "dotnet-studio.rebuildProject",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k c",
         "command": "dotnet-studio.cleanProject",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k ctrl+b",
         "command": "dotnet-studio.buildSolution",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k ctrl+shift+b",
         "command": "dotnet-studio.rebuildSolution",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       },
       {
         "key": "ctrl+k ctrl+c",
         "command": "dotnet-studio.cleanSolution",
-        "when": "dotnet-studio.workspaceHasProject"
+        "when": "dotnet-studio.projectOpened"
       }
     ],
     "viewsContainers": {
@@ -974,7 +974,8 @@
           "id": "dotnet-studio.resourceMonitorView",
           "name": "Resource Monitor",
           "type": "webview",
-          "icon": "resources/debug-monitor-icon.svg"
+          "icon": "resources/debug-monitor-icon.svg",
+          "when": "dotnet-studio.projectOpened"
         }
       ],
       "dotnetSolutionExplorerContainer": [
@@ -982,7 +983,7 @@
           "id": "dotnet-studio.solutionExplorerView",
           "name": "Solution Explorer",
           "icon": "resources/solution-explorer-icon.svg",
-          "when": "dotnet-studio.workspaceHasProject"
+          "when": "dotnet-studio.projectOpened"
         }
       ]
     },

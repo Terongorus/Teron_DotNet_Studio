@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { addRecentItem, RecentItemKind } from '../startPage/recentItems';
+import { openSolutionTarget, openProjectTarget } from '../utils/openTarget';
 
 export function registerOpenExistingCommand(context: vscode.ExtensionContext) {
     const disposable = vscode.commands.registerCommand('dotnet-studio.openExisting', async () => {
@@ -26,7 +27,11 @@ export function registerOpenExistingCommand(context: vscode.ExtensionContext) {
             filePath
         });
 
-        vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(folderPath), false);
+        if (kind === 'solution') {
+            await openSolutionTarget(folderPath, filePath);
+        } else {
+            await openProjectTarget(folderPath, filePath);
+        }
     });
 
     context.subscriptions.push(disposable);

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
+import { applyOpenedVisibility } from '../utils/projectOpened';
 
 /**
  * First (leftmost within the right-aligned group) of the three .NET status
@@ -15,12 +16,14 @@ export function registerSolutionStatusBarItem(context: vscode.ExtensionContext):
     item.name = '.NET: Solution';
     item.command = 'dotnet-studio.showSolutionMenu';
 
-    const refresh = () => updateStatusBarItem(item);
+    const refresh = () => {
+        updateStatusBarItem(item);
+        applyOpenedVisibility(item, getActiveWorkspaceFolder());
+    };
 
     context.subscriptions.push(item, onDidChangeCurrentSolution(refresh), onDidChangeActiveWorkspaceFolder(refresh));
 
     refresh();
-    item.show();
 }
 
 function updateStatusBarItem(item: vscode.StatusBarItem): void {

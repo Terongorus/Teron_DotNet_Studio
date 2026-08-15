@@ -6,11 +6,11 @@ import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { runProject } from './buildActions';
 
 /**
- * F5/Ctrl+F5 entry points, scoped to .NET workspaces only via the
- * "dotnet-studio.workspaceHasProject" context key on the keybindings
- * themselves (see package.json) - these commands are inert no-ops outside
- * that scope since the keybinding simply won't fire, letting VS Code's own
- * defaults take over.
+ * F5/Ctrl+F5 entry points, scoped to workspaces where a project/solution has actually been
+ * opened via .NET Studio (not just "a .csproj exists somewhere") via the
+ * "dotnet-studio.projectOpened" context key on the keybindings themselves (see package.json and
+ * utils/projectOpened.ts) - these commands are inert no-ops outside that scope since the
+ * keybinding simply won't fire, letting VS Code's own defaults take over.
  */
 export function registerDebugKeybindingCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(

@@ -5,6 +5,7 @@ import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../u
 import { peekCurrentSolution, onDidChangeCurrentSolution } from '../utils/currentSolution';
 import { parseSolutionProjects } from '../utils/solutionParser';
 import { isProjectUnloadedInSolution } from '../utils/solutionBuildConfig';
+import { applyOpenedVisibility } from '../utils/projectOpened';
 
 /**
  * Middle of the three .NET status bar segments (Solution › Project ›
@@ -20,18 +21,18 @@ export function registerProjectStatusBarItem(context: vscode.ExtensionContext): 
 
     const refresh = () => {
         updateStatusBarItem(item);
+        applyOpenedVisibility(item, getActiveWorkspaceFolder());
         void autoPickSoleProject();
     };
 
     context.subscriptions.push(
         item,
-        onDidChangePickedCsproj(() => updateStatusBarItem(item)),
+        onDidChangePickedCsproj(() => { updateStatusBarItem(item); applyOpenedVisibility(item, getActiveWorkspaceFolder()); }),
         onDidChangeActiveWorkspaceFolder(refresh),
         onDidChangeCurrentSolution(refresh)
     );
 
     refresh();
-    item.show();
 }
 
 /**

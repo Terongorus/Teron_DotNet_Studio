@@ -2,6 +2,48 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.19.0] - 2026-08-15
+
+* **The status bar, Resource Monitor, Solution Explorer, and F5/build keybindings no longer
+  activate in a workspace just because a `.csproj`/`.sln` happens to exist in it somewhere.**
+  Previously these were gated only by `hasAnyDotnetProject()` (or, for the status bar and
+  Resource Monitor, not gated at all) - a cheap "does a project file exist anywhere" scan that
+  activated .NET Studio's own UI even in workspaces you never asked it to touch. This extension's
+  own repository was a real example: its `designer-host/DesignerHost.csproj` (a native sub-tool,
+  not something you'd ever build/debug directly) was enough to auto-select itself as "the"
+  project and light up the status bar, Resource Monitor panel, and F5 - despite this being a
+  TypeScript codebase with no other .NET involvement.
+
+  Everything now requires a real, explicit open action first: **Open Existing**, **Create New
+  Project**, **Create Solution**, or picking an item from the Start Page's Recently Used list.
+  The existing "auto-pick the sole project" convenience (when a folder has exactly one
+  unambiguous `.csproj`) still works in the background for build/run resolution, but no longer by
+  itself turns any of this UI on - it's not the same thing as you having actually asked .NET
+  Studio to do something in this folder. Once a folder has been explicitly opened once, this is
+  remembered permanently (same per-folder `.vscode/dotnet-studio.state.json` used for the current
+  project/solution), so this is a one-time thing per folder, not a repeated prompt.
+
+  Along the way, found and fixed a real, separate bug: the v1.17.0 `dotnet-creator.` →
+  `dotnet-studio.` prefix rename changed this same per-folder state file's name but never migrated
+  existing `.vscode/dotnet-creator.state.json` files forward, so every previously-tracked current
+  project/solution silently reverted to "nothing selected" after upgrading. Fixed with a one-time
+  forward migration (old file is read once, copied to the new filename, and left in place
+  untouched) - the same shape as `legacyPrefixMigration.ts` already used for settings/commands.
+
+  Note for anyone who had already picked a project/solution before this version: that pick is
+  migrated forward by the fix above, but (deliberately, since the old data doesn't distinguish an
+  explicit pick from the auto-pick convenience) isn't automatically counted as "explicitly
+  opened" - the status bar/Resource Monitor/Solution Explorer/F5 will stay quiet once, until you
+  reopen that folder's project/solution through one of the explicit actions above.
+
+  Verified against the real compiled output (not just type-checked): a Node harness drives the
+  real `folderState`/`currentSolution`/`projectPicker`/`openTarget`/`projectOpened` modules
+  end-to-end, covering the legacy state-file migration (including that it does *not* grant the
+  new flag), both branches of opening a project/solution (an already-open workspace folder vs. one
+  that needs a real `vscode.openFolder` switch), the exact ordering guarantee that the new
+  "explicitly opened" flag is set before the change events that recompute visibility fire (so
+  nothing observes a stale value), and the visibility-gating helpers themselves.
+
 ## [1.18.0] - 2026-08-15
 
 * **"Create New Project" is now a visual, two-step wizard instead of a chain of Command Palette

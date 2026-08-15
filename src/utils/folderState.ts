@@ -13,9 +13,18 @@ export interface FolderState {
      *  solutions use real ProjectConfigurationPlatforms editing instead (see solutionBuildConfig.ts),
      *  since that's verified to actually affect `dotnet build`; this list has no such effect. */
     unloadedProjects?: string[];
+    /** True once the user has explicitly opened this folder's project/solution via .NET Studio
+     *  (Open Existing, Create New Project, Create Solution, or a Start Page Recently Used pick) -
+     *  see utils/openTarget.ts. Deliberately distinct from currentProject/currentSolution merely
+     *  being set - projectStatusBarItem.ts's autoPickSoleProject also sets those silently whenever
+     *  a folder has exactly one unambiguous .csproj, which is NOT the same as the user having
+     *  actually asked .NET Studio to do anything (see utils/projectOpened.ts, which this field
+     *  drives). */
+    explicitlyOpened?: boolean;
 }
 
 const STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-studio.state.json'];
+const LEGACY_STATE_FILE_SEGMENTS = ['.vscode', 'dotnet-creator.state.json'];
 
 const cache = new Map<string, FolderState>();
 const watchers = new Map<string, vscode.Disposable>();
@@ -47,7 +56,19 @@ async function loadIntoCache(folder: vscode.WorkspaceFolder): Promise<FolderStat
         const bytes = await vscode.workspace.fs.readFile(stateUri(folder));
         state = JSON.parse(Buffer.from(bytes).toString('utf8'));
     } catch {
-        // Missing or invalid file - start from an empty state rather than throwing.
+        // New-named file doesn't exist (yet) - check for a pre-rename dotnet-creator.state.json.
+        // The v1.17.0 prefix rename migrated settings/commands (see legacyPrefixMigration.ts) but
+        // never this file, so every workspace's tracked current project/solution silently went
+        // missing on upgrade. One-time forward copy: read the old file if present, write it out
+        // under the new name so this only ever runs once - the old file is left alone, untouched.
+        try {
+            const legacyUri = vscode.Uri.joinPath(folder.uri, ...LEGACY_STATE_FILE_SEGMENTS);
+            const legacyBytes = await vscode.workspace.fs.readFile(legacyUri);
+            state = JSON.parse(Buffer.from(legacyBytes).toString('utf8'));
+            await vscode.workspace.fs.writeFile(stateUri(folder), Buffer.from(JSON.stringify(state, null, 2), 'utf8'));
+        } catch {
+            // Neither file exists (or the legacy one is invalid too) - start from empty state.
+        }
     }
     cache.set(key(folder), state);
     _onDidLoadFolderState.fire(folder);
@@ -83,6 +104,10 @@ export async function warmFolderState(folder: vscode.WorkspaceFolder): Promise<F
 /** Synchronous - reads only the in-memory cache. Defaults to {} if warmFolderState hasn't resolved yet for this folder. */
 export function peekFolderState(folder: vscode.WorkspaceFolder): FolderState {
     return cache.get(key(folder)) ?? {};
+}
+
+export async function markFolderExplicitlyOpened(folder: vscode.WorkspaceFolder): Promise<void> {
+    await updateFolderState(folder, { explicitlyOpened: true });
 }
 
 export async function updateFolderState(folder: vscode.WorkspaceFolder, patch: Partial<FolderState>): Promise<void> {

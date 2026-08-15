@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getCurrentConfiguration, onDidChangeConfiguration } from '../utils/configurationPicker';
 import { getActiveWorkspaceFolder, onDidChangeActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
+import { applyOpenedVisibility } from '../utils/projectOpened';
 
 /**
  * Rightmost of the three .NET status bar segments. Only ever two choices, so
@@ -11,12 +12,14 @@ export function registerConfigurationStatusBarItem(context: vscode.ExtensionCont
     item.name = '.NET: Build Configuration';
     item.command = 'dotnet-studio.pickConfiguration';
 
-    const refresh = () => updateStatusBarItem(item);
+    const refresh = () => {
+        updateStatusBarItem(item);
+        applyOpenedVisibility(item, getActiveWorkspaceFolder());
+    };
 
     context.subscriptions.push(item, onDidChangeConfiguration(refresh), onDidChangeActiveWorkspaceFolder(refresh));
 
     refresh();
-    item.show();
 }
 
 function updateStatusBarItem(item: vscode.StatusBarItem): void {

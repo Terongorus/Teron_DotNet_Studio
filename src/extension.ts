@@ -25,6 +25,10 @@ import { warmFolderState, disposeFolderStateWatchers } from './utils/folderState
 import { registerSolutionExplorerView } from './solutionExplorer/solutionExplorerProvider';
 import { registerSolutionExplorerCommands } from './solutionExplorer/solutionExplorerCommands';
 import { hasAnyDotnetProject } from './utils/workspaceHasProject';
+import { hasAnyExplicitlyOpenedFolder } from './utils/projectOpened';
+import { onDidLoadFolderState } from './utils/folderState';
+import { onDidChangeCurrentSolution } from './utils/currentSolution';
+import { onDidChangePickedCsproj } from './utils/projectPicker';
 import { SharpLspClientManager } from './languageServer/sharpLspClient';
 import { registerSharpLspStatusBarItem } from './languageServer/sharpLspStatusBarItem';
 import { registerLanguageServerCommands } from './commands/languageServerCommands';
@@ -40,7 +44,7 @@ import { registerTestController } from './testing/testController';
 import { registerFormatters } from './formatting/registerFormatters';
 import { migrateLegacySettings, registerLegacyCommandAliases } from './utils/legacyPrefixMigration';
 
-const WORKSPACE_HAS_PROJECT_CONTEXT = 'dotnet-studio.workspaceHasProject';
+const PROJECT_OPENED_CONTEXT = 'dotnet-studio.projectOpened';
 const SHARPLSP_LANGUAGE_IDS = ['csharp', 'fsharp'];
 
 let sharpLsp: SharpLspClientManager | undefined;
@@ -50,8 +54,8 @@ async function warmAllWorkspaceFolders(): Promise<void> {
     await Promise.all((vscode.workspace.workspaceFolders ?? []).map(folder => warmFolderState(folder)));
 }
 
-async function updateWorkspaceHasProjectContext(): Promise<void> {
-    await vscode.commands.executeCommand('setContext', WORKSPACE_HAS_PROJECT_CONTEXT, await hasAnyDotnetProject());
+async function updateProjectOpenedContext(): Promise<void> {
+    await vscode.commands.executeCommand('setContext', PROJECT_OPENED_CONTEXT, hasAnyExplicitlyOpenedFolder());
 }
 
 function getSelectedLanguageServer(): LanguageServerChoice {
@@ -162,12 +166,17 @@ export async function activate(context: vscode.ExtensionContext) {
     maybeShowStartPageOnStartup(context);
     void maybeShowSetupDebugTasksPrompt(context);
 
-    void updateWorkspaceHasProjectContext();
+    void updateProjectOpenedContext();
     void warmAllWorkspaceFolders();
-    context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(event => {
-        void updateWorkspaceHasProjectContext();
-        void Promise.all(event.added.map(folder => warmFolderState(folder)));
-    }));
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeWorkspaceFolders(event => {
+            void updateProjectOpenedContext();
+            void Promise.all(event.added.map(folder => warmFolderState(folder)));
+        }),
+        onDidLoadFolderState(() => void updateProjectOpenedContext()),
+        onDidChangeCurrentSolution(() => void updateProjectOpenedContext()),
+        onDidChangePickedCsproj(() => void updateProjectOpenedContext())
+    );
 
     // Must run after every command registration above - it aliases whatever's actually
     // registered at this point, not a hand-maintained list.

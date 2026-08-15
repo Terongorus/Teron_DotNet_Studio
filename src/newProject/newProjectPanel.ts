@@ -6,7 +6,7 @@ import { isValidProjectName, isValidPackageId } from '../utils/validation';
 import { getProjectTemplates, classifyTemplate, ClassifiedTemplate } from '../utils/templates';
 import { pickExistingSolution } from '../utils/solutionPicker';
 import { addRecentItem } from '../startPage/recentItems';
-import { openFolderUnlessAlreadyOpen } from '../utils/openFolder';
+import { openSolutionTarget, openProjectTarget } from '../utils/openTarget';
 import { getNewProjectHtml } from './newProjectHtml';
 import { getRecentTemplates, addRecentTemplate } from './recentTemplates';
 
@@ -235,15 +235,22 @@ async function handleCreate(context: vscode.ExtensionContext, panel: vscode.Webv
             }
         });
 
+        const csprojPath = path.join(target.projectFolder, `${projectName}.csproj`);
+
         await addRecentItem(context.globalState, {
-            kind: 'project',
-            name: projectName,
-            folderPath: target.solutionFolder ?? target.projectFolder
+            kind: target.slnPath ? 'solution' : 'project',
+            name: target.slnPath ? path.basename(target.slnPath, path.extname(target.slnPath)) : projectName,
+            folderPath: target.solutionFolder ?? target.projectFolder,
+            filePath: target.slnPath ?? csprojPath
         });
         await addRecentTemplate(context.globalState, { shortName: templateShortName, name: templateName });
 
         vscode.window.showInformationMessage(`Successfully created ${projectName}!`);
-        openFolderUnlessAlreadyOpen(target.solutionFolder ?? target.projectFolder);
+        if (target.slnPath) {
+            await openSolutionTarget(target.solutionFolder!, target.slnPath, csprojPath);
+        } else {
+            await openProjectTarget(target.projectFolder, csprojPath);
+        }
 
         // Per design, the wizard is a one-shot flow - it's done once creation succeeds.
         panel.dispose();

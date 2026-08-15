@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { getRecentItems, removeRecentItem, onDidChangeRecentItems } from './recentItems';
 import { getStartPageHtml } from './startPageHtml';
+import { openSolutionTarget, openProjectTarget } from '../utils/openTarget';
+import { openFolderUnlessAlreadyOpen } from '../utils/openFolder';
 
 const VIEW_TYPE = 'dotnetCreator.startPage';
 
@@ -40,9 +42,20 @@ export function showStartPage(context: vscode.ExtensionContext): void {
             case 'openExisting':
                 vscode.commands.executeCommand(`dotnet-studio.${message.command}`);
                 break;
-            case 'openRecent':
-                vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(message.folderPath), false);
+            case 'openRecent': {
+                // Older recent entries (pre-dating this field) may have no filePath - fall back to
+                // a plain folder open for those rather than failing, since there's nothing to track.
+                const item = getRecentItems(context.globalState)
+                    .find(i => i.folderPath.toLowerCase() === message.folderPath.toLowerCase());
+                if (item?.filePath && item.kind === 'solution') {
+                    await openSolutionTarget(item.folderPath, item.filePath);
+                } else if (item?.filePath && item.kind === 'project') {
+                    await openProjectTarget(item.folderPath, item.filePath);
+                } else {
+                    openFolderUnlessAlreadyOpen(message.folderPath);
+                }
                 break;
+            }
             case 'removeRecent':
                 await removeRecentItem(context.globalState, message.folderPath);
                 break;
