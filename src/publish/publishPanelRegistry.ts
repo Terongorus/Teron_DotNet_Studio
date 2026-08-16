@@ -1,9 +1,9 @@
 /**
- * Lets publishProfileWizardPanel.ts tell an already-open Publish page (publishPanel.ts) to
- * refresh after a profile is saved, without those two modules importing each other directly -
- * publishPanel.ts already needs to import publishProfileWizardPanel.ts's showPublishProfileWizard
- * (to open the wizard for New/Edit), so having the wizard import back from publishPanel.ts too
- * would be a genuine circular dependency. This tiny registry breaks that cycle: both panels only
+ * Lets newPublishProfilePanel.ts/editPublishProfilePanel.ts tell an already-open Publish page
+ * (publishPanel.ts) to refresh after a profile is saved, without those modules importing each
+ * other directly - publishPanel.ts already needs to import their show*() functions (to open the
+ * right form for New/Edit), so having either of them import back from publishPanel.ts too would
+ * be a genuine circular dependency. This tiny registry breaks that cycle: all three panels only
  * ever import from here, never from each other.
  */
 type RefreshCallback = (selectName?: string) => void;

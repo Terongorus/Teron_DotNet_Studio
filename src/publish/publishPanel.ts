@@ -10,14 +10,15 @@ import {
 import { renamePublishSecrets, deleteAllPublishSecrets } from '../utils/publishSecrets';
 import { publishProject } from '../commands/publishActions';
 import { getPublishHtml } from './publishHtml';
-import { showPublishProfileWizard } from './publishProfileWizardPanel';
+import { showNewPublishProfileWizard } from './newPublishProfilePanel';
+import { showEditPublishProfileWizard } from './editPublishProfilePanel';
 import { registerPublishPanelRefresh, unregisterPublishPanelRefresh } from './publishPanelRegistry';
 
 const VIEW_TYPE = 'dotnetCreator.publish';
 
 const panels = new Map<string, vscode.WebviewPanel>();
 
-/** One panel per project, keyed by resolved path - mirrors nugetManagerPanel.ts's Map<filePath, WebviewPanel> pattern. Lists profiles and shows a read-only preview of the selected one; creating/editing a profile's settings happens in the separate publishProfileWizardPanel.ts window instead. */
+/** One panel per project, keyed by resolved path - mirrors nugetManagerPanel.ts's Map<filePath, WebviewPanel> pattern. Lists profiles and shows a read-only preview of the selected one; creating/editing a profile's settings happens in the separate newPublishProfilePanel.ts/editPublishProfilePanel.ts windows instead. */
 export function showPublishPanel(context: vscode.ExtensionContext, projectPath: string): void {
     const existing = panels.get(projectPath);
     if (existing) {
@@ -59,14 +60,14 @@ export function showPublishPanel(context: vscode.ExtensionContext, projectPath: 
     panel.webview.onDidReceiveMessage(async message => {
         switch (message.command) {
             case 'newProfile': {
-                showPublishProfileWizard(context, projectPath);
+                showNewPublishProfileWizard(context, projectPath);
                 break;
             }
 
             case 'editProfile': {
                 const profile = await readPublishProfile(projectPath, message.name);
                 if (!profile) { break; }
-                showPublishProfileWizard(context, projectPath, profile);
+                showEditPublishProfileWizard(context, projectPath, profile);
                 break;
             }
 

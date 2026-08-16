@@ -9,7 +9,7 @@ function getNonce(): string {
     return text;
 }
 
-/** Same label/description text as publishProfileWizardHtml.ts's own TARGET_TYPES table - kept as an independent copy rather than a shared import, matching this codebase's existing convention of self-contained per-panel webview scripts (no shared JS module system between webview HTML files here). */
+/** Same label/description text as publishProfileFormMarkup.ts's own PUBLISH_TARGET_TYPES table - kept as an independent copy rather than a shared import, matching this codebase's existing convention of self-contained per-panel webview scripts. */
 const TARGET_TYPE_INFO: Record<string, { label: string; description: string }> = {
     folder: {
         label: 'Folder',

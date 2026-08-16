@@ -2,6 +2,20 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.2] - 2026-08-17
+
+* **Publish Profile editing: the name field is no longer stuck disabled.** You can now rename a
+  profile directly from **Edit** - it carries the `.pubxml`/`.pubxml.user` and any stored
+  credentials over to the new name and removes the old files/entries, the same as using
+  **Rename** on the Publish page itself, just without a separate step.
+* **Removed the "Choose a publish target" step.** The 2-step wizard (pick a target type, then
+  configure it) is now a single page: a **Publish Target** dropdown sits right below the profile
+  name, with the same short description of what the selected type does shown underneath it. No
+  more Back/Next - just Save and Cancel.
+* **New Profile and Edit Profile are now separate flows**, not one form reused with an
+  "editing?" flag - each has its own panel and message handling. New always starts from a clean
+  slate; Edit is the only one of the two that needs to think about renaming.
+
 ## [1.21.1] - 2026-08-17
 
 * **Publish page: fixed the Edit/Rename/Delete buttons sitting right next to each other with no

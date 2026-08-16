@@ -5,20 +5,21 @@ import {
     PUBLISH_RUNTIME_IDENTIFIERS,
     writePublishProfile,
     writeWebDeployPassword,
+    readWebDeployPassword,
+    deletePublishProfile,
     isValidProfileName,
     listTargetFrameworks
 } from '../utils/publishProfiles';
-import { storePublishSecret } from '../utils/publishSecrets';
+import { storePublishSecret, renamePublishSecrets } from '../utils/publishSecrets';
 import { readAndParsePublishSettingsFile } from './azurePublishSettingsImport';
-import { getPublishProfileWizardHtml } from './publishProfileWizardHtml';
+import { getEditPublishProfileHtml } from './editPublishProfileHtml';
 import { refreshPublishPanelIfOpen } from './publishPanelRegistry';
 
-const VIEW_TYPE = 'dotnetCreator.publishProfileWizard';
+const VIEW_TYPE = 'dotnetCreator.editPublishProfile';
 
-/** One wizard per project, keyed by resolved csproj path - mirrors publishPanel.ts's own Map pattern, since a user could reasonably have two different projects' wizards open at once (unlike Create New Project, which is workspace-wide and only ever makes sense as a single instance). */
+/** One panel per project, keyed by resolved csproj path - mirrors publishPanel.ts's own Map pattern. */
 const panels = new Map<string, vscode.WebviewPanel>();
 
-/** Secret fields a save message may carry alongside the (secret-free) PublishProfile itself - present only for the target type currently selected, and only when the user actually typed something (omitted means "leave whatever's already stored unchanged"). Azure's password never appears here - it's captured directly by the Import Publish Settings handler below. */
 interface PublishSecretBag {
     webDeployPassword?: string;
     containerRegistryPassword?: string;
@@ -35,12 +36,12 @@ async function persistSecrets(context: vscode.ExtensionContext, projectPath: str
 }
 
 /**
- * Opens the profile creation/edit wizard - a one-shot panel, disposed as soon as Save succeeds or
- * the user cancels, mirroring newProjectPanel.ts's own showNewProjectPanel/handleCreate lifecycle.
- * Pass `existingProfile` to edit it in place instead of creating a new one; its `name` is what
- * gets overwritten on save (renaming happens from the Publish page, not here).
+ * Opens the edit-profile form for an existing profile - a one-shot panel, disposed as soon as Save
+ * succeeds or the user cancels. Kept as its own module/panel (not shared with
+ * newPublishProfilePanel.ts behind a flag) so renaming - the one thing edit needs that new-profile
+ * creation never does - lives entirely in this file's save handler.
  */
-export function showPublishProfileWizard(context: vscode.ExtensionContext, projectPath: string, existingProfile?: PublishProfile): void {
+export function showEditPublishProfileWizard(context: vscode.ExtensionContext, projectPath: string, existingProfile: PublishProfile): void {
     const existingPanel = panels.get(projectPath);
     if (existingPanel) {
         existingPanel.reveal();
@@ -50,23 +51,19 @@ export function showPublishProfileWizard(context: vscode.ExtensionContext, proje
     const projectName = path.basename(projectPath, path.extname(projectPath));
     const panel = vscode.window.createWebviewPanel(
         VIEW_TYPE,
-        existingProfile ? `Edit Publish Profile: ${existingProfile.name}` : `New Publish Profile: ${projectName}`,
+        `Edit Publish Profile: ${existingProfile.name}`,
         vscode.ViewColumn.Active,
         { enableScripts: true, retainContextWhenHidden: true }
     );
 
     panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'appicon.png');
-    const codiconCssUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'codicons', 'codicon.css'));
-    panel.webview.html = getPublishProfileWizardHtml(panel.webview, codiconCssUri, projectName, PUBLISH_RUNTIME_IDENTIFIERS);
+    panel.webview.html = getEditPublishProfileHtml(panel.webview, projectName, PUBLISH_RUNTIME_IDENTIFIERS, existingProfile);
 
     panel.webview.onDidReceiveMessage(async message => {
         switch (message.command) {
             case 'ready': {
                 const frameworks = await listTargetFrameworks(projectPath);
                 void panel.webview.postMessage({ command: 'targetFrameworks', frameworks });
-                if (existingProfile) {
-                    void panel.webview.postMessage({ command: 'editProfile', profile: existingProfile });
-                }
                 break;
             }
 
@@ -120,10 +117,9 @@ export function showPublishProfileWizard(context: vscode.ExtensionContext, proje
                     break;
                 }
 
-                // The profile doesn't have a saved name yet on first-time creation until Save runs
-                // - store the secret under whatever name is currently typed so it's associated with
-                // the right profile once written; if the name changes before Save, this secret
-                // will need re-importing, which is an acceptable edge case for a rarely-changed field.
+                // If the name has been edited away from the profile's saved name before this
+                // import happens, this secret lands under the in-progress (not-yet-saved) name,
+                // same acceptable edge case as the New Profile flow.
                 const profileName = message.profileName as string;
                 if (profileName && isValidProfileName(profileName)) {
                     await storePublishSecret(context, projectPath, profileName, 'azureAppServicePassword', credentials.password);
@@ -139,13 +135,27 @@ export function showPublishProfileWizard(context: vscode.ExtensionContext, proje
 
             case 'save': {
                 const profile = message.profile as PublishProfile;
+                const previousName = message.previousName as string;
                 if (!isValidProfileName(profile.name)) {
                     void panel.webview.postMessage({ command: 'saveFailed', message: 'Enter a valid profile name.' });
                     break;
                 }
                 try {
+                    const renamed = !!previousName && profile.name !== previousName;
+                    if (renamed) {
+                        // Carry forward whatever's already stored under the old name before
+                        // writing the new file - persistSecrets() below then overwrites only the
+                        // specific secrets the user actually retyped, same "blank = unchanged"
+                        // semantics as an in-place edit.
+                        if (profile.targetType === 'webServer') {
+                            const existingPassword = await readWebDeployPassword(projectPath, previousName);
+                            if (existingPassword) { await writeWebDeployPassword(projectPath, profile.name, existingPassword); }
+                        }
+                        await renamePublishSecrets(context, projectPath, previousName, profile.name);
+                    }
                     await writePublishProfile(projectPath, profile);
                     await persistSecrets(context, projectPath, profile, message.secret as PublishSecretBag | undefined);
+                    if (renamed) { await deletePublishProfile(projectPath, previousName); }
                     refreshPublishPanelIfOpen(projectPath, profile.name);
                     panel.dispose();
                 } catch (error) {
