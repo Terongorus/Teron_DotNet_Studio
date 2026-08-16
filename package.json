@@ -4,7 +4,7 @@
   "description": "A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer, NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F# language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean. Designed to complement JetBrains' \"C# by ReSharper\" or Microsoft's \"C# Dev Kit\" for language tooling, while replacing their project-creation and run/debug workflow with something closer to Visual Studio's own.",
   "author": "Terongorus",
   "publisher": "Terongorus",
-  "version": "1.19.1",
+  "version": "1.20.0",
   "icon": "resources/appicon.png",
   "repository": {
     "type": "git",
@@ -44,7 +44,8 @@
         "dotnet-studio.roslyn.path",
         "dotnet-studio.roslyn.extraArgs",
         "dotnet-studio.debugAdapter.path",
-        "dotnet-studio.debugAdapter.extraArgs"
+        "dotnet-studio.debugAdapter.extraArgs",
+        "dotnet-studio.webDeploy.path"
       ]
     }
   },
@@ -595,6 +596,17 @@
             "description": "Extra command-line arguments passed to the netcoredbg process."
           }
         }
+      },
+      {
+        "title": "Publish: Web Deploy",
+        "order": 4,
+        "properties": {
+          "dotnet-studio.webDeploy.path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to msdeploy.exe, required to publish to a Web Server target. Leave empty to resolve it from a well-known Web Deploy install location or PATH."
+          }
+        }
       }
     ],
     "menus": {
@@ -1012,6 +1024,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
+    "@types/ssh2-sftp-client": "^9.0.6",
     "@types/tar-stream": "^3.1.4",
     "@types/vscode": "^1.125.0",
     "@types/yauzl": "^3.4.0",
@@ -1031,6 +1044,7 @@
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
+    "ssh2-sftp-client": "^12.1.1",
     "tar-stream": "^3.2.0",
     "vscode-jsonrpc": "^9.0.1",
     "vscode-languageclient": "^10.1.0",

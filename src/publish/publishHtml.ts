@@ -9,10 +9,19 @@ function getNonce(): string {
     return text;
 }
 
+const TARGET_TYPES = [
+    { value: 'folder', label: 'Folder' },
+    { value: 'azureAppService', label: 'Azure App Service' },
+    { value: 'containerRegistry', label: 'Container Registry' },
+    { value: 'webServer', label: 'Web Server' },
+    { value: 'sftp', label: 'SFTP' }
+];
+
 export function getPublishHtml(webview: vscode.Webview, projectName: string, runtimeIdentifiers: string[]): string {
     const nonce = getNonce();
     const csp = `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
     const ridOptions = runtimeIdentifiers.map(rid => `<option value="${rid}">${rid}</option>`).join('');
+    const typePills = TARGET_TYPES.map(t => `<button type="button" class="pill" data-type="${t.value}">${t.label}</button>`).join('');
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -108,7 +117,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
             opacity: 0.75;
             margin-bottom: 4px;
         }
-        .form-row select, .form-row input[type="text"] {
+        .form-row select, .form-row input[type="text"], .form-row input[type="password"], .form-row input[type="number"] {
             width: 100%;
             box-sizing: border-box;
             background: var(--vscode-input-background);
@@ -167,6 +176,46 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
             align-items: center;
             margin-bottom: 4px;
         }
+        .type-picker {
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 8px;
+        }
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        button.pill {
+            background: var(--vscode-input-background);
+            color: var(--vscode-foreground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 12px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button.pill.selected {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border-color: var(--vscode-button-background);
+        }
+        .type-picker-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .imported-note {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .field-hint {
+            font-size: 11px;
+            opacity: 0.65;
+            margin-top: -10px;
+            margin-bottom: 14px;
+        }
     </style>
 </head>
 <body>
@@ -176,6 +225,14 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
             <ul class="profile-list" id="profileList"></ul>
             <div class="empty-note" id="emptyNote" style="display:none;">No publish profiles yet.</div>
             <button class="secondary" id="newProfileBtn">+ New Profile</button>
+            <div class="type-picker" id="typePicker" style="display:none;">
+                <div class="section-title" style="margin-top:0;">Target Type</div>
+                <div class="pill-row" id="typePillRow">${typePills}</div>
+                <div class="type-picker-actions">
+                    <button class="action" id="createProfileBtn">Create</button>
+                    <button class="secondary" id="cancelNewProfileBtn">Cancel</button>
+                </div>
+            </div>
         </div>
         <div class="form-column" id="formColumn" style="display:none;">
             <div class="name-row">
@@ -207,30 +264,131 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                 </select>
             </div>
 
-            <div class="form-row">
-                <label for="publishDir">Target Location</label>
+            <div class="form-row" id="publishDirRow">
+                <label for="publishDir" id="publishDirLabel">Target Location</label>
                 <div class="path-row">
                     <input type="text" id="publishDir">
                     <button class="secondary" id="browseBtn">Browse...</button>
                 </div>
             </div>
 
-            <div class="section-title">Advanced</div>
-            <div class="checkbox-row" id="singleFileRow">
-                <input type="checkbox" id="publishSingleFile">
-                <label for="publishSingleFile">Produce single file</label>
+            <div id="advancedSection">
+                <div class="section-title">Advanced</div>
+                <div class="checkbox-row" id="singleFileRow">
+                    <input type="checkbox" id="publishSingleFile">
+                    <label for="publishSingleFile">Produce single file</label>
+                </div>
+                <div class="checkbox-row" id="readyToRunRow">
+                    <input type="checkbox" id="publishReadyToRun">
+                    <label for="publishReadyToRun">Enable ReadyToRun compilation</label>
+                </div>
+                <div class="checkbox-row" id="compressionRow">
+                    <input type="checkbox" id="enableCompressionInSingleFile">
+                    <label for="enableCompressionInSingleFile">Compress single file</label>
+                </div>
+                <div class="checkbox-row" id="trimmedRow">
+                    <input type="checkbox" id="publishTrimmed">
+                    <label for="publishTrimmed">Trim unused assemblies</label>
+                </div>
             </div>
-            <div class="checkbox-row" id="readyToRunRow">
-                <input type="checkbox" id="publishReadyToRun">
-                <label for="publishReadyToRun">Enable ReadyToRun compilation</label>
+
+            <div id="containerFields" style="display:none;">
+                <div class="section-title">Container Registry</div>
+                <div class="form-row">
+                    <label for="containerRegistry">Registry</label>
+                    <input type="text" id="containerRegistry" placeholder="myregistry.azurecr.io (blank = Docker Hub)">
+                </div>
+                <div class="form-row">
+                    <label for="containerRepository">Repository (image name)</label>
+                    <input type="text" id="containerRepository">
+                </div>
+                <div class="form-row">
+                    <label for="containerImageTag">Image Tag</label>
+                    <input type="text" id="containerImageTag" placeholder="latest">
+                </div>
+                <div class="form-row">
+                    <label for="containerRegistryUsername">Registry Username</label>
+                    <input type="text" id="containerRegistryUsername">
+                </div>
+                <div class="form-row">
+                    <label for="containerRegistryPassword">Registry Password / Token</label>
+                    <input type="password" id="containerRegistryPassword" autocomplete="new-password">
+                </div>
+                <div class="field-hint">Leave the password blank to keep using either a previously saved one, or credentials from a prior "docker login" to this registry.</div>
             </div>
-            <div class="checkbox-row" id="compressionRow">
-                <input type="checkbox" id="enableCompressionInSingleFile">
-                <label for="enableCompressionInSingleFile">Compress single file</label>
+
+            <div id="webServerFields" style="display:none;">
+                <div class="section-title">Web Server (Web Deploy)</div>
+                <div class="form-row">
+                    <label for="webDeployServiceUrl">Server URL</label>
+                    <input type="text" id="webDeployServiceUrl" placeholder="https://myserver:8172/msdeploy.axd">
+                </div>
+                <div class="form-row">
+                    <label for="webDeployIisAppPath">Site/Application Name</label>
+                    <input type="text" id="webDeployIisAppPath">
+                </div>
+                <div class="form-row">
+                    <label for="webDeployUsername">Username</label>
+                    <input type="text" id="webDeployUsername">
+                </div>
+                <div class="form-row">
+                    <label for="webDeployPassword">Password</label>
+                    <input type="password" id="webDeployPassword" autocomplete="new-password">
+                </div>
+                <div class="field-hint">Leave the password blank to keep the one already saved for this profile.</div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="webDeployAllowUntrustedCertificate">
+                    <label for="webDeployAllowUntrustedCertificate">Allow untrusted certificate</label>
+                </div>
             </div>
-            <div class="checkbox-row" id="trimmedRow">
-                <input type="checkbox" id="publishTrimmed">
-                <label for="publishTrimmed">Trim unused assemblies</label>
+
+            <div id="azureFields" style="display:none;">
+                <div class="section-title">Azure App Service</div>
+                <button class="secondary" id="importPublishSettingsBtn">Import Publish Settings...</button>
+                <div class="imported-note" id="azureImportedNote" style="margin-top:8px;"></div>
+            </div>
+
+            <div id="sftpFields" style="display:none;">
+                <div class="section-title">SFTP</div>
+                <div class="form-row">
+                    <label for="sftpHost">Host</label>
+                    <input type="text" id="sftpHost">
+                </div>
+                <div class="form-row">
+                    <label for="sftpPort">Port</label>
+                    <input type="number" id="sftpPort" value="22">
+                </div>
+                <div class="form-row">
+                    <label for="sftpUsername">Username</label>
+                    <input type="text" id="sftpUsername">
+                </div>
+                <div class="form-row">
+                    <label for="sftpRemotePath">Remote Path</label>
+                    <input type="text" id="sftpRemotePath" placeholder="/var/www/myapp">
+                </div>
+                <div class="form-row">
+                    <label>Authentication</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="sftpAuthMethod" value="password" id="sftpAuthPassword"> Password</label>
+                        <label><input type="radio" name="sftpAuthMethod" value="privateKey" id="sftpAuthPrivateKey"> Private Key</label>
+                    </div>
+                </div>
+                <div class="form-row" id="sftpPasswordRow">
+                    <label for="sftpPassword">Password</label>
+                    <input type="password" id="sftpPassword" autocomplete="new-password">
+                </div>
+                <div class="field-hint" id="sftpPasswordHint">Leave blank to keep the one already saved for this profile.</div>
+                <div class="form-row" id="sftpPrivateKeyRow" style="display:none;">
+                    <label for="sftpPrivateKeyPath">Private Key File</label>
+                    <div class="path-row">
+                        <input type="text" id="sftpPrivateKeyPath">
+                        <button class="secondary" id="browsePrivateKeyBtn">Browse...</button>
+                    </div>
+                </div>
+                <div class="form-row" id="sftpPassphraseRow" style="display:none;">
+                    <label for="sftpPrivateKeyPassphrase">Key Passphrase (if any)</label>
+                    <input type="password" id="sftpPrivateKeyPassphrase" autocomplete="new-password">
+                </div>
             </div>
 
             <div class="actions-row">
@@ -253,6 +411,8 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
         const modeSelfContained = document.getElementById('modeSelfContained');
         const runtimeIdentifierEl = document.getElementById('runtimeIdentifier');
         const publishDirEl = document.getElementById('publishDir');
+        const publishDirRow = document.getElementById('publishDirRow');
+        const publishDirLabel = document.getElementById('publishDirLabel');
         const singleFileEl = document.getElementById('publishSingleFile');
         const readyToRunEl = document.getElementById('publishReadyToRun');
         const trimmedEl = document.getElementById('publishTrimmed');
@@ -261,19 +421,55 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
         const readyToRunRow = document.getElementById('readyToRunRow');
         const trimmedRow = document.getElementById('trimmedRow');
         const compressionRow = document.getElementById('compressionRow');
+        const advancedSection = document.getElementById('advancedSection');
         const statusLine = document.getElementById('statusLine');
+
+        const typePicker = document.getElementById('typePicker');
+        const typePillRow = document.getElementById('typePillRow');
+        let pendingNewProfileType = 'folder';
+
+        const containerFields = document.getElementById('containerFields');
+        const containerRegistryEl = document.getElementById('containerRegistry');
+        const containerRepositoryEl = document.getElementById('containerRepository');
+        const containerImageTagEl = document.getElementById('containerImageTag');
+        const containerRegistryUsernameEl = document.getElementById('containerRegistryUsername');
+        const containerRegistryPasswordEl = document.getElementById('containerRegistryPassword');
+
+        const webServerFields = document.getElementById('webServerFields');
+        const webDeployServiceUrlEl = document.getElementById('webDeployServiceUrl');
+        const webDeployIisAppPathEl = document.getElementById('webDeployIisAppPath');
+        const webDeployUsernameEl = document.getElementById('webDeployUsername');
+        const webDeployPasswordEl = document.getElementById('webDeployPassword');
+        const webDeployAllowUntrustedCertificateEl = document.getElementById('webDeployAllowUntrustedCertificate');
+
+        const azureFields = document.getElementById('azureFields');
+        const azureImportedNote = document.getElementById('azureImportedNote');
+        let azurePublishUrl = '';
+        let azureSiteName = '';
+        let azureUsername = '';
+
+        const sftpFields = document.getElementById('sftpFields');
+        const sftpHostEl = document.getElementById('sftpHost');
+        const sftpPortEl = document.getElementById('sftpPort');
+        const sftpUsernameEl = document.getElementById('sftpUsername');
+        const sftpRemotePathEl = document.getElementById('sftpRemotePath');
+        const sftpAuthPasswordEl = document.getElementById('sftpAuthPassword');
+        const sftpAuthPrivateKeyEl = document.getElementById('sftpAuthPrivateKey');
+        const sftpPasswordRow = document.getElementById('sftpPasswordRow');
+        const sftpPasswordEl = document.getElementById('sftpPassword');
+        const sftpPrivateKeyRow = document.getElementById('sftpPrivateKeyRow');
+        const sftpPrivateKeyPathEl = document.getElementById('sftpPrivateKeyPath');
+        const sftpPassphraseRow = document.getElementById('sftpPassphraseRow');
+        const sftpPrivateKeyPassphraseEl = document.getElementById('sftpPrivateKeyPassphrase');
 
         let profiles = [];
         let selectedName = null;
         let currentConfiguration = 'Release';
+        let currentTargetType = 'folder';
         // No UI control for this anymore (legacy, SDK-deprecated) - preserved only so an existing
         // profile that already has it set (from before this option was removed, or from real VS)
         // round-trips through Save Profile unchanged instead of silently losing the value.
         let currentIncludeAllContent = false;
-
-        function escapeHtml(value) {
-            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
 
         function renderProfileList() {
             profileListEl.innerHTML = '';
@@ -328,9 +524,35 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
         runtimeIdentifierEl.addEventListener('change', updateConditionalRows);
         singleFileEl.addEventListener('change', updateConditionalRows);
 
+        /** Toggles which target-type-specific sections are visible - mirrors this extension's own newProjectHtml.ts mode-pill pattern (one hidden/shown sub-panel per choice), just applied to publish target type instead of project-creation mode. */
+        function updateVisibilityForTargetType() {
+            const localOutputTypes = ['folder', 'sftp', 'azureAppService'];
+            const showPublishDir = localOutputTypes.includes(currentTargetType);
+            publishDirRow.style.display = showPublishDir ? 'block' : 'none';
+            publishDirLabel.textContent = currentTargetType === 'folder' ? 'Target Location' : 'Local Staging Folder';
+            advancedSection.style.display = showPublishDir ? 'block' : 'none';
+
+            containerFields.style.display = currentTargetType === 'containerRegistry' ? 'block' : 'none';
+            webServerFields.style.display = currentTargetType === 'webServer' ? 'block' : 'none';
+            azureFields.style.display = currentTargetType === 'azureAppService' ? 'block' : 'none';
+            sftpFields.style.display = currentTargetType === 'sftp' ? 'block' : 'none';
+
+            if (currentTargetType === 'sftp') { updateSftpAuthVisibility(); }
+        }
+
+        function updateSftpAuthVisibility() {
+            const usePrivateKey = sftpAuthPrivateKeyEl.checked;
+            sftpPasswordRow.style.display = usePrivateKey ? 'none' : 'block';
+            sftpPrivateKeyRow.style.display = usePrivateKey ? 'block' : 'none';
+            sftpPassphraseRow.style.display = usePrivateKey ? 'block' : 'none';
+        }
+        sftpAuthPasswordEl.addEventListener('change', updateSftpAuthVisibility);
+        sftpAuthPrivateKeyEl.addEventListener('change', updateSftpAuthVisibility);
+
         function collectProfile() {
             return {
                 name: selectedName,
+                targetType: currentTargetType,
                 configuration: currentConfiguration,
                 targetFramework: targetFrameworkEl.value,
                 runtimeIdentifier: runtimeIdentifierEl.value,
@@ -340,12 +562,68 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                 publishReadyToRun: readyToRunEl.checked,
                 publishTrimmed: trimmedEl.checked,
                 includeAllContentForSelfExtract: currentIncludeAllContent,
-                enableCompressionInSingleFile: compressionEl.checked
+                enableCompressionInSingleFile: compressionEl.checked,
+
+                azurePublishUrl: azurePublishUrl || undefined,
+                azureSiteName: azureSiteName || undefined,
+                azureUsername: azureUsername || undefined,
+
+                containerRegistry: containerRegistryEl.value || undefined,
+                containerRepository: containerRepositoryEl.value || undefined,
+                containerImageTag: containerImageTagEl.value || undefined,
+                containerRegistryUsername: containerRegistryUsernameEl.value || undefined,
+
+                webDeployServiceUrl: webDeployServiceUrlEl.value || undefined,
+                webDeployIisAppPath: webDeployIisAppPathEl.value || undefined,
+                webDeployUsername: webDeployUsernameEl.value || undefined,
+                webDeployAllowUntrustedCertificate: webDeployAllowUntrustedCertificateEl.checked,
+
+                sftpHost: sftpHostEl.value || undefined,
+                sftpPort: sftpPortEl.value ? Number(sftpPortEl.value) : undefined,
+                sftpUsername: sftpUsernameEl.value || undefined,
+                sftpRemotePath: sftpRemotePathEl.value || undefined,
+                sftpAuthMethod: sftpAuthPrivateKeyEl.checked ? 'privateKey' : 'password',
+                sftpPrivateKeyPath: sftpPrivateKeyPathEl.value || undefined
             };
         }
 
+        /** Secrets are collected separately from collectProfile() and never round-trip back from the extension host into these fields - an empty field always means "leave whatever's already stored unchanged", not "clear it". */
+        function collectSecret() {
+            const secret = {};
+            if (currentTargetType === 'webServer' && webDeployPasswordEl.value) { secret.webDeployPassword = webDeployPasswordEl.value; }
+            if (currentTargetType === 'containerRegistry' && containerRegistryPasswordEl.value) { secret.containerRegistryPassword = containerRegistryPasswordEl.value; }
+            if (currentTargetType === 'sftp' && sftpAuthPasswordEl.checked && sftpPasswordEl.value) { secret.sftpPassword = sftpPasswordEl.value; }
+            if (currentTargetType === 'sftp' && sftpAuthPrivateKeyEl.checked && sftpPrivateKeyPassphraseEl.value) { secret.sftpPrivateKeyPassphrase = sftpPrivateKeyPassphraseEl.value; }
+            return secret;
+        }
+
+        function clearSecretFields() {
+            webDeployPasswordEl.value = '';
+            containerRegistryPasswordEl.value = '';
+            sftpPasswordEl.value = '';
+            sftpPrivateKeyPassphraseEl.value = '';
+        }
+
         document.getElementById('newProfileBtn').addEventListener('click', () => {
-            vscode.postMessage({ command: 'newProfile' });
+            pendingNewProfileType = 'folder';
+            [...typePillRow.children].forEach(btn => btn.classList.toggle('selected', btn.dataset.type === pendingNewProfileType));
+            typePicker.style.display = 'block';
+        });
+
+        document.getElementById('cancelNewProfileBtn').addEventListener('click', () => {
+            typePicker.style.display = 'none';
+        });
+
+        typePillRow.addEventListener('click', event => {
+            const btn = event.target.closest('.pill');
+            if (!btn) { return; }
+            pendingNewProfileType = btn.dataset.type;
+            [...typePillRow.children].forEach(b => b.classList.toggle('selected', b === btn));
+        });
+
+        document.getElementById('createProfileBtn').addEventListener('click', () => {
+            typePicker.style.display = 'none';
+            vscode.postMessage({ command: 'newProfile', targetType: pendingNewProfileType });
         });
 
         document.getElementById('renameBtn').addEventListener('click', () => {
@@ -362,16 +640,26 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
             vscode.postMessage({ command: 'browseFolder', currentValue: publishDirEl.value });
         });
 
+        document.getElementById('browsePrivateKeyBtn').addEventListener('click', () => {
+            vscode.postMessage({ command: 'browsePrivateKeyFile' });
+        });
+
+        document.getElementById('importPublishSettingsBtn').addEventListener('click', () => {
+            vscode.postMessage({ command: 'browsePublishSettingsFile' });
+        });
+
         document.getElementById('saveBtn').addEventListener('click', () => {
             if (!selectedName) { return; }
             statusLine.textContent = 'Saving...';
-            vscode.postMessage({ command: 'saveProfile', profile: collectProfile() });
+            vscode.postMessage({ command: 'saveProfile', profile: collectProfile(), secret: collectSecret() });
+            clearSecretFields();
         });
 
         document.getElementById('publishBtn').addEventListener('click', () => {
             if (!selectedName) { return; }
             statusLine.textContent = 'Publishing... see the ".NET Studio" terminal for progress.';
-            vscode.postMessage({ command: 'publish', profile: collectProfile() });
+            vscode.postMessage({ command: 'publish', profile: collectProfile(), secret: collectSecret() });
+            clearSecretFields();
         });
 
         window.addEventListener('message', event => {
@@ -402,6 +690,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                     const p = message.profile;
                     profileNameEl.textContent = p.name;
                     currentConfiguration = p.configuration || 'Release';
+                    currentTargetType = p.targetType || 'folder';
                     if ([...targetFrameworkEl.options].some(o => o.value === p.targetFramework)) {
                         targetFrameworkEl.value = p.targetFramework;
                     }
@@ -414,12 +703,52 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string, run
                     trimmedEl.checked = p.publishTrimmed;
                     currentIncludeAllContent = !!p.includeAllContentForSelfExtract;
                     compressionEl.checked = p.enableCompressionInSingleFile;
+
+                    azurePublishUrl = p.azurePublishUrl || '';
+                    azureSiteName = p.azureSiteName || '';
+                    azureUsername = p.azureUsername || '';
+                    azureImportedNote.textContent = azurePublishUrl
+                        ? ('Imported: ' + azureUsername + ' @ ' + azurePublishUrl)
+                        : 'Not imported yet - click "Import Publish Settings..." to select a .PublishSettings file downloaded from the Azure Portal.';
+
+                    containerRegistryEl.value = p.containerRegistry || '';
+                    containerRepositoryEl.value = p.containerRepository || '';
+                    containerImageTagEl.value = p.containerImageTag || '';
+                    containerRegistryUsernameEl.value = p.containerRegistryUsername || '';
+
+                    webDeployServiceUrlEl.value = p.webDeployServiceUrl || '';
+                    webDeployIisAppPathEl.value = p.webDeployIisAppPath || '';
+                    webDeployUsernameEl.value = p.webDeployUsername || '';
+                    webDeployAllowUntrustedCertificateEl.checked = !!p.webDeployAllowUntrustedCertificate;
+
+                    sftpHostEl.value = p.sftpHost || '';
+                    sftpPortEl.value = p.sftpPort || 22;
+                    sftpUsernameEl.value = p.sftpUsername || '';
+                    sftpRemotePathEl.value = p.sftpRemotePath || '';
+                    sftpAuthPrivateKeyEl.checked = p.sftpAuthMethod === 'privateKey';
+                    sftpAuthPasswordEl.checked = p.sftpAuthMethod !== 'privateKey';
+                    sftpPrivateKeyPathEl.value = p.sftpPrivateKeyPath || '';
+
+                    clearSecretFields();
                     updateConditionalRows();
+                    updateVisibilityForTargetType();
                     formColumn.style.display = 'block';
                     break;
                 }
                 case 'folderPicked': {
                     publishDirEl.value = message.path;
+                    break;
+                }
+                case 'privateKeyFilePicked': {
+                    sftpPrivateKeyPathEl.value = message.path;
+                    break;
+                }
+                case 'publishSettingsImported': {
+                    azurePublishUrl = message.azurePublishUrl || '';
+                    azureSiteName = message.azureSiteName || '';
+                    azureUsername = message.azureUsername || '';
+                    azureImportedNote.textContent = 'Imported: ' + azureUsername + ' @ ' + azurePublishUrl;
+                    statusLine.textContent = 'Publish settings imported - click Save Profile or Publish.';
                     break;
                 }
                 case 'status': {

@@ -2,6 +2,38 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.20.0] - 2026-08-16
+
+* **Four new Publish targets: Azure App Service, Container Registry, Web Server, and SFTP** -
+  the Publish panel previously supported Folder only. Creating a new profile now starts with a
+  target-type picker; each type gets its own configuration fields alongside the existing
+  target framework/deployment mode/runtime controls.
+  * **Azure App Service** publishes via Kudu's ZipDeploy endpoint (the same mechanism Visual
+    Studio itself offers as an alternative to Web Deploy) - no local tooling required. Use
+    **Import Publish Settings...** to load a `.PublishSettings` file downloaded from the Azure
+    Portal (App Service → Overview → Get publish profile), the same file real Visual Studio's own
+    "Import publish settings" flow consumes.
+  * **Container Registry** publishes via the .NET SDK's own built-in container support
+    (`dotnet publish /t:PublishContainer`) - genuinely no Docker installation needed, even to push
+    to a remote registry.
+  * **Web Server** publishes via Web Deploy, exactly like Visual Studio's own Web Server target -
+    requires a local Web Deploy (`msdeploy.exe`) install, detected the same way this extension
+    already detects netcoredbg/SharpLsp/Roslyn, with an "Install Instructions" prompt if it's
+    missing. New setting: `dotnet-studio.webDeploy.path`.
+  * **SFTP** is a .NET Studio-original addition, not Visual Studio parity - confirmed via research
+    that Visual Studio has never actually shipped an SFTP publish target (only an open,
+    unimplemented feature request). Publishes the same local `dotnet publish` output Folder
+    profiles produce, then uploads it over SFTP.
+
+  Profiles remain real `Properties/PublishProfiles/<name>.pubxml` files, using Visual Studio's own
+  schema for the two targets that have a real VS equivalent (Azure App Service, Web Server) so
+  they stay interoperable with VS's own Publish UI - Container Registry and SFTP have no VS schema
+  to match and use this extension's own profile shape. Credentials are never written into the
+  (typically source-controlled) `.pubxml` itself: Web Server's password lives in the sibling
+  `<name>.pubxml.user` file, exactly matching real Visual Studio's own convention; Azure/Container
+  Registry/SFTP credentials go through VS Code's own encrypted SecretStorage instead (this
+  extension's first use of it - no prior feature here needed credential storage).
+
 ## [1.19.1] - 2026-08-15
 
 * **Publish panel Advanced section cleanup.** Removed the "Include all content in single file"

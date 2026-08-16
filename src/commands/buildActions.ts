@@ -16,18 +16,18 @@ const VERBS: Record<BuildAction, string> = {
 };
 
 /**
- * Runs `dotnet <args>` as a real VS Code Task (ShellExecution) rather than a background
- * child_process - shows live output in an integrated Terminal tab exactly like a task from
- * tasks.json (matches the RECOMMENDED_TASKS this extension itself generates), with the same
+ * Runs `<command> <args>` in `cwd` as a real VS Code Task (ShellExecution) rather than a
+ * background child_process - shows live output in an integrated Terminal tab exactly like a task
+ * from tasks.json (matches the RECOMMENDED_TASKS this extension itself generates), with the same
  * `$msCompile` problem matcher surfacing errors/warnings in the Problems panel, which the
  * previous plain-output-channel approach never did at all. Resolves to whether the process
- * exited 0.
+ * exited 0. `env`, when given, is merged over the task's inherited environment - used for
+ * passing credentials to a publish step without them appearing in the command line itself.
  */
-export function runDotnetTask(targetPath: string, args: string[], taskName: string): Promise<boolean> {
-    const cwd = path.dirname(targetPath);
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(targetPath)) ?? vscode.TaskScope.Workspace;
+export function runShellTask(command: string, args: string[], cwd: string, taskName: string, env?: Record<string, string>): Promise<boolean> {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(cwd)) ?? vscode.TaskScope.Workspace;
 
-    const execution = new vscode.ShellExecution('dotnet', args, { cwd });
+    const execution = new vscode.ShellExecution(command, args, { cwd, env });
     const task = new vscode.Task({ type: 'shell' }, workspaceFolder, taskName, TASK_SOURCE, execution, ['$msCompile']);
     task.group = vscode.TaskGroup.Build;
     task.presentationOptions = {
@@ -51,6 +51,11 @@ export function runDotnetTask(targetPath: string, args: string[], taskName: stri
             });
         }, reject);
     });
+}
+
+/** `runShellTask` specialized to `dotnet`, cwd'd to the target project/solution's own folder - the shape almost every build/publish call site here actually needs. */
+export function runDotnetTask(targetPath: string, args: string[], taskName: string, env?: Record<string, string>): Promise<boolean> {
+    return runShellTask('dotnet', args, path.dirname(targetPath), taskName, env);
 }
 
 /**
