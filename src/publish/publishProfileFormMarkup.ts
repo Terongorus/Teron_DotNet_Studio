@@ -1,16 +1,11 @@
 /**
- * Shared pure-template pieces (CSS, field markup, common DOM logic) for the two single-page
- * publish profile forms - newPublishProfileHtml.ts and editPublishProfileHtml.ts. This is plain
- * string-building TS code with no webview/DOM dependency of its own, so importing it from both
- * generator files carries none of the extension-host webpack circular-import risk that
- * publishPanel.ts/publishProfileWizardPanel.ts hit earlier (that was about the *panel* modules
- * calling back into each other at the extension-host level, not about webview script text).
- *
- * The two pages intentionally keep separate, independent onDidReceiveMessage handlers and their
- * own small init/save script blocks - there is no "isEditing" flag threading through shared
- * control flow anywhere. What's shared here is only the identical field layout and identical
- * per-field DOM wiring (visibility toggling, validation, collect-values), which both pages need
- * verbatim.
+ * Field markup and DOM-wiring logic for editPublishProfileHtml.ts's single-page Edit form (name,
+ * a Publish Target dropdown, framework/mode/runtime, and the per-type sections, all on one page -
+ * no separate "choose a target" step, since by the time you're editing a profile its target type
+ * is already known and rarely changes). newPublishProfileHtml.ts is a deliberately different,
+ * self-contained design (a guided target-type card-picker step, then a configure step) and does
+ * not use this module at all - New and Edit are genuinely two different UIs for two different
+ * moments, not the same form reused with a flag.
  */
 
 export interface PublishTargetTypeInfo {

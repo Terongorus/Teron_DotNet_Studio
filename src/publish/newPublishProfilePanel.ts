@@ -35,9 +35,11 @@ async function persistSecrets(context: vscode.ExtensionContext, projectPath: str
 }
 
 /**
- * Opens the new-profile form - a one-shot panel, disposed as soon as Save succeeds or the user
- * cancels. Kept as its own module/panel (not shared with editPublishProfilePanel.ts behind an
- * "existingProfile?" flag) so this flow's message handling only ever deals with brand-new profiles.
+ * Opens the new-profile wizard - a one-shot panel, disposed as soon as Save succeeds or the user
+ * cancels. This is the guided, first-time-choice flow (target-type card grid, then configure) -
+ * deliberately kept as its own module/panel, not shared with editPublishProfilePanel.ts's
+ * single-page form behind an "existingProfile?" flag, so this flow's message handling only ever
+ * deals with brand-new profiles.
  */
 export function showNewPublishProfileWizard(context: vscode.ExtensionContext, projectPath: string): void {
     const existingPanel = panels.get(projectPath);
@@ -55,7 +57,8 @@ export function showNewPublishProfileWizard(context: vscode.ExtensionContext, pr
     );
 
     panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'appicon.png');
-    panel.webview.html = getNewPublishProfileHtml(panel.webview, projectName, PUBLISH_RUNTIME_IDENTIFIERS);
+    const codiconCssUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'resources', 'codicons', 'codicon.css'));
+    panel.webview.html = getNewPublishProfileHtml(panel.webview, codiconCssUri, projectName, PUBLISH_RUNTIME_IDENTIFIERS);
 
     panel.webview.onDidReceiveMessage(async message => {
         switch (message.command) {

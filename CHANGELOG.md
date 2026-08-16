@@ -2,6 +2,21 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.3] - 2026-08-17
+
+* **Corrected v1.21.2's design: New Profile and Edit Profile are separate windows again, but not
+  the same page twice.** v1.21.2 replaced the original 2-step wizard (target-type card picker,
+  then configure) with one single-page form used for both creating and editing. That went further
+  than intended - the guided card-picker step was genuinely good UX for a first-time, unfamiliar
+  choice among 5 target types, and shouldn't have been removed for profile creation. Now:
+  * **+ New Profile** opens the original 2-step wizard (card grid step, then configure step)
+    unchanged from v1.21.0/v1.21.1 - it never had the disabled-name-field bug in the first place,
+    since that only ever applied to editing.
+  * **Edit** opens the single-page form introduced in v1.21.2 - Publish Target as a plain dropdown
+    (no separate step, since the type is already chosen and rarely changes), and the profile name
+    is a normal editable field with real rename support (`.pubxml`/`.pubxml.user`/credentials all
+    carry over to the new name).
+
 ## [1.21.2] - 2026-08-17
 
 * **Publish Profile editing: the name field is no longer stuck disabled.** You can now rename a
