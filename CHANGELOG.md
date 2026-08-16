@@ -2,6 +2,13 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.1] - 2026-08-17
+
+* **Publish page: fixed the Edit/Rename/Delete buttons sitting right next to each other with no
+  padding** - real misclick risk, especially next to **Delete**. They now have proper hit-target
+  padding and a visible gap; **Delete** also gets a divider before it and its own red/danger
+  styling so it's both harder to hit by accident and unmistakable when focused.
+
 ## [1.21.0] - 2026-08-16
 
 * **Publish is now two separate windows instead of one.** Previously the Publish panel mixed the

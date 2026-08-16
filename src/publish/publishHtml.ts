@@ -73,12 +73,33 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string): st
             padding: 6px 14px; cursor: pointer; font-size: 13px;
         }
         button.link {
-            background: none; border: none; color: var(--vscode-textLink-foreground);
-            cursor: pointer; font-size: 12px; padding: 0;
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            color: var(--vscode-textLink-foreground);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 10px;
+        }
+        button.link:hover {
+            background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+            border-color: var(--vscode-panel-border);
+        }
+        button.link.danger { color: var(--vscode-errorForeground); }
+        button.link.danger:hover {
+            background: var(--vscode-inputValidation-errorBackground, var(--vscode-list-hoverBackground));
+            border-color: var(--vscode-errorForeground);
+        }
+        .name-actions { display: flex; align-items: center; gap: 6px; }
+        .name-actions .divider {
+            width: 1px;
+            align-self: stretch;
+            background: var(--vscode-panel-border);
+            margin: 0 4px;
         }
         .actions-row { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
         .status-line { font-size: 12px; opacity: 0.85; margin-top: 10px; min-height: 16px; }
-        .name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 12px; }
         .target-type-badge { font-size: 12px; opacity: 0.8; margin-bottom: 4px; }
         .target-type-desc { font-size: 12px; opacity: 0.7; margin-bottom: 16px; }
         .info-grid { display: grid; grid-template-columns: 160px 1fr; row-gap: 8px; column-gap: 12px; font-size: 13px; margin-bottom: 6px; }
@@ -101,10 +122,11 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string): st
         <div class="form-column" id="formColumn" style="display:none;">
             <div class="name-row">
                 <strong id="profileName"></strong>
-                <span>
+                <span class="name-actions">
                     <button class="link" id="editBtn">Edit</button>
                     <button class="link" id="renameBtn">Rename</button>
-                    <button class="link" id="deleteBtn">Delete</button>
+                    <span class="divider"></span>
+                    <button class="link danger" id="deleteBtn">Delete</button>
                 </span>
             </div>
             <div class="target-type-badge" id="targetTypeBadge"></div>
