@@ -1,45 +1,23 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {
-    PublishProfile,
-    PublishTargetType,
-    PUBLISH_RUNTIME_IDENTIFIERS,
     listPublishProfiles,
     readPublishProfile,
-    writePublishProfile,
-    writeWebDeployPassword,
     deletePublishProfile,
     renamePublishProfile,
-    defaultPublishProfile,
-    isValidProfileName,
-    listTargetFrameworks
+    isValidProfileName
 } from '../utils/publishProfiles';
-import { storePublishSecret, renamePublishSecrets, deleteAllPublishSecrets } from '../utils/publishSecrets';
-import { readAndParsePublishSettingsFile } from './azurePublishSettingsImport';
+import { renamePublishSecrets, deleteAllPublishSecrets } from '../utils/publishSecrets';
 import { publishProject } from '../commands/publishActions';
 import { getPublishHtml } from './publishHtml';
+import { showPublishProfileWizard } from './publishProfileWizardPanel';
+import { registerPublishPanelRefresh, unregisterPublishPanelRefresh } from './publishPanelRegistry';
 
 const VIEW_TYPE = 'dotnetCreator.publish';
 
 const panels = new Map<string, vscode.WebviewPanel>();
 
-/** Secret fields a saveProfile/publish message may carry alongside the (secret-free) PublishProfile itself - present only for the target type the profile is currently set to, and only when the user actually typed something (undefined/omitted means "leave whatever's already stored unchanged"). Azure's password is handled separately, entirely through the Import Publish Settings flow below - it's never typed directly into this form. */
-interface PublishSecretBag {
-    webDeployPassword?: string;
-    containerRegistryPassword?: string;
-    sftpPassword?: string;
-    sftpPrivateKeyPassphrase?: string;
-}
-
-async function persistSecrets(context: vscode.ExtensionContext, projectPath: string, profile: PublishProfile, secret: PublishSecretBag | undefined): Promise<void> {
-    if (!secret) { return; }
-    if (secret.webDeployPassword) { await writeWebDeployPassword(projectPath, profile.name, secret.webDeployPassword); }
-    if (secret.containerRegistryPassword) { await storePublishSecret(context, projectPath, profile.name, 'containerRegistryPassword', secret.containerRegistryPassword); }
-    if (secret.sftpPassword) { await storePublishSecret(context, projectPath, profile.name, 'sftpPassword', secret.sftpPassword); }
-    if (secret.sftpPrivateKeyPassphrase) { await storePublishSecret(context, projectPath, profile.name, 'sftpPrivateKeyPassphrase', secret.sftpPrivateKeyPassphrase); }
-}
-
-/** One panel per project, keyed by resolved path - mirrors nugetManagerPanel.ts's Map<filePath, WebviewPanel> pattern. */
+/** One panel per project, keyed by resolved path - mirrors nugetManagerPanel.ts's Map<filePath, WebviewPanel> pattern. Lists profiles and shows a read-only preview of the selected one; creating/editing a profile's settings happens in the separate publishProfileWizardPanel.ts window instead. */
 export function showPublishPanel(context: vscode.ExtensionContext, projectPath: string): void {
     const existing = panels.get(projectPath);
     if (existing) {
@@ -56,7 +34,7 @@ export function showPublishPanel(context: vscode.ExtensionContext, projectPath: 
     );
 
     panel.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'appicon.png');
-    panel.webview.html = getPublishHtml(panel.webview, projectName, PUBLISH_RUNTIME_IDENTIFIERS);
+    panel.webview.html = getPublishHtml(panel.webview, projectName);
 
     let selectedName: string | undefined;
 
@@ -66,48 +44,34 @@ export function showPublishPanel(context: vscode.ExtensionContext, projectPath: 
         void panel.webview.postMessage({ command: 'profileList', names, selected: selectedName });
     };
 
-    const postTargetFrameworks = async (): Promise<void> => {
-        const frameworks = await listTargetFrameworks(projectPath);
-        void panel.webview.postMessage({ command: 'targetFrameworks', frameworks });
-    };
-
     const postProfile = async (name: string): Promise<void> => {
         const profile = await readPublishProfile(projectPath, name);
         if (profile) { void panel.webview.postMessage({ command: 'profileData', profile }); }
     };
 
+    registerPublishPanelRefresh(projectPath, selectName_ => {
+        void (async () => {
+            await postProfileList(selectName_);
+            if (selectedName) { await postProfile(selectedName); }
+        })();
+    });
+
     panel.webview.onDidReceiveMessage(async message => {
         switch (message.command) {
             case 'newProfile': {
-                const targetType = message.targetType as PublishTargetType;
-                const namePrefixes: Record<PublishTargetType, string> = {
-                    folder: 'FolderProfile',
-                    azureAppService: 'AzureProfile',
-                    containerRegistry: 'ContainerRegistryProfile',
-                    webServer: 'WebServerProfile',
-                    sftp: 'SftpProfile'
-                };
-                const name = await vscode.window.showInputBox({
-                    title: 'New Publish Profile',
-                    prompt: 'Profile name',
-                    value: `${namePrefixes[targetType]}${(await listPublishProfiles(projectPath)).length + 1}`,
-                    validateInput: value => isValidProfileName(value) ? undefined : 'Enter a valid file name.'
-                });
-                if (!name) { break; }
+                showPublishProfileWizard(context, projectPath);
+                break;
+            }
 
-                const frameworks = await listTargetFrameworks(projectPath);
-                const profile = defaultPublishProfile(name, frameworks[0] ?? '', targetType);
-                await writePublishProfile(projectPath, profile);
-                // The client's own 'profileList' handler follows up with 'selectProfile' once it
-                // sees `selected: name`, which re-fetches target frameworks + profile data - no
-                // need to duplicate those MSBuild/disk reads here.
-                await postProfileList(name);
+            case 'editProfile': {
+                const profile = await readPublishProfile(projectPath, message.name);
+                if (!profile) { break; }
+                showPublishProfileWizard(context, projectPath, profile);
                 break;
             }
 
             case 'selectProfile': {
                 selectedName = message.name;
-                await postTargetFrameworks();
                 await postProfile(message.name);
                 break;
             }
@@ -142,72 +106,8 @@ export function showPublishPanel(context: vscode.ExtensionContext, projectPath: 
                 break;
             }
 
-            case 'browseFolder': {
-                const picked = await vscode.window.showOpenDialog({
-                    canSelectFiles: false,
-                    canSelectFolders: true,
-                    canSelectMany: false,
-                    defaultUri: vscode.Uri.file(path.dirname(projectPath)),
-                    title: 'Select Publish Target Location'
-                });
-                if (!picked || picked.length === 0) { break; }
-
-                const relative = path.relative(path.dirname(projectPath), picked[0].fsPath);
-                const displayPath = (relative && !relative.startsWith('..') ? relative : picked[0].fsPath) + path.sep;
-                void panel.webview.postMessage({ command: 'folderPicked', path: displayPath });
-                break;
-            }
-
-            case 'browsePrivateKeyFile': {
-                const picked = await vscode.window.showOpenDialog({
-                    canSelectFiles: true,
-                    canSelectFolders: false,
-                    canSelectMany: false,
-                    title: 'Select SFTP Private Key'
-                });
-                if (!picked || picked.length === 0) { break; }
-                void panel.webview.postMessage({ command: 'privateKeyFilePicked', path: picked[0].fsPath });
-                break;
-            }
-
-            case 'browsePublishSettingsFile': {
-                if (!selectedName) { break; }
-                const picked = await vscode.window.showOpenDialog({
-                    canSelectFiles: true,
-                    canSelectFolders: false,
-                    canSelectMany: false,
-                    filters: { 'Publish Settings': ['PublishSettings'] },
-                    title: 'Import Azure Publish Settings'
-                });
-                if (!picked || picked.length === 0) { break; }
-
-                const credentials = await readAndParsePublishSettingsFile(picked[0].fsPath);
-                if (!credentials) {
-                    void vscode.window.showErrorMessage('Could not find a usable ZipDeploy/MSDeploy profile in that .PublishSettings file.');
-                    break;
-                }
-
-                await storePublishSecret(context, projectPath, selectedName, 'azureAppServicePassword', credentials.password);
-                void panel.webview.postMessage({
-                    command: 'publishSettingsImported',
-                    azurePublishUrl: credentials.publishUrl,
-                    azureSiteName: credentials.siteName,
-                    azureUsername: credentials.userName
-                });
-                break;
-            }
-
-            case 'saveProfile': {
-                const profile = message.profile as PublishProfile;
-                await writePublishProfile(projectPath, profile);
-                await persistSecrets(context, projectPath, profile, message.secret as PublishSecretBag | undefined);
-                void panel.webview.postMessage({ command: 'status', message: 'Profile saved.' });
-                break;
-            }
-
             case 'publish': {
-                const profile = message.profile as PublishProfile;
-                await persistSecrets(context, projectPath, profile, message.secret as PublishSecretBag | undefined);
+                const profile = message.profile;
                 const succeeded = await publishProject(context, projectPath, projectName, profile);
                 void panel.webview.postMessage({
                     command: 'status',
@@ -226,12 +126,12 @@ export function showPublishPanel(context: vscode.ExtensionContext, projectPath: 
 
     panel.onDidDispose(() => {
         panels.delete(projectPath);
+        unregisterPublishPanelRefresh(projectPath);
     });
 
     panels.set(projectPath, panel);
 
-    // If a profile exists, the client's 'profileList' handler follows up with its own
-    // 'selectProfile' message, which triggers postTargetFrameworks()/postProfile() below - no
-    // need to duplicate those calls here for the initial load.
+    // If a profile exists, the client's own 'profileList' handler follows up with 'selectProfile',
+    // which triggers postProfile() above - no need to duplicate that call here for the initial load.
     void postProfileList();
 }

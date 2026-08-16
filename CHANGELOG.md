@@ -2,6 +2,22 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.0] - 2026-08-16
+
+* **Publish is now two separate windows instead of one.** Previously the Publish panel mixed the
+  profile list, an always-editable form, and profile creation into a single page. Now:
+  * The **Publish page** (same entry points as before - Solution Explorer, Project status bar,
+    Command Palette) lists your saved profiles and shows a **read-only preview** of the selected
+    one's settings, with **Publish**/**Edit**/**Rename**/**Delete** actions.
+  * A separate **Publish Profile wizard** (opened via **+ New Profile** or **Edit**) handles actual
+    configuration - a 2-step flow mirroring this extension's own Create New Project wizard: step 1
+    picks the target type from a card per option, each with a short description of what it does
+    and what it needs; step 2 configures that profile's details. Editing pre-populates the wizard
+    and jumps straight to step 2.
+
+  This is a UI-layer restructuring only - the underlying profile model, `.pubxml`/`.pubxml.user`
+  I/O, credential storage, and all 5 publish executors (shipped in v1.20.0) are unchanged.
+
 ## [1.20.0] - 2026-08-16
 
 * **Four new Publish targets: Azure App Service, Container Registry, Web Server, and SFTP** -
