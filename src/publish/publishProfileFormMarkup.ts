@@ -74,7 +74,7 @@ export function getPublishProfileFormStyles(): string {
         .footer .spacer { flex: 1; }
         .status-line { font-size: 12px; opacity: 0.85; margin-top: 10px; min-height: 16px; }
         .error-text { font-size: 11px; color: var(--vscode-errorForeground); min-height: 14px; margin-top: 2px; }
-        .field-hint { font-size: 11px; opacity: 0.65; margin-top: -10px; margin-bottom: 14px; }
+        .field-hint { font-size: 11px; opacity: 0.65; margin-top: 5px; margin-bottom: 14px; }
         .imported-note { font-size: 12px; opacity: 0.8; }`;
 }
 

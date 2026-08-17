@@ -69,9 +69,11 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string): st
         button.action:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
         button.action:disabled { opacity: 0.6; cursor: default; }
         button.secondary {
-            background: none; color: var(--vscode-foreground); border: 1px solid var(--vscode-panel-border);
+            background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: 1px solid var(--vscode-panel-border);
             padding: 6px 14px; cursor: pointer; font-size: 13px;
         }
+        button.secondary:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+        button.secondary:disabled { opacity: 0.6; cursor: default; }
         button.link {
             background: none;
             border: 1px solid transparent;
@@ -107,7 +109,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string): st
         .info-value { word-break: break-word; }
         .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; opacity: 0.6; margin: 18px 0 8px; }
         .flag-list { font-size: 13px; }
-        .flag-list .flag-off { opacity: 0.45; text-decoration: line-through; }
+        .flag-list .flag-off { opacity: 0.45; text-decoration: none; }
         .empty-preview { font-size: 13px; opacity: 0.7; margin-top: 12px; }
     </style>
 </head>

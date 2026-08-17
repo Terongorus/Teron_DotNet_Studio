@@ -2,6 +2,15 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.4] - 2026-08-17
+
+* **Publish page/form styling polish** (manual visual fine-tuning): secondary buttons (**Back**,
+  **Browse...**, **Import Publish Settings...**) now use a filled button style matching primary
+  actions instead of a flat/transparent one, with matching hover and disabled states; disabled
+  Advanced flags in the read-only preview are dimmed without a strikethrough; and field hints
+  (e.g. "Leave the password blank to keep the one already saved...") sit with normal spacing below
+  their field instead of being pulled up tight underneath the label.
+
 ## [1.21.3] - 2026-08-17
 
 * **Corrected v1.21.2's design: New Profile and Edit Profile are separate windows again, but not
