@@ -2,6 +2,15 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.21.5] - 2026-08-18
+
+* **New Advanced publish option: exclude debug symbols (PDB files).** Adds `<DebugType>none</DebugType>`
+  to the profile when checked, which drops PDB files from the publish output entirely - matches
+  Visual Studio's own `DebugType` MSBuild property exactly, so it round-trips cleanly with VS's own
+  Publish UI. Available for Folder, Azure App Service, and SFTP profiles alongside the existing
+  single-file/ReadyToRun/trimming options, but unlike those it applies regardless of deployment mode
+  (framework-dependent or self-contained) rather than being gated to self-contained-only.
+
 ## [1.21.4] - 2026-08-17
 
 * **Publish page/form styling polish** (manual visual fine-tuning): secondary buttons (**Back**,

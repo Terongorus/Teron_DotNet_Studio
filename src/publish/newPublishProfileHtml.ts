@@ -200,6 +200,10 @@ export function getNewPublishProfileHtml(webview: vscode.Webview, codiconCssUri:
                 <input type="checkbox" id="publishTrimmed">
                 <label for="publishTrimmed">Trim unused assemblies</label>
             </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="noDebugSymbols">
+                <label for="noDebugSymbols">Exclude debug symbols (PDB files)</label>
+            </div>
         </div>
 
         <div id="containerFields" style="display:none;">
@@ -335,6 +339,7 @@ export function getNewPublishProfileHtml(webview: vscode.Webview, codiconCssUri:
         const singleFileEl = document.getElementById('publishSingleFile');
         const readyToRunEl = document.getElementById('publishReadyToRun');
         const trimmedEl = document.getElementById('publishTrimmed');
+        const noDebugSymbolsEl = document.getElementById('noDebugSymbols');
         const compressionEl = document.getElementById('enableCompressionInSingleFile');
         const singleFileRow = document.getElementById('singleFileRow');
         const readyToRunRow = document.getElementById('readyToRunRow');
@@ -513,6 +518,7 @@ export function getNewPublishProfileHtml(webview: vscode.Webview, codiconCssUri:
                 publishTrimmed: trimmedEl.checked,
                 includeAllContentForSelfExtract: currentIncludeAllContent,
                 enableCompressionInSingleFile: compressionEl.checked,
+                noDebugSymbols: noDebugSymbolsEl.checked,
 
                 azurePublishUrl: azurePublishUrl || undefined,
                 azureSiteName: azureSiteName || undefined,

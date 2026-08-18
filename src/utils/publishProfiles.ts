@@ -40,6 +40,8 @@ export interface PublishProfile {
     includeAllContentForSelfExtract: boolean;
     /** Also requires selfContained - the SDK raises a real build error (CompressionInSingleFileRequiresSelfContained) otherwise, not just a no-op. */
     enableCompressionInSingleFile: boolean;
+    /** Adds `<DebugType>none</DebugType>` when true, which drops PDB files from the publish output entirely. Unlike the other advanced flags this isn't gated by self-contained/single-file - it's a plain MSBuild property that applies regardless of deployment mode. */
+    noDebugSymbols: boolean;
 
     /** Kudu SCM base URL (e.g. `https://<app>.scm.azurewebsites.net`), obtained via Import Publish Settings. */
     azurePublishUrl?: string;
@@ -155,7 +157,8 @@ export async function readPublishProfile(csprojPath: string, name: string): Prom
         publishReadyToRun: extractElement(xml, 'PublishReadyToRun') === 'true',
         publishTrimmed: extractElement(xml, 'PublishTrimmed') === 'true',
         includeAllContentForSelfExtract: extractElement(xml, 'IncludeAllContentForSelfExtract') === 'true',
-        enableCompressionInSingleFile: extractElement(xml, 'EnableCompressionInSingleFile') === 'true'
+        enableCompressionInSingleFile: extractElement(xml, 'EnableCompressionInSingleFile') === 'true',
+        noDebugSymbols: extractElement(xml, 'DebugType') === 'none'
     };
 
     switch (targetType) {
@@ -257,6 +260,7 @@ function renderPublishProfileXml(profile: PublishProfile): string {
     if (profile.enableCompressionInSingleFile) { lines.push('    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>'); }
     if (profile.publishReadyToRun) { lines.push('    <PublishReadyToRun>true</PublishReadyToRun>'); }
     if (profile.publishTrimmed) { lines.push('    <PublishTrimmed>true</PublishTrimmed>'); }
+    if (profile.noDebugSymbols) { lines.push('    <DebugType>none</DebugType>'); }
 
     switch (profile.targetType) {
         case 'azureAppService':
@@ -333,6 +337,7 @@ export function defaultPublishProfile(name: string, targetFramework: string, tar
         publishTrimmed: false,
         includeAllContentForSelfExtract: false,
         enableCompressionInSingleFile: false,
+        noDebugSymbols: false,
         sftpPort: targetType === 'sftp' ? 22 : undefined,
         sftpAuthMethod: targetType === 'sftp' ? 'password' : undefined
     };

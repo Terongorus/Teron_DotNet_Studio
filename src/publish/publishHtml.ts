@@ -239,6 +239,7 @@ export function getPublishHtml(webview: vscode.Webview, projectName: string): st
                 flagRow(advancedFlagsList, 'Enable ReadyToRun compilation', !!p.publishReadyToRun);
                 flagRow(advancedFlagsList, 'Compress single file', !!p.enableCompressionInSingleFile);
                 flagRow(advancedFlagsList, 'Trim unused assemblies', !!p.publishTrimmed);
+                flagRow(advancedFlagsList, 'Exclude debug symbols (PDB files)', !!p.noDebugSymbols);
             }
 
             typeSpecificGrid.innerHTML = '';
