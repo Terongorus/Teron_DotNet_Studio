@@ -9,13 +9,14 @@ All notable changes to the **.NET Studio** extension will be documented in this 
   package name is now `dotnet-studio` (was `dotnet-project-creator`) — the new VS Code extension
   ID is `Terongorus.dotnet-studio`. The **.NET Studio** display name, all features, and all
   settings are unchanged.
-* **Known consequence for existing installs:** because the VS Code extension ID itself changed,
-  self-update will install this and future versions **side-by-side** with your existing
-  `Terongorus.dotnet-project-creator` install rather than replacing it in place — VS Code matches
-  updates by extension ID, and that ID is now different. After updating, uninstall the old
-  `dotnet-project-creator` entry manually from the Extensions view; your settings carry over
-  automatically since they're keyed by the (unchanged) `dotnet-studio.*` configuration prefix
-  from the v1.17.0 rename, not by extension ID.
+* **Action required for existing installs: uninstall `dotnet-project-creator` (v1.21.5 or
+  earlier) before installing this version.** Because the VS Code extension ID itself changed
+  (`Terongorus.dotnet-project-creator` → `Terongorus.dotnet-studio`), the two extensions conflict
+  and won't both install cleanly side-by-side — the self-update flow's "Download and Install"
+  will fail (or leave things in a broken state) unless the old `dotnet-project-creator` entry is
+  uninstalled from the Extensions view **first**. Your settings carry over automatically since
+  they're keyed by the (unchanged) `dotnet-studio.*` configuration prefix from the v1.17.0
+  rename, not by extension ID — uninstalling the old extension does not lose your settings.
 * Repository branch model also moved from a single `master` branch to `dev`/`release`
   (development happens on `dev`; `release` is what gets tagged and published), matching this
   developer's other public projects. No user-facing effect.
