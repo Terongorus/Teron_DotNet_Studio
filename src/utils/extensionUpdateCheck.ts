@@ -63,7 +63,7 @@ async function downloadAndInstallLatest(context: vscode.ExtensionContext): Promi
             try {
                 const bytes = await downloadToBuffer(vsixUrl, new vscode.CancellationTokenSource().token);
                 await vscode.workspace.fs.createDirectory(context.globalStorageUri);
-                vsixPath = vscode.Uri.joinPath(context.globalStorageUri, `dotnet-project-creator-${version}.vsix`);
+                vsixPath = vscode.Uri.joinPath(context.globalStorageUri, `dotnet-studio-${version}.vsix`);
                 await vscode.workspace.fs.writeFile(vsixPath, bytes);
             } catch (error) {
                 vscode.window.showErrorMessage(`.NET Studio: failed to download v${version} - ${describeError(error)}`);
