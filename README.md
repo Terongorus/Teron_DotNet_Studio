@@ -1,8 +1,13 @@
 # .NET Studio
 
-A clean, lightweight Visual Studio Code extension for generating C# and F# .NET projects directly inside VS Code.
+A set of .NET productivity tools for VS Code: project/solution scaffolding, a Solution Explorer,
+NuGet Package Manager, live WPF XAML preview, standalone debugging with an optional C#/F#
+language server, a Resource Monitor with runtime diagnostics, and a Visual Studio-style
+Solution/Project/Configuration status bar for Run/Build/Rebuild/Clean.
 
-Unlike the heavyweight C# Dev Kit, this extension purely acts as a UI wrapper for the official `.NET CLI`, allowing you to scaffold projects and solutions without unnecessary bloat.
+Designed to complement JetBrains' "C# by ReSharper" or Microsoft's "C# Dev Kit" for language
+tooling, while replacing their project-creation and run/debug workflow with something closer to
+Visual Studio's own.
 
 ## Features
 
