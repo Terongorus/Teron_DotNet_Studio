@@ -12,7 +12,7 @@ import * as tarStream from 'tar-stream';
  * instead of duplicating it.
  */
 
-const GITHUB_HEADERS = { 'User-Agent': 'dotnet-project-creator-vscode-extension', 'Accept': 'application/vnd.github+json' };
+const GITHUB_HEADERS = { 'User-Agent': 'teron-dotnet-studio-vscode-extension', 'Accept': 'application/vnd.github+json' };
 
 export interface ReleaseAsset {
     name: string;

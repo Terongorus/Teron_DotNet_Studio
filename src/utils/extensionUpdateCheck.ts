@@ -3,7 +3,7 @@ import { fetchLatestRelease, downloadToBuffer } from './githubReleaseInstaller';
 import { maybeNotifyUpdate } from './toolUpdateCheck';
 
 const GITHUB_OWNER = 'Terongorus';
-const GITHUB_REPO = 'dotnet-project-creator';
+const GITHUB_REPO = 'Teron_DotNet_Studio';
 
 /**
  * `workbench.extensions.installExtension` (and other internal VS Code commands) don't always

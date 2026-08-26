@@ -2,6 +2,24 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.22.0] - 2026-08-26
+
+* **Renamed the extension's underlying identity.** The GitHub repo (and this project's own
+  folder) is now `Teron_DotNet_Studio` (was `dotnet-project-creator`), and the npm/VS Code
+  package name is now `dotnet-studio` (was `dotnet-project-creator`) — the new VS Code extension
+  ID is `Terongorus.dotnet-studio`. The **.NET Studio** display name, all features, and all
+  settings are unchanged.
+* **Known consequence for existing installs:** because the VS Code extension ID itself changed,
+  self-update will install this and future versions **side-by-side** with your existing
+  `Terongorus.dotnet-project-creator` install rather than replacing it in place — VS Code matches
+  updates by extension ID, and that ID is now different. After updating, uninstall the old
+  `dotnet-project-creator` entry manually from the Extensions view; your settings carry over
+  automatically since they're keyed by the (unchanged) `dotnet-studio.*` configuration prefix
+  from the v1.17.0 rename, not by extension ID.
+* Repository branch model also moved from a single `master` branch to `dev`/`release`
+  (development happens on `dev`; `release` is what gets tagged and published), matching this
+  developer's other public projects. No user-facing effect.
+
 ## [1.21.5] - 2026-08-18
 
 * **New Advanced publish option: exclude debug symbols (PDB files).** Adds `<DebugType>none</DebugType>`

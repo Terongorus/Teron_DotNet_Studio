@@ -6,7 +6,7 @@ node_modules
 Front_page_design.png
 designer-host/bin/
 designer-host/obj/
-dotnet-project-creator.code-workspace
+Teron_DotNet_Studio.code-workspace
 .claude/
 SHARPLSP-STARTTRACE-BUG-REPORT.md
 logs/*.*
