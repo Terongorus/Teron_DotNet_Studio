@@ -2,6 +2,20 @@
 
 All notable changes to the **.NET Studio** extension will be documented in this file.
 
+## [1.22.1] - 2026-09-01
+
+* **Fixed x86 `PlatformTarget` debugging — netcoredbg cannot debug 32-bit .NET processes on
+  Windows at all.** The v1.9.0 fix (point `DOTNET_ROOT` at the 32-bit host) never actually
+  worked: confirmed by driving the real debug adapter directly that it only ships a 64-bit
+  Windows build, and crashes with an access violation the moment it attaches to an x86 target,
+  even with a fully valid x86 host and runtime present. Debugging an x86 project (F5, or the
+  generated launch.json's Run and Debug entries) now shows a clear, accurate message instead of
+  a silent crash or the previous opaque `configurationDone: 0x80004005`.
+* **Fixed: "Start Without Debugging" (Ctrl+F5) on an x86 project now actually works.** It
+  previously routed through the same debug adapter and crashed identically to F5. It now runs
+  the built assembly directly under the 32-bit host as a plain task, bypassing the debugger
+  entirely.
+
 ## [1.22.0] - 2026-08-26
 
 * **Renamed the extension's underlying identity.** The GitHub repo (and this project's own

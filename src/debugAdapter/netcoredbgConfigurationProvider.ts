@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { resolveProjectInfo, findX86DotnetHost } from '../utils/projectAssemblyResolver';
+import { resolveProjectInfo } from '../utils/projectAssemblyResolver';
 import { peekPickedCsprojFile } from '../utils/projectPicker';
 import { getActiveWorkspaceFolder } from '../utils/activeWorkspaceFolder';
 import { BuildConfiguration } from '../utils/configurationPicker';
@@ -14,9 +14,12 @@ import { BuildConfiguration } from '../utils/configurationPicker';
  * 1. Session naming: a static launch.json name ("`.NET Debug`"/"`.NET Release`") is identical for
  *    every project, so launching several concurrently is indistinguishable in the Call Stack/
  *    session switcher. Rewritten here to include the actual project name.
- * 2. x86 PlatformTarget: needs the 32-bit .NET host via DOTNET_ROOT, or the debug adapter faults
- *    with an opaque CLR error before user code runs - see buildActions.ts's identical fix for
- *    the full explanation.
+ * 2. x86 PlatformTarget: refused outright with an explanatory message rather than attempted -
+ *    netcoredbg only ships a 64-bit Windows build and crashes attaching to a 32-bit target
+ *    (confirmed by directly driving a real netcoredbg.exe over DAP against a real x86 build; see
+ *    buildActions.ts's runProject() for the full finding). Unlike that function, this provider
+ *    has no plain-Task fallback for noDebug launches, so x86 is blocked here unconditionally -
+ *    the message points the user at Ctrl+F5, which does have that fallback.
  *
  * The owning .csproj is looked up via peekPickedCsprojFile() (the same stored selection
  * ${input:pickAssemblyDebug}/${input:pickAssemblyRelease} just resolved `program` from) rather
@@ -39,14 +42,10 @@ export function registerNetcoredbgConfigurationProvider(context: vscode.Extensio
                 if (csprojPath) {
                     const { platformTarget } = await resolveProjectInfo(csprojPath, configurationLabel);
                     if (platformTarget === 'x86') {
-                        const x86Host = findX86DotnetHost();
-                        if (!x86Host) {
-                            vscode.window.showErrorMessage(
-                                `${projectName} targets x86, but no 32-bit .NET host was found at the expected install location. Install the x86 .NET SDK/runtime to debug this project.`
-                            );
-                            return undefined;
-                        }
-                        config.env = { ...config.env, DOTNET_ROOT: path.dirname(x86Host) };
+                        vscode.window.showErrorMessage(
+                            `${projectName} targets x86, but netcoredbg (this extension's debugger) can't debug or run 32-bit .NET processes on Windows through the Run and Debug dropdown - it only ships a 64-bit build and crashes when attached to a 32-bit target (an upstream limitation, not a configuration problem). Use "Start Without Debugging" (Ctrl+F5) from the status bar/editor instead - that path runs the project directly under the 32-bit host without going through the debugger.`
+                        );
+                        return undefined;
                     }
                 }
 

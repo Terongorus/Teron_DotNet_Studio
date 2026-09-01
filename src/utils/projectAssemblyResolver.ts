@@ -269,13 +269,14 @@ export function detectAssemblyPlatform(assemblyPath: string): HelperPlatform {
 }
 
 /**
- * Locates the 32-bit .NET host, needed to launch a PlatformTarget=x86 project - the
- * system-default host resolved via PATH is the x64 one, which faults trying to load an x86-only
- * IL image (the CLR raises E_FAIL during the debug adapter's configurationDone handshake, not a
- * clear error). Windows-only: the x86/x64 dual-host-install split this depends on is a Windows
- * SDK installer concept, not something Linux/macOS installs have. Checks the conventional
- * install location directly rather than probing PATH, since a 32-bit host is never the one a
- * 64-bit machine's PATH points at by default.
+ * Locates the 32-bit .NET host, needed to *run* (not debug - netcoredbg can't attach to a
+ * 32-bit target at all, see buildActions.ts's runProject()) a PlatformTarget=x86 project - the
+ * system-default host resolved via PATH is the x64 one, which throws FileLoadException
+ * ("assembly architecture is not compatible") trying to load an x86-only IL image (verified
+ * directly). Windows-only: the x86/x64 dual-host-install split this depends on is a Windows SDK
+ * installer concept, not something Linux/macOS installs have. Checks the conventional install
+ * location directly rather than probing PATH, since a 32-bit host is never the one a 64-bit
+ * machine's PATH points at by default.
  */
 export function findX86DotnetHost(): string | undefined {
     if (process.platform !== 'win32') { return undefined; }

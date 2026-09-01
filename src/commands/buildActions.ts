@@ -149,28 +149,46 @@ export async function runProject(
         return;
     }
 
+    // PlatformTarget=x86 can't go through netcoredbg at all - confirmed by directly driving a
+    // real cached netcoredbg.exe over DAP against a real x86 net10.0 build: it only ships a
+    // 64-bit Windows binary (no win32 release asset exists), and that 64-bit process crashes
+    // with STATUS_ACCESS_VIOLATION (0xC0000005) the moment it tries to launch/attach to a 32-bit
+    // target - reproduced with a fully valid x86 host+runtime present, and identically with
+    // noDebug:true (vscode.debug.startDebugging always routes through the same netcoredbg
+    // process regardless of that flag). Pointing DOTNET_ROOT at the 32-bit host (the previous
+    // fix here) never actually worked - it just swapped the opaque configurationDone: 0x80004005
+    // for a silent debugger crash. Debugging is genuinely not possible here; running is - the
+    // built assembly launches fine directly under the real x86 host (verified) - so noDebug
+    // bypasses netcoredbg entirely via a plain Task instead of vscode.debug.startDebugging.
+    if (platformTarget === 'x86') {
+        const x86Host = findX86DotnetHost();
+        if (!x86Host) {
+            vscode.window.showErrorMessage(
+                `${projectName} targets x86, but no 32-bit .NET host was found at the expected install location. Install the x86 .NET SDK/runtime to run this project.`
+            );
+            return;
+        }
+
+        if (!noDebug) {
+            vscode.window.showErrorMessage(
+                `${projectName} targets x86, but netcoredbg (this extension's debugger) can't debug 32-bit .NET processes on Windows - it only ships a 64-bit build and crashes when attached to a 32-bit target (an upstream limitation, not a configuration problem). Use "Start Without Debugging" (Ctrl+F5) instead - that runs the project directly under the 32-bit host without going through the debugger.`
+            );
+            return;
+        }
+
+        const ok = await runShellTask(x86Host, [assemblyPath], path.dirname(projectPath), `.NET Run: ${projectName}`, { DOTNET_ROOT: path.dirname(x86Host) });
+        if (!ok) {
+            vscode.window.showErrorMessage(`${projectName}: failed to run (${configuration}).`);
+        }
+        return;
+    }
+
     // netcoredbg launches the debuggee (a .dll) using its own inherited environment, unlike this
     // extension's other dotnet CLI invocations which all route through runDotnet() - so
     // dotnet-studio.dotnetPath needs its own explicit application here too, or a debug session
     // silently fails to find the runtime on a machine where the Extension Host can't see it (see
     // dotnetPath.ts's own comment on why the Extension Host and a terminal can disagree about this).
-    let env: NodeJS.ProcessEnv | undefined = resolveDotnetEnv();
-
-    // PlatformTarget=x86 needs the 32-bit .NET host - the system-default (x64) host faults
-    // trying to load an x86-only IL image with an opaque CLR error (0x80004005) during the debug
-    // adapter's configurationDone handshake, before any user code runs. Takes priority over the
-    // dotnetPath override above for DOTNET_ROOT specifically - a configured dotnetPath is very
-    // unlikely to itself be the distinct 32-bit host this needs.
-    if (platformTarget === 'x86') {
-        const x86Host = findX86DotnetHost();
-        if (!x86Host) {
-            vscode.window.showErrorMessage(
-                `${projectName} targets x86, but no 32-bit .NET host was found at the expected install location. Install the x86 .NET SDK/runtime to debug this project.`
-            );
-            return;
-        }
-        env = { ...env, DOTNET_ROOT: path.dirname(x86Host) };
-    }
+    const env: NodeJS.ProcessEnv | undefined = resolveDotnetEnv();
 
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectPath));
 
